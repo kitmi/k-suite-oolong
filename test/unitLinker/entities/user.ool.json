@@ -156,12 +156,6 @@
                     "optional": true
                 }
             },
-            "associations": [
-                {
-                    "type": "hasMany",
-                    "destEntity": "profile"
-                }
-            ],
             "indexes": [
                 {
                     "fields": "email",
@@ -207,12 +201,13 @@
                                     {
                                         "oolType": "ConditionalStatement",
                                         "test": {
-                                            "oolType": "ValidateExpression",
-                                            "caller": {
+                                            "oolType": "BinaryExpression",
+                                            "operator": "match",
+                                            "left": {
                                                 "oolType": "ObjectReference",
                                                 "name": "identity"
                                             },
-                                            "callee": {
+                                            "right": {
                                                 "oolType": "Validator",
                                                 "name": "isEmail"
                                             }
@@ -227,12 +222,13 @@
                                     {
                                         "oolType": "ConditionalStatement",
                                         "test": {
-                                            "oolType": "ValidateExpression",
-                                            "caller": {
+                                            "oolType": "BinaryExpression",
+                                            "operator": "match",
+                                            "left": {
                                                 "oolType": "ObjectReference",
                                                 "name": "identity"
                                             },
-                                            "callee": {
+                                            "right": {
                                                 "oolType": "Validator",
                                                 "name": "matches",
                                                 "args": [

@@ -25,9 +25,6 @@ entity user
     status : userStatus default("inactive") -- "User Status"
     tag : array optional
 
-  associations
-    hasMany 'profile'
-
   index
     email is unique
     mobile is unique
