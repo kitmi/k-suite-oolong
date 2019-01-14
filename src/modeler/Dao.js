@@ -75,6 +75,7 @@ class DaoModeler {
         let capitalized = pascalCase(schema.name);
 
         let locals = {
+            driver: this.connector.driver,
             className: capitalized,
             schemaName: schema.name
         };
@@ -143,9 +144,8 @@ class DaoModeler {
             }
 
             if (!_.isEmpty(sharedContext.newFunctorFiles)) {
-                console.log(sharedContext.newFunctorFiles);
                 _.each(sharedContext.newFunctorFiles, entry => {
-                    this._generateFunctionTemplateFile(schema, entry);
+                    this._generateFunctionTemplateFile(schema, entry);                    
                 });
             }
 
@@ -158,7 +158,12 @@ class DaoModeler {
                 imports: importLines.join('\n'),
                 className: capitalized,
                 entityMeta: JSON.stringify(modelMeta, null, 4),
-                classBody: indentLines(astClassMain.map(block => JsLang.astToCode(block)).join('\n\n'), 4) 
+                classBody: indentLines(astClassMain.map(block => JsLang.astToCode(block)).join('\n\n'), 8),
+                //functors: 
+                /* _.reduce(sharedContext.newFunctorFiles, (result, functor) => {
+                    result['$' + functor.functionName] = functor.functionName;
+                    return result;
+                }, {}) */
             };
 
             let classTemplate = path.resolve(__dirname, 'database', this.connector.driver, 'EntityModel.js.swig');

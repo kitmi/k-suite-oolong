@@ -1,7 +1,7 @@
 type
   password : text maxLength(200)
-  email : text maxLength(200) ~isEmail    
-  phone : text maxLength(20) ~matches(/^((\+|00)\d+)?\d+(-\d+)?$/)
+  email : text maxLength(200) |~isEmail    
+  phone : text maxLength(20) |~matches(/^((\+|00)\d+)?\d+(-\d+)?$/)
   userStatus : enum values(['inactive', 'active', 'disabled', 'forbidden', 'deleted'])
 
 entity user
@@ -17,8 +17,8 @@ entity user
 
   has
     email 
-    mobile : phone ~isMobilePhone(@latest.locale |> stringDasherize) |> normalizeMobile
-    password |> hashPassword(@latest.passwordSalt) ~isHash
+    mobile : phone |~isMobilePhone(@latest.locale |> stringDasherize) |> normalizeMobile
+    password |> hashPassword(@latest.passwordSalt) |~isHash
     passwordSalt : text fixedLength(32) auto readOnly fixedValue
     displayName : text maxLength(40) optional
     locale : text maxLength(10) default('en_AU')

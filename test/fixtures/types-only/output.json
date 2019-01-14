@@ -37,7 +37,10 @@
                     "oolType": "Validator",
                     "name": "matches",
                     "args": [
-                        "/^[A-Za-z_]\\w{2,39}$/"
+                        {
+                            "oolType": "RegExp",
+                            "value": "/^[A-Za-z_]\\w{2,39}$/"
+                        }
                     ]
                 }
             ]
@@ -70,7 +73,10 @@
                     "oolType": "Validator",
                     "name": "matches",
                     "args": [
-                        "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        {
+                            "oolType": "RegExp",
+                            "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        }
                     ]
                 }
             ]

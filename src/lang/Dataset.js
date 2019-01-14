@@ -5,7 +5,7 @@ const { deepCloneField, Clonable, isDotSeparateName } = require('./OolUtils');
 
 /**
  * Oolong dataset class.
- * @class {OolongDataset}
+ * @class OolongDataset
  */
 class Dataset extends Clonable {
     /**     

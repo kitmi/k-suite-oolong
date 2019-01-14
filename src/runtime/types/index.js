@@ -15,4 +15,20 @@ const types = {
     ARRAY, BINARY, BOOLEAN, ENUM, DATETIME, INTEGER, NUMBER, OBJECT, TEXT
 };
 
-module.exports = Object.assign(types, { ..._.mapKeys(types, (v, k) => v.name), Builtin: Set(_.map(types, t => t.name)) });
+const Types = { 
+    ...types, 
+    ..._.mapKeys(types, (v, k) => v.name), 
+    
+    Builtin: Set(_.map(types, t => t.name)),
+
+    sanitize: function (value, info, i18n) {
+        pre: {
+            Types.Builtin.has(info.type), `Unknown primitive type: "${info.type}"."`;
+        }
+    
+        let typeObjerct = Types[info.type];
+        return typeObjerct.sanitize(value, info, i18n);
+    } 
+};
+
+module.exports = Types;

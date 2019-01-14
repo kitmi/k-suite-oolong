@@ -7,8 +7,8 @@ type
 
   flag : bool default(false)
 
-  id : name ~matches(/^[A-Za-z_]\w{2,39}$/)
+  id : name |~matches(/^[A-Za-z_]\w{2,39}$/)
 
 type password : text maxLength(200)
-type email : text maxLength(200) ~isEmail    
-type phone : text maxLength(20) ~matches(/^((\+|00)\d+)?\d+(-\d+)?$/)
+type email : text maxLength(200) |~isEmail    
+type phone : text maxLength(20) |~matches(/^((\+|00)\d+)?\d+(-\d+)?$/)

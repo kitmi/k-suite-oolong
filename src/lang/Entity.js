@@ -123,7 +123,7 @@ class Entity extends Clonable {
                     featureName = feature.name;
                 }
 
-                let fn = require(path.resolve(__dirname, `./features/${featureName}.js`));
+                let fn = require(path.resolve(__dirname, `./entityFeatures/${featureName}.js`));
                 fn(this, this.linker.translateOolValue(this.oolModule, feature.args));
             });
         }

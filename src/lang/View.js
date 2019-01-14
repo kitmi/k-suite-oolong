@@ -7,7 +7,7 @@ const Dataset = require('./Dataset');
 
 /**
  * Oolong view class.
- * @class {OolongView}
+ * @class OolongView
  */
 class View extends Clonable {
 

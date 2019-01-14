@@ -307,7 +307,7 @@ class OolCodeGen {
             value.modifiers.forEach(v => {
                 switch (v.oolType) {
                     case OolTypes.Lang.VALIDATOR:
-                    lineInfo.push('~' + this._translateModifier(v));
+                    lineInfo.push('|~' + this._translateModifier(v));
                     break;
 
                     case OolTypes.Lang.PROCESSOR:
@@ -315,7 +315,7 @@ class OolCodeGen {
                     break;
 
                     case OolTypes.Lang.ACTIVATOR:
-                    lineInfo.push('=' + this._translateModifier(v));
+                    lineInfo.push('|=' + this._translateModifier(v));
                     break;
 
                     default:

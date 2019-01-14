@@ -2,10 +2,12 @@
 
 const Util = require('rk-utils');
 const { _ } = Util._;
-
-const { Errors, Validators, Generators, sanitize } = require('.');
+const Errors = require('./Errors');
+const Generators = require('./Generators');
+const Types = require('./types');
 const { DataValidationError, OolongUsageError, DsOperationError } = Errors;
-const Features = require('./Features');
+const Features = require('./entityFeatures');
+const Rules = require('../enum/Rules');
 
 const { isNothing } = require('../utils/lang');
 
@@ -87,7 +89,7 @@ class EntityModel {
             connOptions
         }; 
 
-        await Features.applyRules_(Features.RULE_BEFORE_FIND, this, context);  
+        await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
         return this._safeExecute_(async (context) => {            
             let records = await this.db.connector.find_(
@@ -132,7 +134,7 @@ class EntityModel {
             connOptions
         }; 
 
-        await Features.applyRules_(Features.RULE_BEFORE_FIND, this, context);  
+        await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
         return this._safeExecute_(async (context) => {            
             let records = await this.db.connector.find_(
@@ -170,7 +172,7 @@ class EntityModel {
         return this._safeExecute_(async (context) => {
             await this._prepareEntityData_(context);          
 
-            await Features.applyRules_(Features.RULE_BEFORE_CREATE, this, context);    
+            await Features.applyRules_(Rules.RULE_BEFORE_CREATE, this, context);    
 
             context.result = await this.db.connector.create_(
                 this.meta.name, 
@@ -216,7 +218,7 @@ class EntityModel {
         return this._safeExecute_(async (context) => {
             await this._prepareEntityData_(context, true /* is updating */);          
 
-            await Features.applyRules_(Features.RULE_BEFORE_UPDATE, this, context);     
+            await Features.applyRules_(Rules.RULE_BEFORE_UPDATE, this, context);     
 
             context.result = await this.db.connector.update_(
                 this.meta.name, 
@@ -383,7 +385,7 @@ class EntityModel {
 
                     latest[fieldName] = null;
                 } else {
-                    latest[fieldName] =  sanitize(raw[fieldName], fieldInfo, i18n);
+                    latest[fieldName] = Types.sanitize(raw[fieldName], fieldInfo, i18n);
                 }
                 
                 return;
@@ -436,7 +438,7 @@ class EntityModel {
             } // else default value set by database or by rules
         });
 
-        await Features.applyRules_(Features.RULE_AFTER_VALIDATION, this, context);    
+        await Features.applyRules_(Rules.RULE_AFTER_VALIDATION, this, context);    
 
         await this.applyModifiers_(context, isUpdating);
 

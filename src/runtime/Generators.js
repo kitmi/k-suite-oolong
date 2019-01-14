@@ -1,6 +1,5 @@
 "use strict";
 
-
 const path = require('path');
 const Util = require('rk-utils');
 const Types = require('./types');

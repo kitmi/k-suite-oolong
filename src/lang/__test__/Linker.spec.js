@@ -6,7 +6,7 @@ const Linker = require('../../../lib/lang/Linker');
 
 const SOURCE_PATH = path.resolve(__dirname, '../../../test/unitLinker');
 
-describe.only('unit:lang:Linker', function () {    
+describe('unit:lang:Linker', function () {    
     let linker;
 
     let logger = winston.createLogger({
@@ -95,7 +95,7 @@ describe.only('unit:lang:Linker', function () {
         });
     });
 
-    describe.only('load element', function () {
+    describe('load element', function () {
         it('load product entity from schema', function () {
             let schemaMod = linker.loadModule('product.ool');
             let refId = 'entity:product<-' + schemaMod.id;

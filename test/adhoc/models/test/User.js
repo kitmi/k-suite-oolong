@@ -1,104 +1,104 @@
 const { _ } = require('rk-utils');
 
-const EntityModel = require('@k-suite/oolong/lib/runtime/drivers/mysql/EntityModel');
-const { isNothing } = require('@k-suite/oolong/lib/utils/lang');
-const { Validators, Processors, Generators, Errors: { DataValidationError, DsOperationError } } = require('@k-suite/oolong/lib/runtime');
+const { Validators, Processors, Generators, Errors: { DataValidationError, DsOperationError }, Utils: { Lang: { isNothing } } } = require('@k-suite/oolong');
 const normalizeMobile = require('./processors/user-normalizeMobile.js');
-const hashPassword = require('./processors/user-hashPassword.js');
+const hashPassword = require('./processors/user-hashPassword.js'); 
 
-class User extends EntityModel {
-    /**
-     * Applying predefined modifiers to entity fields.
-     * @param context
-     * @param isUpdating
-     * @returns {*}
-     */
-    static async applyModifiers_(context, isUpdating) {
-        let {raw, latest, existing, i18n} = context;
-        existing || (existing = {});
-        if (!isNothing(latest['email'])) {
-            //Validating "email"
-            if (!Validators.isEmail(latest['email'])) {
-                throw new DataValidationError('Invalid "email".', {
-                    entity: this.meta.name,
-                    field: 'email'
-                });
+module.exports = (db, BaseEntityModel) => {
+    const UserSpec = class extends BaseEntityModel {    
+        /**
+         * Applying predefined modifiers to entity fields.
+         * @param context
+         * @param isUpdating
+         * @returns {*}
+         */
+        static async applyModifiers_(context, isUpdating) {
+            let {raw, latest, existing, i18n} = context;
+            existing || (existing = {});
+            if (!isNothing(latest['email'])) {
+                //Validating "email"
+                if (!Validators.isEmail(latest['email'])) {
+                    throw new DataValidationError('Invalid "email".', {
+                        entity: this.meta.name,
+                        field: 'email'
+                    });
+                }
             }
+            if (!isNothing(latest['password'])) {
+                if (isUpdating && isNothing(latest['password'])) {
+                    throw new DataValidationError('"password" is required due to change of its dependencies. (e.g: passwordSalt)');
+                }
+                if (!('passwordSalt' in latest) && !('passwordSalt' in existing)) {
+                    throw new DataValidationError('Missing "passwordSalt" value, which is a dependency of "password".');
+                }
+                //Processing "password"
+                latest['password'] = hashPassword(latest['password'], latest.hasOwnProperty('passwordSalt') ? latest['passwordSalt'] : existing['passwordSalt']);
+            }
+            if (!isNothing(latest['mobile'])) {
+                if (isUpdating && isNothing(latest['mobile'])) {
+                    throw new DataValidationError('"mobile" is required due to change of its dependencies. (e.g: locale)');
+                }
+                if (!('locale' in latest) && !('locale' in existing)) {
+                    throw new DataValidationError('Missing "locale" value, which is a dependency of "mobile".');
+                }
+                //Validating "mobile"
+                if (!Validators.isMobilePhone(latest['mobile'], Processors.stringDasherize(latest.hasOwnProperty('locale') ? latest['locale'] : existing['locale']))) {
+                    throw new DataValidationError('Invalid "mobile".', {
+                        entity: this.meta.name,
+                        field: 'mobile'
+                    });
+                }
+            }
+            if (!isNothing(latest['mobile'])) {
+                //Processing "mobile"
+                latest['mobile'] = normalizeMobile(latest['mobile']);
+            }
+            return context;
         }
-        if (!isNothing(latest['password'])) {
-            if (isUpdating && isNothing(latest['password'])) {
-                throw new DataValidationError('"password" is required due to change of its dependencies. (e.g: passwordSalt)');
+        
+        /**
+         * validate user credential
+         * @param identity
+         * @param password
+         * @returns {*}
+         */
+        static async validateUserCredential_(identity, password) {
+            //Retrieving the meta data
+            const $meta = this.meta.interfaces.validateUserCredential;
+            //Sanitize argument "identity"
+            identity = Types.TEXT.sanitize(identity, $meta.params[0], this.db.i18n);
+            //Sanitize argument "password"
+            password = Types.TEXT.sanitize(password, $meta.params[1], this.db.i18n);
+            let op$0$condition;
+            //Condition 0 for find one user
+            const $op$0$cases_0 = Validators.isEmail(identity);
+            if ($op$0$cases_0) {
+                op$0$condition = { email: identity };
+            } else {
+                //Condition 1 for find one user
+                const $op$0$cases_1 = Validators.matches(identity, '/^(\\+?\\d{6,})$/');
+                if ($op$0$cases_1) {
+                    op$0$condition = { mobile: identity };
+                } else
+                    return { error: { message: 'invalid_identity' } };
             }
-            if (!('passwordSalt' in latest) && !('passwordSalt' in existing)) {
-                throw new DataValidationError('Missing "passwordSalt" value, which is a dependency of "password".');
+            let user = await this.findOne_(op$0$condition);
+            //Return on exception #0
+            if (_.isEmpty(user)) {
+                return { error: { message: 'user_not_found' } };
             }
             //Processing "password"
-            latest['password'] = hashPassword(latest['password'], latest.hasOwnProperty('passwordSalt') ? latest['passwordSalt'] : existing['passwordSalt']);
-        }
-        if (!isNothing(latest['mobile'])) {
-            if (isUpdating && isNothing(latest['mobile'])) {
-                throw new DataValidationError('"mobile" is required due to change of its dependencies. (e.g: locale)');
+            password = hashPassword(password, user['passwordSalt']);
+            //Return on exception #1
+            if (password !== user['password']) {
+                return { error: { message: 'invalid_password' } };
             }
-            if (!('locale' in latest) && !('locale' in existing)) {
-                throw new DataValidationError('Missing "locale" value, which is a dependency of "mobile".');
-            }
-            //Validating "mobile"
-            if (!Validators.isMobilePhone(latest['mobile'], Processors.stringDasherize(latest.hasOwnProperty('locale') ? latest['locale'] : existing['locale']))) {
-                throw new DataValidationError('Invalid "mobile".', {
-                    entity: this.meta.name,
-                    field: 'mobile'
-                });
-            }
+            return user;
         }
-        if (!isNothing(latest['mobile'])) {
-            //Processing "mobile"
-            latest['mobile'] = normalizeMobile(latest['mobile']);
-        }
-        return context;
-    }
-    
-    /**
-     * validate user credential
-     * @param identity
-     * @param password
-     * @returns {*}
-     */
-    static async validateUserCredential_(identity, password) {
-        //Retrieving the meta data
-        const $meta = this.meta.interfaces.validateUserCredential;
-        //Sanitize argument "identity"
-        identity = Types.TEXT.sanitize(identity, $meta.params[0], this.db.i18n);
-        //Sanitize argument "password"
-        password = Types.TEXT.sanitize(password, $meta.params[1], this.db.i18n);
-        let op$0$condition;
-        //Condition 0 for find one user
-        const $op$0$cases_0 = Validators.isEmail(identity);
-        if ($op$0$cases_0) {
-            op$0$condition = { email: identity };
-        } else {
-            //Condition 1 for find one user
-            const $op$0$cases_1 = Validators.matches(identity, '/^(\\+?\\d{6,})$/');
-            if ($op$0$cases_1) {
-                op$0$condition = { mobile: identity };
-            } else
-                return { error: { message: 'invalid_identity' } };
-        }
-        let user = await this.findOne_(op$0$condition);
-        //Return on exception #0
-        if (_.isEmpty(user)) {
-            return { error: { message: 'user_not_found' } };
-        }
-        //Processing "password"
-        password = hashPassword(password, user['passwordSalt']);
-        //Return on exception #1
-        if (password !== user['password']) {
-            return { error: { message: 'invalid_password' } };
-        }
-        return user;
-    }
-}
+    };
 
-User.meta = {
+    UserSpec.db = db;
+    UserSpec.meta = {
     "schemaName": "test",
     "name": "user",
     "keyField": "id",
@@ -317,16 +317,23 @@ User.meta = {
             "field": "status",
             "value": "deleted"
         },
-        "stateTracking": [
-            {
-                "field": "status"
-            }
-        ],
         "atLeastOneNotNull": [
             [
                 "email",
                 "mobile"
             ]
+        ],
+        "stateTracking": [
+            {
+                "field": "status",
+                "stateMapping": {
+                    "inactive": "statusInactiveTimestamp",
+                    "active": "statusActiveTimestamp",
+                    "disabled": "statusDisabledTimestamp",
+                    "forbidden": "statusForbiddenTimestamp",
+                    "deleted": "statusDeletedTimestamp"
+                }
+            }
         ]
     },
     "uniqueKeys": [
@@ -373,4 +380,5 @@ User.meta = {
     }
 };
 
-module.exports = db => { User.db = db; return User };
+    return Object.assign(UserSpec, );
+};

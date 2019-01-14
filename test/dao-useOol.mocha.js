@@ -20,14 +20,14 @@ describe('e2e:oolong:dao:useOol', function () {
 
     before(function () {        
         process.chdir(WORKING_FOLDER);
-        fs.removeSync(path.join(WORKING_FOLDER, 'models'));
+        //fs.removeSync(path.join(WORKING_FOLDER, 'models'));
 
         cfg = fs.readJsonSync('./oolong-ool.json', 'utf8');
     });
 
     after(function () {
         fs.removeSync(path.join(WORKING_FOLDER, 'oolong-cli.log'));
-        fs.removeSync(path.join(WORKING_FOLDER, 'models'));
+        //fs.removeSync(path.join(WORKING_FOLDER, 'models'));
     });
 
     it('build', function () {
@@ -49,7 +49,7 @@ describe('e2e:oolong:dao:useOol', function () {
         Db.driver.should.be.equal('mysql');
         Db.schemaName.should.be.equal('test');
 
-        let db = new Db(cfg.mysql.fooBar.connection);
+        let db = new Db(cfg.dataSource.mysql.fooBar.connection);
         should.exists(db.connector);
 
         let User = db.model('user');  
@@ -63,7 +63,7 @@ describe('e2e:oolong:dao:useOol', function () {
 
     it('find all from db', async function () {
         const Db = require(path.resolve('./models/Test'));        
-        let db = new Db(cfg.mysql.fooBar.connection);
+        let db = new Db(cfg.dataSource.mysql.fooBar.connection);
 
         let User = db.model('user');  
 
@@ -79,7 +79,7 @@ describe('e2e:oolong:dao:useOol', function () {
 
     it('insert and find', async function () {
         const Db = require(path.resolve('./models/Test'));        
-        let db = new Db(cfg.mysql.fooBar.connection, { logger, logSQLStatement: true });
+        let db = new Db(cfg.dataSource.mysql.fooBar.connection, { logger, logSQLStatement: true });
 
         let User = db.model('user');  
         let saved = await User.create_({
@@ -107,7 +107,7 @@ describe('e2e:oolong:dao:useOol', function () {
 
     it('updates', async function () {
         const Db = require(path.resolve('./models/Test'));        
-        let db = new Db(cfg.mysql.fooBar.connection, { logger, logSQLStatement: true });
+        let db = new Db(cfg.dataSource.mysql.fooBar.connection, { logger, logSQLStatement: true });
 
         let User = db.model('user');  
         let created = await User.create_({
@@ -138,7 +138,7 @@ describe('e2e:oolong:dao:useOol', function () {
 
     it('all null with atLeastOneNotNull during creating', async function () {
         const Db = require(path.resolve('./models/Test'));        
-        let db = new Db(cfg.mysql.fooBar.connection, { logger, logSQLStatement: true });
+        let db = new Db(cfg.dataSource.mysql.fooBar.connection, { logger, logSQLStatement: true });
 
         let User = db.model('user');  
 
@@ -155,7 +155,7 @@ describe('e2e:oolong:dao:useOol', function () {
 
     it('all null with atLeastOneNotNull during updating', async function () {
         const Db = require(path.resolve('./models/Test'));        
-        let db = new Db(cfg.mysql.fooBar.connection, { logger, logSQLStatement: true });
+        let db = new Db(cfg.dataSource.mysql.fooBar.connection, { logger, logSQLStatement: true });
 
         let User = db.model('user');  
 

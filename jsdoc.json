@@ -3,6 +3,9 @@
 		"allowUnknownTags" : true
 	},
 	"plugins"   : ["plugins/markdown"],
+	"source": {
+        "excludePattern": "(^|\\/|\\\\)__"
+    },
 	"templates" : {
 		"systemName"            : "@k-suite/oolong",
 		"footer"                : "",

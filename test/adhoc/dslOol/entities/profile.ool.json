@@ -2,6 +2,30 @@
     "namespace": [
         "/Users/rockieguo/Documents/GitHub/k-suite/packages/oolong/lib/lang/builtins/types.ool"
     ],
+    "constant": {
+        "locale": {
+            "lang": "zh_CN",
+            "timezone": "Australia/Sydney",
+            "array": [
+                "abv",
+                90,
+                200.5
+            ],
+            "multiline": [
+                "gogogo",
+                "nextline",
+                "double quote",
+                "function () {\n          return 'this is inside a script block';\n        }",
+                true,
+                true,
+                false,
+                {
+                    "key": "another",
+                    "value": "object"
+                }
+            ]
+        }
+    },
     "entity": {
         "profile": {
             "comment": "Profile",

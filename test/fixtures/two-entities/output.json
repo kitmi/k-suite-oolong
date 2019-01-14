@@ -28,7 +28,10 @@
                     "oolType": "Validator",
                     "name": "matches",
                     "args": [
-                        "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        {
+                            "oolType": "RegExp",
+                            "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        }
                     ]
                 }
             ]

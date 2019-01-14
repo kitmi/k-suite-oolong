@@ -1,34 +1,34 @@
 const { _ } = require('rk-utils');
 
-const EntityModel = require('@k-suite/oolong/lib/runtime/drivers/mysql/EntityModel');
-const { isNothing } = require('@k-suite/oolong/lib/utils/lang');
-const { Validators, Processors, Generators, Errors: { DataValidationError, DsOperationError } } = require('@k-suite/oolong/lib/runtime');
+const { Validators, Processors, Generators, Errors: { DataValidationError, DsOperationError }, Utils: { Lang: { isNothing } } } = require('@k-suite/oolong');
+ 
 
-
-class Profile extends EntityModel {
-    /**
-     * Applying predefined modifiers to entity fields.
-     * @param context
-     * @param isUpdating
-     * @returns {*}
-     */
-    static async applyModifiers_(context, isUpdating) {
-        let {raw, latest, existing, i18n} = context;
-        existing || (existing = {});
-        if (!isNothing(latest['avatar'])) {
-            //Validating "avatar"
-            if (!Validators.isURL(latest['avatar'])) {
-                throw new DataValidationError('Invalid "avatar".', {
-                    entity: this.meta.name,
-                    field: 'avatar'
-                });
+module.exports = (db, BaseEntityModel) => {
+    const ProfileSpec = class extends BaseEntityModel {    
+        /**
+         * Applying predefined modifiers to entity fields.
+         * @param context
+         * @param isUpdating
+         * @returns {*}
+         */
+        static async applyModifiers_(context, isUpdating) {
+            let {raw, latest, existing, i18n} = context;
+            existing || (existing = {});
+            if (!isNothing(latest['avatar'])) {
+                //Validating "avatar"
+                if (!Validators.isURL(latest['avatar'])) {
+                    throw new DataValidationError('Invalid "avatar".', {
+                        entity: this.meta.name,
+                        field: 'avatar'
+                    });
+                }
             }
+            return context;
         }
-        return context;
-    }
-}
+    };
 
-Profile.meta = {
+    ProfileSpec.db = db;
+    ProfileSpec.meta = {
     "schemaName": "test",
     "name": "profile",
     "keyField": "owner",
@@ -107,4 +107,5 @@ Profile.meta = {
     "fieldDependencies": {}
 };
 
-module.exports = db => { Profile.db = db; return Profile };
+    return Object.assign(ProfileSpec, );
+};

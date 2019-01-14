@@ -397,14 +397,17 @@ function translateModifier(functor, compileContext, args) {
         if (!(functionName in builtins)) {
             fileName = './' + OOL_MODIFIER_PATH[functor.oolType] + '/' + compileContext.targetName + '-' + functionName + '.js';
             functorId = functionName;
-            addModifierToMap(functorId, functor.oolType, fileName, compileContext.mapOfFunctorToFile);
 
-            compileContext.newFunctorFiles.push({
-                functionName,
-                functorType: functor.oolType,
-                fileName,
-                args
-            });
+            if (!compileContext.mapOfFunctorToFile[functorId]) {
+                compileContext.newFunctorFiles.push({
+                    functionName,
+                    functorType: functor.oolType,
+                    fileName,
+                    args
+                });
+            }
+
+            addModifierToMap(functorId, functor.oolType, fileName, compileContext.mapOfFunctorToFile);            
         } else {            
             functorId = functor.oolType + 's.' + functionName;
         }
@@ -1027,7 +1030,7 @@ function createCompileContext(targetName, logger, sharedContext) {
         astMap: {}, // Store the AST for a node
         mapOfTokenToMeta: new Map(), // Store the source code block point
         modelVars: new Set(),
-        mapOfFunctorToFile: (sharedContext && sharedContext.mapOfFunctorToFile) || {},
+        mapOfFunctorToFile: (sharedContext && sharedContext.mapOfFunctorToFile) || {}, // Use to record import lines
         newFunctorFiles: (sharedContext && sharedContext.newFunctorFiles) || []
     };
 

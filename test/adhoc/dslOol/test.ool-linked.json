@@ -20,16 +20,23 @@
                     "field": "status",
                     "value": "deleted"
                 },
-                "stateTracking": [
-                    {
-                        "field": "status"
-                    }
-                ],
                 "atLeastOneNotNull": [
                     [
                         "email",
                         "mobile"
                     ]
+                ],
+                "stateTracking": [
+                    {
+                        "field": "status",
+                        "stateMapping": {
+                            "inactive": "statusInactiveTimestamp",
+                            "active": "statusActiveTimestamp",
+                            "disabled": "statusDisabledTimestamp",
+                            "forbidden": "statusForbiddenTimestamp",
+                            "deleted": "statusDeletedTimestamp"
+                        }
+                    }
                 ]
             },
             "fields": {
