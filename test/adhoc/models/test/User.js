@@ -1,6 +1,13 @@
 const { _ } = require('rk-utils');
 
-const { Validators, Processors, Generators, Errors: { DataValidationError, DsOperationError }, Utils: { Lang: { isNothing } } } = require('@k-suite/oolong');
+const { 
+    Types,
+    Validators, 
+    Processors, 
+    Generators, 
+    Errors: { DataValidationError, DsOperationError }, 
+    Utils: { Lang: { isNothing } } 
+} = require('@k-suite/oolong');
 const normalizeMobile = require('./processors/user-normalizeMobile.js');
 const hashPassword = require('./processors/user-hashPassword.js'); 
 
@@ -21,6 +28,15 @@ module.exports = (db, BaseEntityModel) => {
                     throw new DataValidationError('Invalid "email".', {
                         entity: this.meta.name,
                         field: 'email'
+                    });
+                }
+            }
+            if (!isNothing(latest['mobile'])) {
+                //Validating "mobile"
+                if (!Validators.matches(latest['mobile'], new RegExp('/^((\\+|00)\\d+)?\\d+(-\\d+)?$/'))) {
+                    throw new DataValidationError('Invalid "mobile".', {
+                        entity: this.meta.name,
+                        field: 'mobile'
                     });
                 }
             }
@@ -76,7 +92,7 @@ module.exports = (db, BaseEntityModel) => {
                 op$0$condition = { email: identity };
             } else {
                 //Condition 1 for find one user
-                const $op$0$cases_1 = Validators.matches(identity, '/^(\\+?\\d{6,})$/');
+                const $op$0$cases_1 = Validators.matches(identity, new RegExp('/^(\\+?\\d{6,})$/'));
                 if ($op$0$cases_1) {
                     op$0$condition = { mobile: identity };
                 } else
@@ -116,13 +132,13 @@ module.exports = (db, BaseEntityModel) => {
         "email": {
             "type": "text",
             "maxLength": 200,
+            "comment": "User Email",
             "modifiers": [
                 {
                     "oolType": "Validator",
                     "name": "isEmail"
                 }
             ],
-            "comment": "User Email",
             "subClass": [
                 "email"
             ],
@@ -132,7 +148,18 @@ module.exports = (db, BaseEntityModel) => {
         "mobile": {
             "type": "text",
             "maxLength": 20,
+            "comment": "User Mobile",
             "modifiers": [
+                {
+                    "oolType": "Validator",
+                    "name": "matches",
+                    "args": [
+                        {
+                            "oolType": "RegExp",
+                            "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        }
+                    ]
+                },
                 {
                     "oolType": "Validator",
                     "name": "isMobilePhone",
@@ -157,7 +184,6 @@ module.exports = (db, BaseEntityModel) => {
                     "name": "normalizeMobile"
                 }
             ],
-            "comment": "User Mobile",
             "subClass": [
                 "phone"
             ],
@@ -167,6 +193,7 @@ module.exports = (db, BaseEntityModel) => {
         "password": {
             "type": "text",
             "maxLength": 200,
+            "comment": "User Password",
             "modifiers": [
                 {
                     "oolType": "Processor",
@@ -179,7 +206,6 @@ module.exports = (db, BaseEntityModel) => {
                     ]
                 }
             ],
-            "comment": "User Password",
             "subClass": [
                 "password"
             ],
@@ -348,11 +374,11 @@ module.exports = (db, BaseEntityModel) => {
         ]
     ],
     "fieldDependencies": {
-        "password": [
-            "latest.passwordSalt"
-        ],
         "mobile": [
             "latest.locale"
+        ],
+        "password": [
+            "latest.passwordSalt"
         ]
     },
     "interfaces": {

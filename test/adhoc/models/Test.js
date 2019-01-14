@@ -9,7 +9,7 @@ class Test {
             this.connector = Connector.createConnector('mysql', connection, options);
             this._connectorOwner = true;
         } else {  
-            assert: connection instanceof Connector;
+            assert: connection.driver && connection.connectionString;
             
             this.connector = connection;
             this.i18n = options;

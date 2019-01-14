@@ -1,6 +1,13 @@
 const { _ } = require('rk-utils');
 
-const { Validators, Processors, Generators, Errors: { DataValidationError, DsOperationError }, Utils: { Lang: { isNothing } } } = require('@k-suite/oolong');
+const { 
+    Types,
+    Validators, 
+    Processors, 
+    Generators, 
+    Errors: { DataValidationError, DsOperationError }, 
+    Utils: { Lang: { isNothing } } 
+} = require('@k-suite/oolong');
  
 
 module.exports = (db, BaseEntityModel) => {
@@ -69,13 +76,13 @@ module.exports = (db, BaseEntityModel) => {
         "avatar": {
             "type": "text",
             "maxLength": 2000,
+            "optional": true,
             "modifiers": [
                 {
                     "oolType": "Validator",
                     "name": "isURL"
                 }
             ],
-            "optional": true,
             "subClass": [
                 "url"
             ],

@@ -9,7 +9,7 @@ class {{ className }} {
             this.connector = Connector.createConnector('{{ driver }}', connection, options);
             this._connectorOwner = true;
         } else {  
-            assert: connection instanceof Connector;
+            assert: connection.driver && connection.connectionString;
             
             this.connector = connection;
             this.i18n = options;

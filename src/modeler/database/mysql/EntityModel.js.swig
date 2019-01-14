@@ -1,6 +1,13 @@
 const { _ } = require('rk-utils');
 
-const { Validators, Processors, Generators, Errors: { DataValidationError, DsOperationError }, Utils: { Lang: { isNothing } } } = require('@k-suite/oolong');
+const { 
+    Types,
+    Validators, 
+    Processors, 
+    Generators, 
+    Errors: { DataValidationError, DsOperationError }, 
+    Utils: { Lang: { isNothing } } 
+} = require('@k-suite/oolong');
 {{ imports|safe }} 
 
 module.exports = (db, BaseEntityModel) => {

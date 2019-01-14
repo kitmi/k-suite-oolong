@@ -75,10 +75,7 @@
             "modifiers": [
                 {
                     "oolType": "Validator",
-                    "name": "isIP",
-                    "args": [
-                        "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
-                    ]
+                    "name": "isIP"
                 }
             ]
         },
@@ -90,7 +87,13 @@
             "modifiers": [
                 {
                     "oolType": "Validator",
-                    "name": "matches"
+                    "name": "matches",
+                    "args": [
+                        {
+                            "oolType": "RegExp",
+                            "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        }
+                    ]
                 }
             ]
         }

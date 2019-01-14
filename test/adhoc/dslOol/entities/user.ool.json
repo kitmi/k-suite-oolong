@@ -236,7 +236,10 @@
                                                 "oolType": "Validator",
                                                 "name": "matches",
                                                 "args": [
-                                                    "/^(\\+?\\d{6,})$/"
+                                                    {
+                                                        "oolType": "RegExp",
+                                                        "value": "/^(\\+?\\d{6,})$/"
+                                                    }
                                                 ]
                                             }
                                         },

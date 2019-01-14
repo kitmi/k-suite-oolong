@@ -7,6 +7,7 @@
 
 const { _ } = require('rk-utils');
 const escodegen = require('escodegen');
+const esprima = require('esprima');
 
 const AST_OBJECT_TYPES = [
     'ThisExpression',
@@ -333,6 +334,21 @@ function astValue(value) {
 
         if (value.oolType === 'ObjectReference') {
             return astVarRef(value.name, true);
+        }
+
+        if (value.oolType === 'RegExp') {
+            let [ literal ] = esprima.tokenize(value.value);
+            return {
+                "type": "NewExpression",
+                "callee": {
+                    "type": "Identifier",
+                    "name": "RegExp"
+                },
+                "arguments": [
+                    astLiteral(literal.value),
+                    ...(literal.regex.flags ? [ astLiteral(literal.regex.flags) ] : [])
+                ]
+            };
         }
 
         /*

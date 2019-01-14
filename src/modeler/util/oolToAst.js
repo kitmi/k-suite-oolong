@@ -550,6 +550,13 @@ function compileConcreteValueExpression(startTopoId, value, compileContext) {
 
             return compileVariableReference(startTopoId, value, compileContext);
         }
+
+        if (value.oolType === 'RegExp') {
+            compileContext.astMap[startTopoId] = JsLang.astValue(value);
+            //console.log(compileContext.astMap[startTopoId]);
+            //throw new Error(startTopoId);
+            return startTopoId;
+        }
         
         value = _.mapValues(value, (valueOfElement, key) => { 
             let sid = createTopoId(compileContext, startTopoId + '.' + key);

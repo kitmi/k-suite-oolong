@@ -15,7 +15,10 @@
                 "gogogo",
                 "nextline",
                 "double quote",
-                "function () {\n          return 'this is inside a script block';\n        }",
+                {
+                    "oolType": "JavaScript",
+                    "value": "function () {\n          return 'this is inside a script block';\n        }"
+                },
                 true,
                 true,
                 false,

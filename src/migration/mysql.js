@@ -43,7 +43,7 @@ class MySQLMigration {
         return eachAsync_(sqlFiles, async (file) => {
             let sqlFile = path.join(this.dbScriptPath, file);
             if (!fs.existsSync(sqlFile)) {
-                throw new Error(`Database script "${file}" not found. Try run "oolong build" first.`);
+                throw new Error(`Database script "${sqlFile}" not found. Try run "oolong build" first.`);
             }
 
             let sql = _.trim(fs.readFileSync(sqlFile, { encoding: 'utf8' }));

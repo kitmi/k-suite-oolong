@@ -51,13 +51,13 @@
                 "email": {
                     "type": "text",
                     "maxLength": 200,
+                    "comment": "User Email",
                     "modifiers": [
                         {
                             "oolType": "Validator",
                             "name": "isEmail"
                         }
                     ],
-                    "comment": "User Email",
                     "subClass": [
                         "email"
                     ],
@@ -67,7 +67,18 @@
                 "mobile": {
                     "type": "text",
                     "maxLength": 20,
+                    "comment": "User Mobile",
                     "modifiers": [
+                        {
+                            "oolType": "Validator",
+                            "name": "matches",
+                            "args": [
+                                {
+                                    "oolType": "RegExp",
+                                    "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                                }
+                            ]
+                        },
                         {
                             "oolType": "Validator",
                             "name": "isMobilePhone",
@@ -92,7 +103,6 @@
                             "name": "normalizeMobile"
                         }
                     ],
-                    "comment": "User Mobile",
                     "subClass": [
                         "phone"
                     ],
@@ -102,6 +112,7 @@
                 "password": {
                     "type": "text",
                     "maxLength": 200,
+                    "comment": "User Password",
                     "modifiers": [
                         {
                             "oolType": "Processor",
@@ -114,7 +125,6 @@
                             ]
                         }
                     ],
-                    "comment": "User Password",
                     "subClass": [
                         "password"
                     ],
@@ -262,13 +272,13 @@
                 "avatar": {
                     "type": "text",
                     "maxLength": 2000,
+                    "optional": true,
                     "modifiers": [
                         {
                             "oolType": "Validator",
                             "name": "isURL"
                         }
                     ],
-                    "optional": true,
                     "subClass": [
                         "url"
                     ],

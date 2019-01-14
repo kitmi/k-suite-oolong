@@ -212,7 +212,11 @@ class Linker {
             baseInfo = rootTypeInfo;
         }
 
-        let derivedInfo = { ..._.cloneDeep(baseInfo), ..._.omit(info, 'type')};
+        let derivedInfo = { ..._.cloneDeep(_.omit(baseInfo, ['modifiers'])), ..._.omit(info, ['type', 'modifiers'])};
+        if (baseInfo.modifiers || info.modifiers) {
+            derivedInfo.modifiers = [ ...(baseInfo.modifiers || []), ...(info.modifiers || []) ];
+        }
+
         if (!derivedInfo.subClass) {
             derivedInfo.subClass = [];
         }
