@@ -1240,7 +1240,7 @@ return_expression
 throw_error_expression
     : "throw" STRING -> { oolType: 'ThrowExpression', message: $2 }
     | "throw" identifier -> { oolType: 'ThrowExpression', errorType: $2 }
-    | "throw" identifier "(" gfc_param_list0  ")" -> { oolType: 'ThrowExpression', errorType: $2, args: $4 }
+    | "throw" identifier "(" gfc_param_list  ")" -> { oolType: 'ThrowExpression', errorType: $2, args: $4 }
     ;
 
 return_or_not
