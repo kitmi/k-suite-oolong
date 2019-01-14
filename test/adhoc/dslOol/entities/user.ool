@@ -20,7 +20,7 @@ entity user
     password |>hashPassword(@latest.passwordSalt) -- "User Password"
     passwordSalt : text fixedLength(8) auto -- "User Password Salt"
     locale : text default("en_AU") -- "User Locale"
-    isEmailVerified : boolean default(false)
+    isEmailVerified : boolean default(false) 
     isMobileVerified : boolean default(false)
     status : userStatus default("inactive") -- "User Status"
     tag : array optional
@@ -40,6 +40,14 @@ entity user
       isEmailVerified: true,
       isMobileVerified: true,
       status: 'active'
+    },
+    {
+      email: 'test@levo.legal',
+      mobile: '0412345679',
+      password: 'test',
+      isEmailVerified: true,
+      isMobileVerified: true,
+      status: 'active'
     }
   ]
 
@@ -52,8 +60,8 @@ entity user
       findOne user :
         when @identity ~ isEmail => selectedBy { email: @identity }
         when @identity ~ matches(/^(\+?\d{6,})$/) => selectedBy { mobile: @identity }
-        otherwise return { error: { message: 'invalid_identity' } }
+        otherwise throw BusinessError('invalid_identity')
 
       return @user unless
-        when @user not exists => { error: { message: 'user_not_found' } }
-        when @password |> hashPassword(@user.passwordSalt) != @user.password => { error: { message: 'invalid_password' } }
+        when @user not exists throw BusinessError('user_not_found')
+        when @password |> hashPassword(@user.passwordSalt) != @user.password throw BusinessError('invalid_password') 

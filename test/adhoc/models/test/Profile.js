@@ -5,7 +5,7 @@ const {
     Validators, 
     Processors, 
     Generators, 
-    Errors: { DataValidationError, DsOperationError }, 
+    Errors: { BusinessError, DataValidationError, DsOperationError }, 
     Utils: { Lang: { isNothing } } 
 } = require('@k-suite/oolong');
  

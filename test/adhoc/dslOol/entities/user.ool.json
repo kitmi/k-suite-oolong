@@ -180,6 +180,14 @@
                     "isEmailVerified": true,
                     "isMobileVerified": true,
                     "status": "active"
+                },
+                {
+                    "email": "test@levo.legal",
+                    "mobile": "0412345679",
+                    "password": "test",
+                    "isEmailVerified": true,
+                    "isMobileVerified": true,
+                    "status": "active"
                 }
             ],
             "interfaces": {
@@ -252,12 +260,11 @@
                                     }
                                 ],
                                 "else": {
-                                    "oolType": "ReturnExpression",
-                                    "value": {
-                                        "error": {
-                                            "message": "invalid_identity"
-                                        }
-                                    }
+                                    "oolType": "ThrowExpression",
+                                    "errorType": "BusinessError",
+                                    "args": [
+                                        "invalid_identity"
+                                    ]
                                 }
                             }
                         }
@@ -280,9 +287,11 @@
                                     }
                                 },
                                 "then": {
-                                    "error": {
-                                        "message": "user_not_found"
-                                    }
+                                    "oolType": "ThrowExpression",
+                                    "errorType": "BusinessError",
+                                    "args": [
+                                        "user_not_found"
+                                    ]
                                 }
                             },
                             {
@@ -315,9 +324,11 @@
                                     }
                                 },
                                 "then": {
-                                    "error": {
-                                        "message": "invalid_password"
-                                    }
+                                    "oolType": "ThrowExpression",
+                                    "errorType": "BusinessError",
+                                    "args": [
+                                        "invalid_password"
+                                    ]
                                 }
                             }
                         ]

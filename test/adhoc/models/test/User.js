@@ -5,7 +5,7 @@ const {
     Validators, 
     Processors, 
     Generators, 
-    Errors: { DataValidationError, DsOperationError }, 
+    Errors: { BusinessError, DataValidationError, DsOperationError }, 
     Utils: { Lang: { isNothing } } 
 } = require('@k-suite/oolong');
 const normalizeMobile = require('./processors/user-normalizeMobile.js');
@@ -33,7 +33,7 @@ module.exports = (db, BaseEntityModel) => {
             }
             if (!isNothing(latest['mobile'])) {
                 //Validating "mobile"
-                if (!Validators.matches(latest['mobile'], new RegExp('/^((\\+|00)\\d+)?\\d+(-\\d+)?$/'))) {
+                if (!Validators.matches(latest['mobile'], new RegExp('^((\\+|00)\\d+)?\\d+(-\\d+)?$'))) {
                     throw new DataValidationError('Invalid "mobile".', {
                         entity: this.meta.name,
                         field: 'mobile'
@@ -92,22 +92,22 @@ module.exports = (db, BaseEntityModel) => {
                 op$0$condition = { email: identity };
             } else {
                 //Condition 1 for find one user
-                const $op$0$cases_1 = Validators.matches(identity, new RegExp('/^(\\+?\\d{6,})$/'));
+                const $op$0$cases_1 = Validators.matches(identity, new RegExp('^(\\+?\\d{6,})$'));
                 if ($op$0$cases_1) {
                     op$0$condition = { mobile: identity };
                 } else
-                    return { error: { message: 'invalid_identity' } };
+                    throw new BusinessError('invalid_identity');
             }
             let user = await this.findOne_(op$0$condition);
             //Return on exception #0
             if (_.isEmpty(user)) {
-                return { error: { message: 'user_not_found' } };
+                throw new BusinessError('user_not_found');
             }
             //Processing "password"
             password = hashPassword(password, user['passwordSalt']);
             //Return on exception #1
             if (password !== user['password']) {
-                return { error: { message: 'invalid_password' } };
+                throw new BusinessError('invalid_password');
             }
             return user;
         }

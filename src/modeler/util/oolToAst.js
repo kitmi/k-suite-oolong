@@ -708,7 +708,13 @@ function wrapParamReference(name, value) {
 function translateThenAst(startId, endId, then, compileContext, assignTo) {
     if (_.isPlainObject(then)) {
         if (then.oolType === 'ThrowExpression') {
-            return JsLang.astThrow(then.errorType || defaultError, then.message || []);
+            let args;
+            if (then.args) {
+                args = translateArgs(startId, then.args, compileContext);
+            } else {
+                args = [];
+            }
+            return JsLang.astThrow(then.errorType || defaultError, then.message || args);
         }
 
         if (then.oolType === 'ReturnExpression') {

@@ -7,6 +7,14 @@
             "isEmailVerified": true,
             "isMobileVerified": true,
             "status": "active"
+        },
+        {
+            "email": "test@levo.legal",
+            "mobile": "0412345679",
+            "password": "test",
+            "isEmailVerified": true,
+            "isMobileVerified": true,
+            "status": "active"
         }
     ]
 }

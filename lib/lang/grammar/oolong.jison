@@ -34,7 +34,7 @@
         'entity.interface.find.when': new Set(['selecting', 'those', 'by', 'selected', 'selectedBy', "which", "has", "where", "is", "when", "to", "be", "with"]),           
         'entity.interface.find.else': new Set(['return', 'throw']),
 
-        'entity.interface.return.when': new Set(['exists', 'null'])                                  
+        'entity.interface.return.when': new Set(['exists', 'null', 'throw'])                                  
     };
 
     const NEXT_STATE = {
@@ -1253,6 +1253,7 @@ return_or_not
 
 return_condition_item
     : "when" conditional_expression "=>" modifiable_value NEWLINE -> { oolType: 'ConditionalStatement', test: $2, then: $4 }    
+    | "when" conditional_expression throw_error_expression NEWLINE -> { oolType: 'ConditionalStatement', test: $2, then: $3 }    
     ;
 
 return_condition_block
