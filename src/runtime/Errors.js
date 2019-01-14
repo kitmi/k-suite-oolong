@@ -18,6 +18,14 @@ const withHttpStatus = (Base, STATUS) => class extends Base {
 };
 
 /**
+ * Expected business errors upon wrong request.
+ * @class Errors:BusinessError
+ * @extends Error
+ */
+class BusinessError extends Error {    
+}
+
+/**
  * Errors caused by failing to pass input validation
  * @class Errors:DataValidationError
  * @extends Error
@@ -48,5 +56,6 @@ class DsOperationError extends withExtraInfo(withName(withHttpStatus(Error, Http
 module.exports = {
     DataValidationError,
     OolongUsageError,
-    DsOperationError
+    DsOperationError,
+    BusinessError
 };

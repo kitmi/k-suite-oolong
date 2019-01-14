@@ -345,7 +345,7 @@ function astValue(value) {
                     "name": "RegExp"
                 },
                 "arguments": [
-                    astLiteral(literal.value),
+                    astLiteral(literal.regex.pattern),
                     ...(literal.regex.flags ? [ astLiteral(literal.regex.flags) ] : [])
                 ]
             };
