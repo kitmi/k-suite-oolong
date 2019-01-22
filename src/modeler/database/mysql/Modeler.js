@@ -869,7 +869,7 @@ class MySQLModeler {
     static floatColumnDefinition(info) {
         let sql = '', type;
 
-        if (info.type == 'decimal') {
+        if (info.type == 'number' && info.exact) {
             type = sql = 'DECIMAL';
 
             if (info.totalDigits > 65) {
@@ -1018,7 +1018,7 @@ class MySQLModeler {
                 return '';
             }
 
-            if (info.type === 'bool' || info.type === 'int' || info.type === 'float' || info.type === 'decimal') {
+            if (info.type === 'boolean' || info.type === 'integer' || info.type === 'number') {
                 sql += ' DEFAULT 0';
             } else {
                 sql += ' DEFAULT ""';
