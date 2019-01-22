@@ -82,16 +82,23 @@
                     "field": "status",
                     "value": "deleted"
                 },
-                "stateTracking": [
-                    {
-                        "field": "status"
-                    }
-                ],
                 "atLeastOneNotNull": [
                     [
                         "email",
                         "mobile"
                     ]
+                ],
+                "stateTracking": [
+                    {
+                        "field": "status",
+                        "stateMapping": {
+                            "inactive": "statusInactiveTimestamp",
+                            "active": "statusActiveTimestamp",
+                            "disabled": "statusDisabledTimestamp",
+                            "forbidden": "statusForbiddenTimestamp",
+                            "deleted": "statusDeletedTimestamp"
+                        }
+                    }
                 ]
             },
             "fields": {
@@ -106,13 +113,13 @@
                 "email": {
                     "type": "text",
                     "maxLength": 200,
+                    "comment": "User Email",
                     "modifiers": [
                         {
                             "oolType": "Validator",
                             "name": "isEmail"
                         }
                     ],
-                    "comment": "User Email",
                     "subClass": [
                         "email"
                     ],
@@ -122,7 +129,18 @@
                 "mobile": {
                     "type": "text",
                     "maxLength": 20,
+                    "comment": "User Mobile",
                     "modifiers": [
+                        {
+                            "oolType": "Validator",
+                            "name": "matches",
+                            "args": [
+                                {
+                                    "oolType": "RegExp",
+                                    "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                                }
+                            ]
+                        },
                         {
                             "oolType": "Validator",
                             "name": "isMobilePhone",
@@ -147,7 +165,6 @@
                             "name": "normalizeMobile"
                         }
                     ],
-                    "comment": "User Mobile",
                     "subClass": [
                         "phone"
                     ],
@@ -157,6 +174,7 @@
                 "password": {
                     "type": "text",
                     "maxLength": 200,
+                    "comment": "User Password",
                     "modifiers": [
                         {
                             "oolType": "Processor",
@@ -169,7 +187,6 @@
                             ]
                         }
                     ],
-                    "comment": "User Password",
                     "subClass": [
                         "password"
                     ],
@@ -203,6 +220,14 @@
                         "userStatus"
                     ],
                     "displayName": "User Status"
+                },
+                "testToken": {
+                    "type": "datetime",
+                    "default": {
+                        "oolType": "SymbolToken",
+                        "name": "now"
+                    },
+                    "displayName": "Test Token"
                 },
                 "createdAt": {
                     "type": "datetime",

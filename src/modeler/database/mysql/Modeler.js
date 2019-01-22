@@ -997,12 +997,12 @@ class MySQLModeler {
 
     static defaultValue(info, type) {
         if (info.isCreateTimestamp) {
-            info.defaultByDb = true;
+            info.createByDb = true;
             return ' DEFAULT CURRENT_TIMESTAMP';
         }
 
         if (info.autoIncrementId) {
-            info.defaultByDb = true;
+            info.createByDb = true;
             return ' AUTO_INCREMENT';
         }        
 
@@ -1024,14 +1024,24 @@ class MySQLModeler {
                 sql += ' DEFAULT ""';
             } 
 
-            info.defaultByDb = true;
+            info.createByDb = true;
         }
-
+    
         /*
-        if (info.hasOwnProperty('default') && typeof info.default !== 'object') {
+        if (info.hasOwnProperty('default') && typeof info.default === 'object' && info.default.oolType === 'SymbolToken') {
             let defaultValue = info.default;
-            delete info.default;
-            info.defaultByDb = true;
+            let defaultByDb = false;
+
+            switch (defaultValue.name) {
+                case 'now':
+                sql += ' DEFAULT NOW'
+                break;
+            }
+
+            if (defaultByDb) {
+                delete info.default;
+                info.defaultByDb = true;
+            }
 
             if (info.type === 'bool') {
                 if (_.isString(defaultValue)) {
@@ -1071,9 +1081,9 @@ class MySQLModeler {
                 sql += ' DEFAULT ' + Util.quote(defaultValue);
             } else {
                 throw new Error('Unexpected path');
-            }
-        }        
-        */
+            }            
+        }    
+        */    
         
         return sql;
     }

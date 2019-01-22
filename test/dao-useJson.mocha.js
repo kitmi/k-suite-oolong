@@ -74,7 +74,7 @@ describe('e2e:oolong:dao:useJson', function () {
 
         let result = await User.findAll_();        
         Array.isArray(result).should.be.ok();
-        result.length.should.be.exactly(0);
+        result.length.should.be.exactly(1);
 
         await db.close_();
     });
@@ -89,14 +89,14 @@ describe('e2e:oolong:dao:useJson', function () {
             mobile: '0423456789',
             password: '123456'
         });        
-        saved.should.have.keys('id', 'email', 'mobile', 'password', 'passwordSalt', 'locale', 'status', 'createdAt', 'statusInactiveTimestamp');
+        saved.should.have.keys('id', 'email', 'mobile', 'password', 'passwordSalt', 'locale', 'status', 'testToken', 'statusInactiveTimestamp');
 
         let result = await User.findAll_({email: 'abc@gefg.hij'});
         Array.isArray(result).should.be.ok();
         result.length.should.be.exactly(1);
 
         let savedUser = result[0];
-        savedUser.should.have.keys('id', 'email', 'mobile', 'password', 'passwordSalt', 'locale', 'status', 'createdAt', 'updatedAt', 'statusInactiveTimestamp');
+        savedUser.should.have.keys('id', 'email', 'mobile', 'password', 'passwordSalt', 'locale', 'status', 'testToken', 'createdAt', 'updatedAt', 'statusInactiveTimestamp');
 
         savedUser.email.should.be.equal(saved.email);
         savedUser.mobile.should.be.equal(saved.mobile);

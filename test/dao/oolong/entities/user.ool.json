@@ -28,7 +28,10 @@
                     "oolType": "Validator",
                     "name": "matches",
                     "args": [
-                        "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        {
+                            "oolType": "RegExp",
+                            "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        }
                     ]
                 }
             ]
@@ -165,6 +168,16 @@
                         "inactive"
                     ],
                     "comment": "User Status"
+                },
+                "testToken": {
+                    "name": "testToken",
+                    "type": "datetime",
+                    "default": [
+                        {
+                            "oolType": "SymbolToken",
+                            "name": "now"
+                        }
+                    ]
                 }
             },
             "associations": [
@@ -186,6 +199,16 @@
                 {
                     "fields": "mobile",
                     "unique": true
+                }
+            ],
+            "data": [
+                {
+                    "email": "admin@email.com",
+                    "mobile": "0412345678",
+                    "password": "123456",
+                    "isEmailVerified": true,
+                    "isMobileVerified": true,
+                    "status": "active"
                 }
             ]
         }

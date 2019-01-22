@@ -20,14 +20,16 @@ describe('e2e:oolong:dao:useOol', function () {
 
     before(function () {        
         process.chdir(WORKING_FOLDER);
-        //fs.removeSync(path.join(WORKING_FOLDER, 'models'));
+        fs.removeSync(path.join(WORKING_FOLDER, 'models'));
+        fs.removeSync(path.join(WORKING_FOLDER, 'scripts'));
 
         cfg = fs.readJsonSync('./oolong-ool.json', 'utf8');
     });
 
     after(function () {
         fs.removeSync(path.join(WORKING_FOLDER, 'oolong-cli.log'));
-        //fs.removeSync(path.join(WORKING_FOLDER, 'models'));
+        fs.removeSync(path.join(WORKING_FOLDER, 'models'));
+        fs.removeSync(path.join(WORKING_FOLDER, 'scripts'));
     });
 
     it('build', function () {
@@ -87,14 +89,14 @@ describe('e2e:oolong:dao:useOol', function () {
             mobile: '0423456789',
             password: '123456'
         });        
-        saved.should.have.keys('id', 'email', 'mobile', 'password', 'passwordSalt', 'locale', 'status', 'createdAt', 'statusInactiveTimestamp');
+        saved.should.have.keys('id', 'email', 'mobile', 'password', 'passwordSalt', 'locale', 'status', 'testToken', 'statusInactiveTimestamp');
 
         let result = await User.findAll_({email: 'abc@gefg.hij'});
         Array.isArray(result).should.be.ok();
         result.length.should.be.exactly(1);
 
         let savedUser = result[0];
-        savedUser.should.have.keys('id', 'email', 'mobile', 'password', 'passwordSalt', 'locale', 'status', 'createdAt', 'updatedAt', 'statusInactiveTimestamp');
+        savedUser.should.have.keys('id', 'email', 'mobile', 'password', 'passwordSalt', 'locale', 'status', 'testToken', 'createdAt', 'updatedAt', 'statusInactiveTimestamp');
 
         savedUser.email.should.be.equal(saved.email);
         savedUser.mobile.should.be.equal(saved.mobile);

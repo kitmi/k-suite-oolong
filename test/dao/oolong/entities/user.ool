@@ -22,6 +22,7 @@ entity user
     passwordSalt : text fixedLength(8) auto -- "User Password Salt"
     locale : text default("en_AU") -- "User Locale"
     status : userStatus default("inactive") -- "User Status"
+    testToken : datetime default(@@now)
 
   associations
     hasMany profile

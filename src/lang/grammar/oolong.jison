@@ -183,6 +183,10 @@
         
         unquoteString(str, quotes) {
             return str.substr(quotes, str.length-quotes*2);
+        }
+
+        normalizeSymbol(ref) {
+            return { oolType: 'SymbolToken', name: ref.substr(2) };
         }                
         
         normalizeReference(ref) {
@@ -381,6 +385,7 @@ member_access           {identifier}("."{identifier})+
 column_range            {variable}".""*"
 variable                {member_access}|{identifier}
 object_reference        "@"{variable}
+symbol_token            "@""@"{identifier}
 
 identifier              ({id_start})({id_continue})*
 id_start                "_"|"$"|({uppercase})|({lowercase})
@@ -610,10 +615,9 @@ escapeseq               \\.
                             }
                         %}       
 <INLINE>{javascript}    %{
-                            yytext = yytext.substr(4, yytext.length-9).trim();
+                            yytext = state.normalizeScript(yytext.substr(4, yytext.length-9).trim());
                             return 'SCRIPT';
                         %}
-
 <INLINE>{jststring}     %{
                             yytext = state.normalizeStringTemplate(yytext);
                             return 'STRING';
@@ -647,7 +651,10 @@ escapeseq               \\.
                             }
                         %}
 <INLINE>{space}+       /* skip whitespace, separate tokens */
-<INLINE>{regexp}        return 'REGEXP';
+<INLINE>{regexp}        %{
+                            yytext = state.normalizeRegExp(yytext);
+                            return 'REGEXP';
+                        %}   
 <INLINE>{floatnumber}   %{
                             yytext = parseFloat(yytext);
                             return 'FLOAT';
@@ -673,6 +680,10 @@ escapeseq               \\.
 <INLINE>{member_access}    %{                                
                                 return 'DOTNAME';
                            %}
+<INLINE>{symbol_token}     %{
+                                yytext = state.normalizeSymbol(yytext);
+                                return 'SYMBOL';
+                           %}                      
 <INLINE>{object_reference} %{
                                 yytext = state.normalizeReference(yytext);
                                 return 'REFERENCE';
@@ -1507,9 +1518,10 @@ literal
     | BOOL
     | inline_object
     | inline_array
-    | REGEXP -> state.normalizeRegExp($1)
+    | REGEXP
     | STRING
-    | SCRIPT -> state.normalizeScript($1)
+    | SCRIPT
+    | SYMBOL
     ;    
 
 inline_object

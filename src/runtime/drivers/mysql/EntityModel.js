@@ -23,8 +23,16 @@ class MySQLEntityModel extends EntityModel {
         _.forOwn(dataRecord, (value, fieldName) => {
             let fieldMeta = this.meta.fields[fieldName];
             
-            if (fieldMeta.type === 'datetime' && value instanceof DateTime) {
-                dataRecord[fieldName] = value.toISO({ includeOffset: false });
+            if (fieldMeta.type === 'datetime') {
+                if (typeof value === 'object' && value.oolType === 'SymbolToken') {
+                    if (value.name === 'now') {
+                        dataRecord[fieldName] = this.db.connector.raw('NOW()');
+                    }
+                }
+
+                if (value instanceof DateTime) {
+                    dataRecord[fieldName] = value.toISO({ includeOffset: false });
+                }
             }
         });
     }

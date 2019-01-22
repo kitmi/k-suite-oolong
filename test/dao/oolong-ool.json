@@ -17,6 +17,7 @@
         "scriptOutputDir": "scripts",
         "dslOutputDir": "oolong",
         "useJsonSource": false,
+        "saveIntermediate": false,
         "schemaDeployment": { 
             "test": {
                 "dataSource": "mysql.fooBar"

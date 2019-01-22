@@ -16,12 +16,17 @@ class MySQLConnector extends Connector {
      * {@link https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html}
      * @member {object}
      */
-    IsolationLevels = Object.freeze({
+    static IsolationLevels = Object.freeze({
         RepeatableRead: 'REPEATABLE READ',
         ReadCommitted: 'READ COMMITTED',
         ReadUncommitted: 'READ UNCOMMITTED',
         Rerializable: 'SERIALIZABLE'
-    });       
+    });    
+    
+    escape = mysql.escape;
+    escapeId = mysql.escapeId;
+    format = mysql.format;
+    raw = mysql.raw;
 
     /**          
      * @param {string} name 
@@ -115,7 +120,7 @@ class MySQLConnector extends Connector {
 
         if (options && options.isolationLevel) {
             //only allow valid option value to avoid injection attach
-            let isolationLevel = _.find(this.IsolationLevels, (value, key) => options.isolationLevel === key || options.isolationLevel === value);
+            let isolationLevel = _.find(MySQLConnector.IsolationLevels, (value, key) => options.isolationLevel === key || options.isolationLevel === value);
             if (!isolationLevel) {
                 throw new OolongUsageError(`Invalid isolation level: "${isolationLevel}"!"`);
             }
