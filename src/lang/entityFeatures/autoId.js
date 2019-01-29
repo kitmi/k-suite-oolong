@@ -18,8 +18,7 @@ function feature(entity, args = []) {
     let typeInfo = {
         name: 'id',
         type: 'integer',
-        auto: true,
-        readOnly: true,
+        auto: true,        
         writeOnce: true
     };
 

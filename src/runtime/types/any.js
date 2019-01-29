@@ -10,6 +10,7 @@ module.exports = {
         'auto',
         'readOnly',
         'writeOnce',
-        'forceUpdate'
+        'forceUpdate',
+        'freezeAfterNonDefault'
     ])
 };

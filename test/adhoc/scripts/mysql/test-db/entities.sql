@@ -5,10 +5,8 @@ CREATE TABLE IF NOT EXISTS `user` (
   `password` VARCHAR(200) NOT NULL DEFAULT "",
   `passwordSalt` CHAR(8) NOT NULL,
   `locale` TEXT NOT NULL,
-  `isEmailVerified` TINYINT(1) NOT NULL,
-  `isMobileVerified` TINYINT(1) NOT NULL,
   `status` ENUM('inactive', 'active', 'disabled', 'forbidden', 'deleted') NOT NULL,
-  `tag` TEXT NULL,
+  `testToken` DATETIME NOT NULL,
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
   `statusInactiveTimestamp` DATETIME NULL,
@@ -28,7 +26,7 @@ CREATE TABLE IF NOT EXISTS `profile` (
   `dob` DATETIME NULL,
   `avatar` VARCHAR(2000) NULL,
   `gender` VARCHAR(1) NOT NULL DEFAULT "",
-  `owner` INT NOT NULL,
+  `owner` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`owner`)
 );
 
@@ -36,5 +34,18 @@ CREATE TABLE IF NOT EXISTS `gender` (
   `code` VARCHAR(1) NOT NULL DEFAULT "",
   `name` VARCHAR(20) NULL,
   PRIMARY KEY (`code`)
+);
+
+CREATE TABLE IF NOT EXISTS `group` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NULL,
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE IF NOT EXISTS `userGroup` (
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `user` INT NOT NULL DEFAULT 0,
+  `group` INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`user`, `group`)
 );
 

@@ -1,17 +1,9 @@
 {
     "user": [
         {
-            "email": "admin@levo.legal",
+            "email": "admin@email.com",
             "mobile": "0412345678",
             "password": "123456",
-            "isEmailVerified": true,
-            "isMobileVerified": true,
-            "status": "active"
-        },
-        {
-            "email": "test@levo.legal",
-            "mobile": "0412345679",
-            "password": "test",
             "isEmailVerified": true,
             "isMobileVerified": true,
             "status": "active"

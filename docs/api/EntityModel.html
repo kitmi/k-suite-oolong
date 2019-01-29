@@ -40,7 +40,7 @@
 			<li class="dropdown">
 				<a href="classes.list.html" class="dropdown-toggle" data-toggle="dropdown">Classes<b class="caret"></b></a>
 				<ul class="dropdown-menu ">
-					<li><a href="Connector.html">Connector</a></li><li><a href="DaoModeler.html">DaoModeler</a></li><li><a href="Dataset.html">Dataset</a></li><li><a href="Db.html">Db</a></li><li><a href="Entity.html">Entity</a></li><li><a href="EntityModel.html">EntityModel</a></li><li><a href="Errors_DataValidationError.html">Errors:DataValidationError</a></li><li><a href="Errors_DsOperationError.html">Errors:DsOperationError</a></li><li><a href="Errors_OolongUsageError.html">Errors:OolongUsageError</a></li><li><a href="Field.html">Field</a></li><li><a href="I18n.html">I18n</a></li><li><a href="Linker.html">Linker</a></li><li><a href="MySQLConnector.html">MySQLConnector</a></li><li><a href="MySQLEntityModel.html">MySQLEntityModel</a></li><li><a href="MySQLMigration.html">MySQLMigration</a></li><li><a href="MySQLModeler.html">MySQLModeler</a></li><li><a href="OolongCore.html">OolongCore</a></li><li><a href="OolongDaoModeler.html">OolongDaoModeler</a></li><li><a href="OolongDataset.html">OolongDataset</a></li><li><a href="OolongEntity.html">OolongEntity</a></li><li><a href="OolongLinker.html">OolongLinker</a></li><li><a href="OolongSchema.html">OolongSchema</a></li><li><a href="OolongView.html">OolongView</a></li><li><a href="Schema.html">Schema</a></li><li><a href="View.html">View</a></li>
+					<li><a href="Connector.html">Connector</a></li><li><a href="DaoModeler.html">DaoModeler</a></li><li><a href="Dataset.html">Dataset</a></li><li><a href="Entity.html">Entity</a></li><li><a href="EntityModel.html">EntityModel</a></li><li><a href="Errors_BusinessError.html">Errors:BusinessError</a></li><li><a href="Errors_DataValidationError.html">Errors:DataValidationError</a></li><li><a href="Errors_DsOperationError.html">Errors:DsOperationError</a></li><li><a href="Errors_OolongUsageError.html">Errors:OolongUsageError</a></li><li><a href="Field.html">Field</a></li><li><a href="I18n.html">I18n</a></li><li><a href="Linker.html">Linker</a></li><li><a href="MySQLConnector.html">MySQLConnector</a></li><li><a href="MySQLEntityModel.html">MySQLEntityModel</a></li><li><a href="MySQLMigration.html">MySQLMigration</a></li><li><a href="MySQLModeler.html">MySQLModeler</a></li><li><a href="OolongCore.html">OolongCore</a></li><li><a href="OolongDataset.html">OolongDataset</a></li><li><a href="OolongEntity.html">OolongEntity</a></li><li><a href="OolongLinker.html">OolongLinker</a></li><li><a href="OolongSchema.html">OolongSchema</a></li><li><a href="OolongView.html">OolongView</a></li><li><a href="Schema.html">Schema</a></li><li><a href="View.html">View</a></li>
 				</ul>
 			</li>
 			
@@ -54,7 +54,7 @@
 			<li class="dropdown">
 				<a href="global.html" class="dropdown-toggle" data-toggle="dropdown">Global<b class="caret"></b></a>
 				<ul class="dropdown-menu ">
-					<li><a href="global.html#_fieldRequirementCheck">_fieldRequirementCheck</a></li><li><a href="global.html#options">options</a></li>
+					<li><a href="global.html#_fieldRequirementCheck">_fieldRequirementCheck</a></li><li><a href="global.html#mergeCondition">mergeCondition</a></li><li><a href="global.html#options">options</a></li>
 				</ul>
 			</li>
 			
@@ -332,6 +332,139 @@
         <h3 class="subsection-title">Methods</h3>
 
         <dl>
+            
+<hr>
+<dt>
+    <h4 class="name" id="._containsUniqueKey"><span class="type-signature">&lt;static> </span>_containsUniqueKey(data)</h4>
+    
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        <p>Check whether a data record contains primary key or at least one unique key pair.</p>
+    </div>
+    
+
+    
+
+    
+
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params table table-striped">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+    
+
+    
+<dl class="details">
+    
+
+	
+
+	
+
+	
+
+    
+
+    
+
+    
+
+    
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
+	<dd class="tag-source">
+		runtime/EntityModel.js
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dd>
+
+        
             
 <hr>
 <dt>
@@ -730,139 +863,6 @@
             
 <hr>
 <dt>
-    <h4 class="name" id=".containsUniqueKey"><span class="type-signature">&lt;static> </span>containsUniqueKey(data)</h4>
-    
-    
-</dt>
-<dd>
-
-    
-    <div class="description">
-        <p>Check whether a data record contains primary key or at least one unique key pair.</p>
-    </div>
-    
-
-    
-
-    
-
-    
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params table table-striped">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>data</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">object</span>
-
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-    
-
-    
-<dl class="details">
-    
-
-	
-
-	
-
-	
-
-    
-
-    
-
-    
-
-    
-
-	
-
-	
-
-	
-
-	
-
-	
-
-
-
-	
-	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
-	<dd class="tag-source">
-		runtime/EntityModel.js
-	</dd>
-	
-
-	
-
-	
-
-	
-</dl>
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dd>
-
-        
-            
-<hr>
-<dt>
     <h4 class="name" id=".create_"><span class="type-signature">&lt;async, static> </span>create_(data [, createOptions] [, connOptions])</h4>
     
     
@@ -1082,7 +1082,7 @@
 
         <tr>
             
-                <td class="name"><code>createOptions.$fetchArray</code></td>
+                <td class="name"><code>createOptions.$unboxing</code></td>
             
 
             <td class="type">
@@ -1388,7 +1388,7 @@
 
         <tr>
             
-                <td class="name"><code>deleteOptions.$where</code></td>
+                <td class="name"><code>deleteOptions.$query</code></td>
             
 
             <td class="type">
@@ -1462,7 +1462,7 @@
 
         <tr>
             
-                <td class="name"><code>deleteOptions.$fetchArray</code></td>
+                <td class="name"><code>deleteOptions.$unboxing</code></td>
             
 
             <td class="type">
@@ -1645,7 +1645,7 @@
 
     
     <div class="description">
-        <p>Find records matching the condition, returns an array of model object or an array of records directly if $fetchArray = true.</p>
+        <p>Find records matching the condition, returns an array of model object or an array of records directly if $unboxing = true.</p>
     </div>
     
 
@@ -1786,7 +1786,43 @@
 
         <tr>
             
-                <td class="name"><code>findOptions.$select</code></td>
+                <td class="name"><code>findOptions.$association</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>Joinings</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>findOptions.$projection</code></td>
             
 
             <td class="type">
@@ -1822,7 +1858,7 @@
 
         <tr>
             
-                <td class="name"><code>findOptions.$where</code></td>
+                <td class="name"><code>findOptions.$query</code></td>
             
 
             <td class="type">
@@ -1888,42 +1924,6 @@
             
 
             <td class="description last"><p>Group by fields</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>findOptions.$having</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">object</span>
-
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                </td>
-            
-
-            <td class="description last"><p>Having fields</p></td>
         </tr>
 
     
@@ -2038,7 +2038,7 @@
 
         <tr>
             
-                <td class="name"><code>findOptions.$fetchArray</code></td>
+                <td class="name"><code>findOptions.$unboxing</code></td>
             
 
             <td class="type">
@@ -2417,7 +2417,43 @@
 
         <tr>
             
-                <td class="name"><code>findOptions.$select</code></td>
+                <td class="name"><code>findOptions.$association</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>Joinings</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>findOptions.$projection</code></td>
             
 
             <td class="type">
@@ -2453,7 +2489,7 @@
 
         <tr>
             
-                <td class="name"><code>findOptions.$where</code></td>
+                <td class="name"><code>findOptions.$query</code></td>
             
 
             <td class="type">
@@ -2519,42 +2555,6 @@
             
 
             <td class="description last"><p>Group by fields</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>findOptions.$having</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">object</span>
-
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                </td>
-            
-
-            <td class="description last"><p>Having fields</p></td>
         </tr>
 
     
@@ -2669,7 +2669,7 @@
 
         <tr>
             
-                <td class="name"><code>findOptions.$fetchArray</code></td>
+                <td class="name"><code>findOptions.$unboxing</code></td>
             
 
             <td class="type">
@@ -3130,223 +3130,6 @@
             
 <hr>
 <dt>
-    <h4 class="name" id=".mergeCondition"><span class="type-signature">&lt;static> </span>mergeCondition(condition1, condition2, operator)</h4>
-    
-    
-</dt>
-<dd>
-
-    
-    <div class="description">
-        <p>Merge two query conditions using given operator.</p>
-    </div>
-    
-
-    
-
-    
-
-    
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params table table-striped">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>condition1</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">*</span>
-
-
-
-            
-            </td>
-
-            
-
-            
-                <td class="default">
-                
-                </td>
-            
-
-            <td class="description last"></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>condition2</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">*</span>
-
-
-
-            
-            </td>
-
-            
-
-            
-                <td class="default">
-                
-                </td>
-            
-
-            <td class="description last"></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>operator</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">*</span>
-
-
-
-            
-            </td>
-
-            
-
-            
-                <td class="default">
-                
-                    $and
-                
-                </td>
-            
-
-            <td class="description last"></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-    
-
-    
-<dl class="details">
-    
-
-	
-
-	
-
-	
-
-    
-
-    
-
-    
-
-    
-
-	
-
-	
-
-	
-
-	
-
-	
-
-
-
-	
-	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
-	<dd class="tag-source">
-		runtime/EntityModel.js
-	</dd>
-	
-
-	
-
-	
-
-	
-</dl>
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <h5>Returns:</h5>
-    
-            
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">object</span>
-
-
-
-    </dd>
-</dl>
-
-
-        
-
-    
-</dd>
-
-        
-            
-<hr>
-<dt>
     <h4 class="name" id=".populate"><span class="type-signature">&lt;static> </span>populate(data)</h4>
     
     
@@ -3681,7 +3464,7 @@
 
         <tr>
             
-                <td class="name"><code>updateOptions.$where</code></td>
+                <td class="name"><code>updateOptions.$query</code></td>
             
 
             <td class="type">
@@ -3755,7 +3538,7 @@
 
         <tr>
             
-                <td class="name"><code>updateOptions.$fetchArray</code></td>
+                <td class="name"><code>updateOptions.$unboxing</code></td>
             
 
             <td class="type">

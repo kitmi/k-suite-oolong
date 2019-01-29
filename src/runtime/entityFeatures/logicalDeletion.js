@@ -1,6 +1,7 @@
 "use strict";
 
 const Rules = require('../../enum/Rules');
+const { mergeCondition } = require('../../utils/lang');
 
 /**
  * A rule specifies the entity will not be deleted physically.
@@ -11,7 +12,7 @@ module.exports = {
     [Rules.RULE_BEFORE_FIND]: ({ feature, entityModel, context }, next) => {
         let findOptions = context.findOptions;
         if (!findOptions.$includeDeleted) {
-            findOptions.$where = entityModel.mergeCondition(findOptions.$where, { [feature.field]: { $ne: feature.value } });
+            findOptions.$query = mergeCondition(findOptions.$query, { [feature.field]: { $ne: feature.value } });
         }
 
         return next();

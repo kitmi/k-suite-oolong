@@ -23,7 +23,23 @@
 1. field -> latest.field
 2. if has modifiers, convert it to PipedValue
 
+## compile context
 
+moduleName - The ool module name of the object to compile.
+logger
+variables
+
+1. let compileContext = {
+        targetName,        
+        logger,
+        topoNodes: new Set(),
+        topoSort: new TopoSort(),
+        astMap: {}, // Store the AST for a node
+        mapOfTokenToMeta: new Map(), // Store the source code block point
+        modelVars: new Set(),
+        mapOfFunctorToFile: (sharedContext && sharedContext.mapOfFunctorToFile) || {}, // Use to record import lines
+        newFunctorFiles: (sharedContext && sharedContext.newFunctorFiles) || []
+    };
 
 
 

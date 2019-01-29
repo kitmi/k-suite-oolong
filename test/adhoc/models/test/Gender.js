@@ -27,34 +27,32 @@ module.exports = (db, BaseEntityModel) => {
 
     GenderSpec.db = db;
     GenderSpec.meta = {
-    "schemaName": "test",
-    "name": "gender",
-    "keyField": "code",
-    "fields": {
-        "code": {
-            "type": "text",
-            "maxLength": 1,
-            "comment": "Gender Code",
-            "displayName": "Gender Code",
-            "defaultByDb": true
+        "schemaName": "test",
+        "name": "gender",
+        "keyField": "code",
+        "fields": {
+            "code": {
+                "type": "text",
+                "maxLength": 1,
+                "comment": "Gender Code",
+                "displayName": "Gender Code",
+                "createByDb": true
+            },
+            "name": {
+                "type": "text",
+                "maxLength": 20,
+                "optional": true,
+                "comment": "Gender Name",
+                "displayName": "Gender Name"
+            }
         },
-        "name": {
-            "type": "text",
-            "maxLength": 20,
-            "optional": true,
-            "comment": "Gender Name",
-            "displayName": "Gender Name"
-        }
-    },
-    "indexes": [],
-    "features": [],
-    "uniqueKeys": [
-        [
-            "code"
+        "features": {},
+        "uniqueKeys": [
+            [
+                "code"
+            ]
         ]
-    ],
-    "fieldDependencies": {}
-};
+    };
 
-    return Object.assign(GenderSpec, );
+    return Object.assign(GenderSpec, {});
 };

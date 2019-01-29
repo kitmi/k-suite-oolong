@@ -47,9 +47,9 @@ entity user
         password
 
       findOne user :
-        when @identity ~ isEmail => selectedBy { email: @identity }
-        when @identity ~ matches(/^(\+?\d{6,})$/) => selectedBy { mobile: @identity }
-        otherwise return { error: { message: 'invalid_identity' } }
+        when @identity ~ isEmail => @user.email == @identity 
+        when @identity ~ matches(/^(\+?\d{6,})$/) => @user.mobile == @identity
+        otherwise => return { error: { message: 'invalid_identity' } }
 
       return @user unless
         when @user not exists => { error: { message: 'user_not_found' } }

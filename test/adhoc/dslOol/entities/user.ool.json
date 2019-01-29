@@ -1,12 +1,39 @@
 {
-    "namespace": [
-        "/Users/rockieguo/Documents/GitHub/k-suite/packages/oolong/lib/lang/builtins/types.ool"
-    ],
     "type": {
         "password": {
             "type": "text",
             "maxLength": [
                 200
+            ]
+        },
+        "email": {
+            "type": "text",
+            "maxLength": [
+                200
+            ],
+            "modifiers": [
+                {
+                    "oolType": "Validator",
+                    "name": "isEmail"
+                }
+            ]
+        },
+        "phone": {
+            "type": "text",
+            "maxLength": [
+                20
+            ],
+            "modifiers": [
+                {
+                    "oolType": "Validator",
+                    "name": "matches",
+                    "args": [
+                        {
+                            "oolType": "RegExp",
+                            "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                        }
+                    ]
+                }
             ]
         },
         "userStatus": {
@@ -17,6 +44,12 @@
                 "disabled",
                 "forbidden",
                 "deleted"
+            ]
+        },
+        "name": {
+            "type": "text",
+            "maxLength": [
+                20
             ]
         }
     },
@@ -128,20 +161,6 @@
                     ],
                     "comment": "User Locale"
                 },
-                "isEmailVerified": {
-                    "name": "isEmailVerified",
-                    "type": "boolean",
-                    "default": [
-                        false
-                    ]
-                },
-                "isMobileVerified": {
-                    "name": "isMobileVerified",
-                    "type": "boolean",
-                    "default": [
-                        false
-                    ]
-                },
                 "status": {
                     "name": "status",
                     "type": "userStatus",
@@ -150,16 +169,28 @@
                     ],
                     "comment": "User Status"
                 },
-                "tag": {
-                    "name": "tag",
-                    "type": "array",
-                    "optional": true
+                "testToken": {
+                    "name": "testToken",
+                    "type": "datetime",
+                    "default": [
+                        {
+                            "oolType": "SymbolToken",
+                            "name": "now"
+                        }
+                    ]
                 }
             },
             "associations": [
                 {
                     "type": "hasMany",
-                    "destEntity": "profile"
+                    "destEntity": "profile",
+                    "srcField": "profiles"
+                },
+                {
+                    "type": "hasMany",
+                    "destEntity": "group",
+                    "connectedBy": "userGroup",
+                    "srcField": "groups"
                 }
             ],
             "indexes": [
@@ -174,17 +205,9 @@
             ],
             "data": [
                 {
-                    "email": "admin@levo.legal",
+                    "email": "admin@email.com",
                     "mobile": "0412345678",
                     "password": "123456",
-                    "isEmailVerified": true,
-                    "isMobileVerified": true,
-                    "status": "active"
-                },
-                {
-                    "email": "test@levo.legal",
-                    "mobile": "0412345679",
-                    "password": "test",
                     "isEmailVerified": true,
                     "isMobileVerified": true,
                     "status": "active"
@@ -226,7 +249,13 @@
                                             }
                                         },
                                         "then": {
-                                            "email": {
+                                            "oolType": "BinaryExpression",
+                                            "operator": "==",
+                                            "left": {
+                                                "oolType": "ObjectReference",
+                                                "name": "user.email"
+                                            },
+                                            "right": {
                                                 "oolType": "ObjectReference",
                                                 "name": "identity"
                                             }
@@ -252,7 +281,13 @@
                                             }
                                         },
                                         "then": {
-                                            "mobile": {
+                                            "oolType": "BinaryExpression",
+                                            "operator": "==",
+                                            "left": {
+                                                "oolType": "ObjectReference",
+                                                "name": "user.mobile"
+                                            },
+                                            "right": {
                                                 "oolType": "ObjectReference",
                                                 "name": "identity"
                                             }
@@ -337,6 +372,7 @@
             }
         }
     },
+    "namespace": [],
     "id": "./entities/user.ool",
     "name": "user"
 }

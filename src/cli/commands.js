@@ -9,7 +9,7 @@ exports.commands = {
     'create': 'Create database schema.',
     'config': 'Enable oolong feature and add deploy config.',
     'build': 'Generate database scripts and entity models.',
-    'migrate': 'Create database structure.',
+    'migrate': 'Create database structure.',    
     'dataset': 'List available data set.',
     'import': 'Import data set.',
     'reverse': 'Reverse engineering from a databse.'
@@ -193,7 +193,7 @@ exports.main = (core) => {
 };
 
 exports.build = async (core) => {
-    core.app.log('verbose', 'oolong model');
+    core.app.log('verbose', 'oolong build');
 
     let oolongConfig = core.oolongConfig;
 
@@ -235,7 +235,7 @@ exports.build = async (core) => {
 };
 
 exports.migrate = async (core) => {
-    core.app.log('verbose', 'oolong deploy');
+    core.app.log('verbose', 'oolong migrate');
 
     let oolongConfig = core.oolongConfig;
 

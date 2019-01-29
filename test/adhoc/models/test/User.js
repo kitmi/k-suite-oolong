@@ -103,10 +103,10 @@ module.exports = (db, BaseEntityModel) => {
             if (_.isEmpty(user)) {
                 throw new BusinessError('user_not_found');
             }
-            //Processing "password"
-            password = hashPassword(password, user['passwordSalt']);
+            //Processing "password2"
+            let password2 = hashPassword(password, user['passwordSalt']);
             //Return on exception #1
-            if (password !== user['password']) {
+            if (password2 !== user['password']) {
                 throw new BusinessError('invalid_password');
             }
             return user;
@@ -115,296 +115,324 @@ module.exports = (db, BaseEntityModel) => {
 
     UserSpec.db = db;
     UserSpec.meta = {
-    "schemaName": "test",
-    "name": "user",
-    "keyField": "id",
-    "fields": {
-        "id": {
-            "type": "integer",
-            "auto": true,
-            "readOnly": true,
-            "writeOnce": true,
-            "startFrom": 100000,
-            "displayName": "Id",
-            "autoIncrementId": true,
-            "defaultByDb": true
-        },
-        "email": {
-            "type": "text",
-            "maxLength": 200,
-            "comment": "User Email",
-            "modifiers": [
-                {
-                    "oolType": "Validator",
-                    "name": "isEmail"
-                }
-            ],
-            "subClass": [
-                "email"
-            ],
-            "displayName": "User Email",
-            "optional": true
-        },
-        "mobile": {
-            "type": "text",
-            "maxLength": 20,
-            "comment": "User Mobile",
-            "modifiers": [
-                {
-                    "oolType": "Validator",
-                    "name": "matches",
-                    "args": [
-                        {
-                            "oolType": "RegExp",
-                            "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
-                        }
-                    ]
-                },
-                {
-                    "oolType": "Validator",
-                    "name": "isMobilePhone",
-                    "args": [
-                        {
-                            "oolType": "PipedValue",
-                            "value": {
+        "schemaName": "test",
+        "name": "user",
+        "keyField": "id",
+        "fields": {
+            "id": {
+                "type": "integer",
+                "auto": true,
+                "writeOnce": true,
+                "startFrom": 100000,
+                "displayName": "Id",
+                "autoIncrementId": true,
+                "createByDb": true
+            },
+            "email": {
+                "type": "text",
+                "maxLength": 200,
+                "comment": "User Email",
+                "modifiers": [
+                    {
+                        "oolType": "Validator",
+                        "name": "isEmail"
+                    }
+                ],
+                "subClass": [
+                    "email"
+                ],
+                "displayName": "User Email",
+                "optional": true
+            },
+            "mobile": {
+                "type": "text",
+                "maxLength": 20,
+                "comment": "User Mobile",
+                "modifiers": [
+                    {
+                        "oolType": "Validator",
+                        "name": "matches",
+                        "args": [
+                            {
+                                "oolType": "RegExp",
+                                "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
+                            }
+                        ]
+                    },
+                    {
+                        "oolType": "Validator",
+                        "name": "isMobilePhone",
+                        "args": [
+                            {
+                                "oolType": "PipedValue",
+                                "value": {
+                                    "oolType": "ObjectReference",
+                                    "name": "latest.locale"
+                                },
+                                "modifiers": [
+                                    {
+                                        "oolType": "Processor",
+                                        "name": "stringDasherize"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "oolType": "Processor",
+                        "name": "normalizeMobile"
+                    }
+                ],
+                "subClass": [
+                    "phone"
+                ],
+                "displayName": "User Mobile",
+                "optional": true
+            },
+            "password": {
+                "type": "text",
+                "maxLength": 200,
+                "comment": "User Password",
+                "modifiers": [
+                    {
+                        "oolType": "Processor",
+                        "name": "hashPassword",
+                        "args": [
+                            {
                                 "oolType": "ObjectReference",
-                                "name": "latest.locale"
-                            },
-                            "modifiers": [
-                                {
-                                    "oolType": "Processor",
-                                    "name": "stringDasherize"
-                                }
-                            ]
-                        }
-                    ]
+                                "name": "latest.passwordSalt"
+                            }
+                        ]
+                    }
+                ],
+                "subClass": [
+                    "password"
+                ],
+                "displayName": "User Password",
+                "createByDb": true
+            },
+            "passwordSalt": {
+                "type": "text",
+                "fixedLength": 8,
+                "auto": true,
+                "comment": "User Password Salt",
+                "displayName": "User Password Salt"
+            },
+            "locale": {
+                "type": "text",
+                "default": "en_AU",
+                "comment": "User Locale",
+                "displayName": "User Locale"
+            },
+            "status": {
+                "type": "enum",
+                "values": [
+                    "inactive",
+                    "active",
+                    "disabled",
+                    "forbidden",
+                    "deleted"
+                ],
+                "default": "inactive",
+                "comment": "User Status",
+                "subClass": [
+                    "userStatus"
+                ],
+                "displayName": "User Status"
+            },
+            "testToken": {
+                "type": "datetime",
+                "default": {
+                    "oolType": "SymbolToken",
+                    "name": "now"
                 },
+                "displayName": "Test Token"
+            },
+            "createdAt": {
+                "type": "datetime",
+                "auto": true,
+                "readOnly": true,
+                "writeOnce": true,
+                "displayName": "Created At",
+                "isCreateTimestamp": true,
+                "createByDb": true
+            },
+            "updatedAt": {
+                "type": "datetime",
+                "readOnly": true,
+                "forceUpdate": true,
+                "optional": true,
+                "displayName": "Updated At",
+                "isUpdateTimestamp": true,
+                "updateByDb": true
+            },
+            "statusInactiveTimestamp": {
+                "type": "datetime",
+                "readOnly": true,
+                "optional": true,
+                "auto": true,
+                "writeOnce": true,
+                "displayName": "Status Inactive Timestamp"
+            },
+            "statusActiveTimestamp": {
+                "type": "datetime",
+                "readOnly": true,
+                "optional": true,
+                "auto": true,
+                "writeOnce": true,
+                "displayName": "Status Active Timestamp"
+            },
+            "statusDisabledTimestamp": {
+                "type": "datetime",
+                "readOnly": true,
+                "optional": true,
+                "auto": true,
+                "writeOnce": true,
+                "displayName": "Status Disabled Timestamp"
+            },
+            "statusForbiddenTimestamp": {
+                "type": "datetime",
+                "readOnly": true,
+                "optional": true,
+                "auto": true,
+                "writeOnce": true,
+                "displayName": "Status Forbidden Timestamp"
+            },
+            "statusDeletedTimestamp": {
+                "type": "datetime",
+                "readOnly": true,
+                "optional": true,
+                "auto": true,
+                "writeOnce": true,
+                "displayName": "Status Deleted Timestamp"
+            }
+        },
+        "features": {
+            "autoId": {
+                "field": "id"
+            },
+            "createTimestamp": {
+                "field": "createdAt"
+            },
+            "updateTimestamp": {
+                "field": "updatedAt"
+            },
+            "logicalDeletion": {
+                "field": "status",
+                "value": "deleted"
+            },
+            "atLeastOneNotNull": [
+                [
+                    "email",
+                    "mobile"
+                ]
+            ],
+            "stateTracking": [
                 {
-                    "oolType": "Processor",
-                    "name": "normalizeMobile"
+                    "field": "status",
+                    "stateMapping": {
+                        "inactive": "statusInactiveTimestamp",
+                        "active": "statusActiveTimestamp",
+                        "disabled": "statusDisabledTimestamp",
+                        "forbidden": "statusForbiddenTimestamp",
+                        "deleted": "statusDeletedTimestamp"
+                    }
                 }
+            ]
+        },
+        "uniqueKeys": [
+            [
+                "id"
             ],
-            "subClass": [
-                "phone"
-            ],
-            "displayName": "User Mobile",
-            "optional": true
-        },
-        "password": {
-            "type": "text",
-            "maxLength": 200,
-            "comment": "User Password",
-            "modifiers": [
-                {
-                    "oolType": "Processor",
-                    "name": "hashPassword",
-                    "args": [
-                        {
-                            "oolType": "ObjectReference",
-                            "name": "latest.passwordSalt"
-                        }
-                    ]
-                }
-            ],
-            "subClass": [
-                "password"
-            ],
-            "displayName": "User Password",
-            "defaultByDb": true
-        },
-        "passwordSalt": {
-            "type": "text",
-            "fixedLength": 8,
-            "auto": true,
-            "comment": "User Password Salt",
-            "displayName": "User Password Salt"
-        },
-        "locale": {
-            "type": "text",
-            "default": "en_AU",
-            "comment": "User Locale",
-            "displayName": "User Locale"
-        },
-        "isEmailVerified": {
-            "type": "boolean",
-            "default": false,
-            "displayName": "Is Email Verified"
-        },
-        "isMobileVerified": {
-            "type": "boolean",
-            "default": false,
-            "displayName": "Is Mobile Verified"
-        },
-        "status": {
-            "type": "enum",
-            "values": [
-                "inactive",
-                "active",
-                "disabled",
-                "forbidden",
-                "deleted"
-            ],
-            "default": "inactive",
-            "comment": "User Status",
-            "subClass": [
-                "userStatus"
-            ],
-            "displayName": "User Status"
-        },
-        "tag": {
-            "type": "array",
-            "optional": true,
-            "displayName": "Tag"
-        },
-        "createdAt": {
-            "type": "datetime",
-            "auto": true,
-            "readOnly": true,
-            "writeOnce": true,
-            "displayName": "Created At",
-            "isCreateTimestamp": true,
-            "defaultByDb": true
-        },
-        "updatedAt": {
-            "type": "datetime",
-            "readOnly": true,
-            "forceUpdate": true,
-            "optional": true,
-            "displayName": "Updated At",
-            "isUpdateTimestamp": true,
-            "updateByDb": true
-        },
-        "statusInactiveTimestamp": {
-            "type": "datetime",
-            "readOnly": true,
-            "optional": true,
-            "auto": true,
-            "writeOnce": true,
-            "displayName": "Status Inactive Timestamp"
-        },
-        "statusActiveTimestamp": {
-            "type": "datetime",
-            "readOnly": true,
-            "optional": true,
-            "auto": true,
-            "writeOnce": true,
-            "displayName": "Status Active Timestamp"
-        },
-        "statusDisabledTimestamp": {
-            "type": "datetime",
-            "readOnly": true,
-            "optional": true,
-            "auto": true,
-            "writeOnce": true,
-            "displayName": "Status Disabled Timestamp"
-        },
-        "statusForbiddenTimestamp": {
-            "type": "datetime",
-            "readOnly": true,
-            "optional": true,
-            "auto": true,
-            "writeOnce": true,
-            "displayName": "Status Forbidden Timestamp"
-        },
-        "statusDeletedTimestamp": {
-            "type": "datetime",
-            "readOnly": true,
-            "optional": true,
-            "auto": true,
-            "writeOnce": true,
-            "displayName": "Status Deleted Timestamp"
-        }
-    },
-    "indexes": [
-        {
-            "fields": [
+            [
                 "email"
             ],
-            "unique": true
-        },
-        {
-            "fields": [
-                "mobile"
-            ],
-            "unique": true
-        }
-    ],
-    "features": {
-        "autoId": {
-            "field": "id"
-        },
-        "createTimestamp": {
-            "field": "createdAt"
-        },
-        "updateTimestamp": {
-            "field": "updatedAt"
-        },
-        "logicalDeletion": {
-            "field": "status",
-            "value": "deleted"
-        },
-        "atLeastOneNotNull": [
             [
-                "email",
                 "mobile"
             ]
         ],
-        "stateTracking": [
+        "indexes": [
             {
-                "field": "status",
-                "stateMapping": {
-                    "inactive": "statusInactiveTimestamp",
-                    "active": "statusActiveTimestamp",
-                    "disabled": "statusDisabledTimestamp",
-                    "forbidden": "statusForbiddenTimestamp",
-                    "deleted": "statusDeletedTimestamp"
-                }
+                "fields": [
+                    "email"
+                ],
+                "unique": true
+            },
+            {
+                "fields": [
+                    "mobile"
+                ],
+                "unique": true
             }
-        ]
-    },
-    "uniqueKeys": [
-        [
-            "id"
         ],
-        [
-            "email"
-        ],
-        [
-            "mobile"
-        ]
-    ],
-    "fieldDependencies": {
-        "mobile": [
-            "latest.locale"
-        ],
-        "password": [
-            "latest.passwordSalt"
-        ]
-    },
-    "interfaces": {
-        "validateUserCredential": {
-            "params": [
-                {
-                    "name": "identity",
-                    "type": "text",
-                    "maxLength": [
-                        200
-                    ]
-                },
-                {
-                    "type": "text",
-                    "maxLength": [
-                        200
-                    ],
-                    "name": "password",
-                    "subClass": [
-                        "password"
-                    ]
-                }
+        "associations": {
+            "groups": {
+                "entity": "group",
+                "isArray": true,
+                "connectedBy": "userGroup"
+            },
+            "profiles": {
+                "entity": "profile",
+                "isArray": true,
+                "remoteField": "owner"
+            }
+        },
+        "fieldDependencies": {
+            "id": [
+                "id"
+            ],
+            "createdAt": [
+                "createdAt"
+            ],
+            "statusInactiveTimestamp": [
+                "statusInactiveTimestamp"
+            ],
+            "statusActiveTimestamp": [
+                "statusActiveTimestamp"
+            ],
+            "statusDisabledTimestamp": [
+                "statusDisabledTimestamp"
+            ],
+            "statusForbiddenTimestamp": [
+                "statusForbiddenTimestamp"
+            ],
+            "statusDeletedTimestamp": [
+                "statusDeletedTimestamp"
+            ],
+            "mobile": [
+                "latest.locale"
+            ],
+            "password": [
+                "latest.passwordSalt"
             ]
+        },
+        "interfaces": {
+            "validateUserCredential": {
+                "params": [
+                    {
+                        "name": "identity",
+                        "type": "text",
+                        "maxLength": [
+                            200
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "maxLength": [
+                            200
+                        ],
+                        "name": "password",
+                        "subClass": [
+                            "password"
+                        ]
+                    }
+                ]
+            }
         }
-    }
-};
+    };
 
-    return Object.assign(UserSpec, );
+    return Object.assign(UserSpec, {
+        $normalizeMobile: normalizeMobile,
+        $hashPassword: hashPassword
+    });
 };

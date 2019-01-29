@@ -19,22 +19,24 @@
         // level 1
         'schema': new Set(['entities', 'views']),
         'entity': new Set(['with', 'has', 'associations', 'key', 'index', 'data', 'interface']),
-        'dataset': new Set(['contains', 'with']),
+        'dataset': new Set(['is']),
     
         // level 2
         'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo', 'connected', 'by', 'through', 'as', 'optional']),
         'entity.index': new Set(['is', 'unique']),
         'entity.interface': new Set(['accept', 'find', 'findOne', 'return']),
 
+        'dataset.body': new Set(['with']),
+
         // level 3
-        'entity.interface.find': new Set(['one', 'by', 'cases', 'selected', 'selectedBy', "which", "has", "where", "is", "when", "to", "be", "with", "otherwise", "else"]),           
+        'entity.interface.find': new Set(['a', 'an', 'the', 'one', 'by', 'cases', 'selected', 'selectedBy', "of", "which", "where", "when", "with", "otherwise", "else"]),           
         'entity.interface.return': new Set(["unless", "when"]),           
 
         // level 4
-        'entity.interface.find.when': new Set(['selecting', 'those', 'by', 'selected', 'selectedBy', "which", "has", "where", "is", "when", "to", "be", "with"]),           
+        'entity.interface.find.when': new Set(['when', 'else', 'otherwise']),           
         'entity.interface.find.else': new Set(['return', 'throw']),
 
-        'entity.interface.return.when': new Set(['exists', 'null', 'throw'])                                  
+        'entity.interface.return.when': new Set(['exists', 'null', 'throw'])
     };
 
     const NEXT_STATE = {
@@ -45,13 +47,23 @@
         'entity.interface.return.when': 'entity.interface.return.when',
         'entity.interface.find.when': 'entity.interface.find.when',
         'entity.interface.find.otherwise': 'entity.interface.find.else',
-        'entity.interface.find.else': 'entity.interface.find.else'
+        'entity.interface.find.else': 'entity.interface.find.else',
+
+        'dataset.is': 'dataset.body'
+    };
+
+    const STATE_STOPPER = {        
+        'entity.interface.find.when': new Set(['else', 'otherwise'])
+    };
+
+    const FINAL_STATE = {        
+        'entity.interface.find.else': 'entity.interface.find'
     };
     
     //statements can be in one line
     const ONE_LINE_KEYWORDS = [ 
         new Set(['import', 'type', 'const', 'entity']), // level
-        new Set(['entity.key', 'entity.data', 'entity.interface.find.when', 'entity.interface.find.else', 'entity.interface.return.when'])
+        new Set(['entity.key', 'entity.data', 'entity.interface.return.when'])
     ];
 
     const SUPPORT_WORD_OPERATOR = new Set([
@@ -117,10 +129,12 @@
         }
 
         dump(loc, token) {
+            
             token ? console.log(loc, token) : console.log(loc);
             console.log('indents:', this.indents.join(' -> '), 'current indent:', this.indent, 'current dedented:', this.dedented);                   
             console.log('lastState:', this.lastState, 'comment:', this.comment, 'eof:', this.eof, 'brackets:', this.brackets.join(' -> '),'stack:', this.stack.join(' -> '));
             console.log();
+            
             return this;
         }
 
@@ -163,6 +177,15 @@
             let last = this.stack.pop();
             if (state !== last) {
                 throw new Error(`Unmatched "${state}" state!`);
+            }
+
+            let finalStateToExit = FINAL_STATE[last];
+
+            if (finalStateToExit) {
+                do {
+                    last = this.stack.pop(); 
+                    console.log('< exit state:', last, '\n');
+                } while (last !== finalStateToExit);
             }
 
             return this;
@@ -382,7 +405,6 @@ newline		            \n|\r\n|\r|\f
 // identifiers
 element_access          {variable}"["({space})*?({variable}|{shortstring}|{integer})({space})*?"]"
 member_access           {identifier}("."{identifier})+
-column_range            {variable}".""*"
 variable                {member_access}|{identifier}
 object_reference        "@"{variable}
 symbol_token            "@""@"{identifier}
@@ -419,10 +441,10 @@ regexp_char             [^\\\n\/]
 regexp_flag             "i"|"g"|"m"|"y"
 
 // reserved
-symbol_operators        {syntax_operators}|{relation_operators}|{math_operators}
+symbol_operators        {relation_operators}|{syntax_operators}|{math_operators}
 word_operators          {logical_operators}|{math_operators2}|{relation_operators2}
 bracket_operators       "("|")"|"["|"]"|"{"|"}"
-syntax_operators        "|~"|","|":"|"|>"|"|="|"--"|"=>"|"~"|"="
+syntax_operators        "|~"|","|":"|"|>"|"|="|"--"|"=>"|"~"|"="|"->"
 comment_operators       "//"
 relation_operators      "!="|">="|"<="|">"|"<"|"=="
 logical_operators       "not"|"and"|"or"
@@ -511,8 +533,7 @@ escapeseq               \\.
                                 state.doDedent();
                                 this.begin('DEDENTED');  
 
-                                state.dump('<EMPTY>. dedent');                                                            
-
+                                state.dump('<EMPTY>. dedent');   
                             } else {
                                 //same indent
                                 this.begin('INLINE');
@@ -688,9 +709,6 @@ escapeseq               \\.
                                 yytext = state.normalizeReference(yytext);
                                 return 'REFERENCE';
                            %}
-<INLINE>{column_range}     %{
-                                return 'COLUMNS';
-                           %}
 <INLINE>{bracket_operators}     %{
                                     if (yytext == '{' || yytext == '[' || yytext == '(') {
                                         state.brackets.push(yytext);
@@ -774,6 +792,10 @@ escapeseq               \\.
 
                                     default:
                                         if (SUB_KEYWORDS[state.lastState] && SUB_KEYWORDS[state.lastState].has(yytext)) {
+                                            if (STATE_STOPPER[state.lastState] && STATE_STOPPER[state.lastState].has(yytext)) {
+                                                state.exitState(state.lastState);                                                                        
+                                            }
+
                                             let keywordChain = state.lastState + '.' + yytext;
                                             let nextState = NEXT_STATE[keywordChain];
                                             if (nextState) {
@@ -833,6 +855,8 @@ statement
     | type_statement
     | schema_statement    
     | entity_statement
+    | view_statement
+    | dataset_statement
     ;
 
 import_statement
@@ -906,11 +930,11 @@ type_statement_item
         activator: assign value to the subject
         activator should only appear before validator and processor
     */
-    : identifier_or_string type_base type_info_or_not type_modifiers_or_not
+    : identifier_or_string type_base type_info_or_not type_modifiers_or_not field_comment_or_not
         {            
             if (BUILTIN_TYPES.has($1)) throw new Error('Cannot use built-in type "' + $1 + '" as a custom type name. Line: ' + @1.first_line);
             // default as text
-            state.defineType($1, Object.assign({type: 'text'}, $2, $3, $4));
+            state.defineType($1, Object.assign({type: 'text'}, $2, $3, $4, $5));
         }
     ;
 
@@ -1201,7 +1225,7 @@ find_one_keywords
     ;
 
 find_one_operation
-    : find_one_keywords identifier_or_string selection_inline_keywords modifiable_value -> { oolType: 'findOne', model: $2, condition: $4 }
+    : find_one_keywords identifier_or_string selection_inline_keywords conditional_expression -> { oolType: 'findOne', model: $2, condition: $4 }
     | find_one_keywords identifier_or_string case_statement -> { oolType: 'findOne', model: $2, condition: $3 }
     ;
 
@@ -1217,7 +1241,7 @@ case_statement
     ;
 
 case_condition_item
-    : "when" conditional_expression "=>" condition_as_result_expression NEWLINE -> { oolType: 'ConditionalStatement', test: $2, then: $4 }
+    : "when" conditional_expression "=>" condition_as_result_expression -> { oolType: 'ConditionalStatement', test: $2, then: $4 }
     ; 
 
 case_condition_block
@@ -1226,8 +1250,9 @@ case_condition_block
     ;
 
 otherwise_statement
-    : otherwise_keywords condition_as_result_expression NEWLINE -> $2
-    | otherwise_keywords stop_controll_flow_expression NEWLINE -> $2
+    : otherwise_keywords "=>" condition_as_result_expression NEWLINE -> $3
+    | otherwise_keywords "=>" stop_controll_flow_expression NEWLINE -> $3
+    | otherwise_keywords "=>" NEWLINE INDENT stop_controll_flow_expression NEWLINE DEDENT -> $5
     ;
 
 otherwise_keywords
@@ -1241,7 +1266,8 @@ stop_controll_flow_expression
     ;
 
 condition_as_result_expression
-    : selection_as_result_keyword modifiable_value -> $2
+    : conditional_expression NEWLINE
+    | NEWLINE INDENT conditional_expression NEWLINE DEDENT -> $3
     ;
 
 return_expression
@@ -1263,13 +1289,13 @@ return_or_not
     ;
 
 return_condition_item
-    : "when" conditional_expression "=>" modifiable_value NEWLINE -> { oolType: 'ConditionalStatement', test: $2, then: $4 }    
-    | "when" conditional_expression throw_error_expression NEWLINE -> { oolType: 'ConditionalStatement', test: $2, then: $3 }    
+    : "when" conditional_expression "=>" modifiable_value -> { oolType: 'ConditionalStatement', test: $2, then: $4 }    
+    | "when" conditional_expression "=>" throw_error_expression -> { oolType: 'ConditionalStatement', test: $2, then: $4 }    
     ;
 
 return_condition_block
-    : return_condition_item -> [ $1 ]
-    | return_condition_item return_condition_block -> [ $1 ].concat($2)
+    : return_condition_item NEWLINE -> [ $1 ]
+    | return_condition_item NEWLINE return_condition_block -> [ $1 ].concat($3)
     ;
 
 update_operation
@@ -1297,47 +1323,41 @@ assign_operation
         { $$ = { oolType: 'assignment', left: $2, right: Object.assign({ argument: $4 }, $5) }; }
     ;
 
+entity_fields_selections
+    : identifier_or_string -> { entity: $1 }     
+    | identifier_or_string "->" inline_array -> { entity: $1, projection: $3 }
+    ;
+
 dataset_statement
     : "dataset" identifier_or_string NEWLINE INDENT dataset_statement_block DEDENT -> state.defineDataset($2, $5)
     ;
 
 dataset_statement_block
-    : "contains" identifier_or_string NEWLINE -> { entity: $2 }
-    | "contains" identifier_or_string NEWLINE dataset_statement_block2 -> { entity: $2, joinWith: $4 }
+    : "is" article_keyword_or_not dataset_join_with_item -> $3
     ;
 
-dataset_statement_block2
-    : "with" document_entity_join NEWLINE -> [ $2 ]
-    | "with" document_entity_join NEWLINE dataset_statement_block2 -> [ $2 ].concat($4)
+dataset_join_with_block
+    : dataset_join_with_item -> [ $1 ]
+    | dataset_join_with_item dataset_join_with_block -> [ $1 ].concat($2)
     ;
 
-dataset_entity_join
-    : identifier_or_string "being" identifier_string_or_dotname -> { entity: $1, on: { left: $3, right: '$key' } }
-    | identifier_or_string "dataset" "of" "which" identifier_string_or_dotname "being" identifier_string_or_dotname -> { dataset: $1, on: { left: $7, right: $5 } }
-    ;    
+dataset_join_with_item
+    : entity_fields_selections NEWLINE -> $1
+    | entity_fields_selections "with" ":" NEWLINE INDENT dataset_join_with_block DEDENT -> { ...$1, with: $6 }
+    ;
 
 view_statement
     : "view" identifier_or_string NEWLINE INDENT view_statement_block DEDENT -> state.defineView($2, $5)
     ;
 
 view_statement_block
-    : view_main_entity NEWLINE accept_or_not view_selection_or_not group_by_or_not order_by_or_not skip_or_not limit_or_not
-        -> Object.assign({}, $1, $3, $4, $5, $6, $7, $8)
-    ;
-
-view_joinings_or_not
-    :
-    | view_joinings
+    : view_main_entity NEWLINE accept_or_not view_selection_or_not group_by_or_not having_or_not order_by_or_not skip_or_not limit_or_not
+        -> Object.assign({}, $1, $3, $4, $5, $6, $7, $8, $9)
     ;
 
 view_main_entity
-    : "is" article_keyword view_entity_target -> $3
-    | "is" article_keyword view_entity_target "list" -> Object.assign({}, $3, { isList: true })
-    ;
-
-view_entity_target
-    : identifier_or_string -> { entity: $1 }
-    | identifier_or_string "dataset" -> { dataset: $1 }
+    : "is" article_keyword_or_not identifier_or_string -> { dataset: $3 }
+    | "is" article_keyword_or_not identifier_or_string "list" -> { dataset: $3, isList: true }
     ;
 
 view_selection_or_not
@@ -1346,8 +1366,12 @@ view_selection_or_not
     ;
 
 view_selection
-    : selection_keyword conditional_expression NEWLINE -> { where: [ $2 ] }
-    | selection_keyword NEWLINE INDENT view_selection_block DEDENT -> { where: $4 }
+    : selection_inline_keywords conditional_expression NEWLINE -> { condition: $2 }
+    ;
+
+article_keyword_or_not
+    :
+    | article_keyword
     ;
 
 article_keyword
@@ -1357,15 +1381,10 @@ article_keyword
     | "one"
     ;    
 
-selection_as_result_keyword    
-    : "selecting" "those" selection_attributive_keywords
-    | selection_keywords
-    ;
-
 selection_attributive_keywords
-    : "which" "has"
-    | "where" "is"
-    | "when" "to" "be"
+    : "of" "which"
+    | "where" 
+    | "when" 
     | "with"
     ;
 
@@ -1379,15 +1398,16 @@ selection_inline_keywords
     | selection_attributive_keywords
     ;
 
-view_selection_block
-    : conditional_expression NEWLINE -> [ $1 ]
-    | conditional_expression NEWLINE view_selection_block -> [ $1 ].concat($3)
-    ;
-
 group_by_or_not
     :
     | "group" "by" identifier_string_or_dotname_list NEWLINE -> { groupBy: $3 }
+    | "group" "by" NEWLINE INDENT identifier_string_or_dotname_block DEDENT -> { groupBy: $5 }
     ;
+
+having_or_not
+    : 
+    | "having" conditional_expression NEWLINE -> { having: $2 }
+    ;    
 
 order_by_or_not
     :
@@ -1402,8 +1422,10 @@ order_by_block
 
 order_by_clause
     : identifier_string_or_dotname -> { field: $1, ascend: true }
-    | identifier_string_or_dotname "asc" -> { field: $1, ascend: true }
-    | identifier_string_or_dotname "desc" -> { field: $1, ascend: false }
+    | identifier_string_or_dotname "ascend" -> { field: $1, ascend: true }
+    | identifier_string_or_dotname "<" -> { field: $1, ascend: true }
+    | identifier_string_or_dotname "descend" -> { field: $1, ascend: false }
+    | identifier_string_or_dotname ">" -> { field: $1, ascend: false }
     ;
 
 order_by_list
@@ -1418,12 +1440,14 @@ order_by_list0
 
 skip_or_not
     :
-    | "skip" value NEWLINE -> { skip: $2 }
+    | "offset" INTEGER NEWLINE -> { offset: $2 }
+    | "offset" REFERENCE NEWLINE -> { offset: $2 }
     ;
 
 limit_or_not
     :
-    | "limit" value NEWLINE -> { limit: $2 }
+    | "limit" INTEGER NEWLINE -> { limit: $2 }
+    | "limit" REFERENCE NEWLINE -> { limit: $2 }
     ;
 
 /* A field of entity with a series of modifiers, subject should be identifier or quoted string. */
@@ -1492,6 +1516,11 @@ identifier_string_or_dotname
     | STRING
     | DOTNAME
     ;        
+
+identifier_string_or_dotname_block 
+    : identifier_string_or_dotname NEWLINE -> [ $1 ]
+    | identifier_string_or_dotname NEWLINE identifier_string_or_dotname_block -> [ $1 ].concat($3)
+    ;
 
 identifier_string_or_dotname_list
     : identifier_string_or_dotname -> [ $1 ]
@@ -1602,6 +1631,7 @@ binary_expression
     | modifiable_value "==" modifiable_value -> { oolType: 'BinaryExpression', operator: '==', left: $1, right: $3 }
     | modifiable_value "!=" modifiable_value -> { oolType: 'BinaryExpression', operator: '!=', left: $1, right: $3 }
     | modifiable_value "in" modifiable_value -> { oolType: 'BinaryExpression', operator: 'in', left: $1, right: $3 }
+    | modifiable_value "not" "in" modifiable_value -> { oolType: 'BinaryExpression', operator: 'notIn', left: $1, right: $3 }
     /*| value "is" value
         { $$ = { oolType: 'BinaryExpression', operator: 'is', left: $1, right: $3 }; }    
     | value "like" value

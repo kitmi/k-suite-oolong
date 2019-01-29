@@ -21,8 +21,15 @@ const withHttpStatus = (Base, STATUS) => class extends Base {
  * Expected business errors upon wrong request.
  * @class Errors:BusinessError
  * @extends Error
+ * @mixes withName
+ * @mixes withExtraInfo
  */
-class BusinessError extends Error {    
+class BusinessError extends withExtraInfo(withName(Error)) {    
+    constructor(message, status, ...others) {
+        super(message, ...others);
+
+        this.status = status || HttpCode.BAD_REQUEST;
+    }
 }
 
 /**

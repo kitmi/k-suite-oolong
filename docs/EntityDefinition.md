@@ -56,6 +56,14 @@
 * belongsTo - profile.user
 * refersTo - profile.gender, entity.code
 
+### associations meta
+
+* isArray=true
+    * has connectedBy 
+
+* isArray=false
+    should use reverse      
+
 ## key
 
 ## indexes

@@ -58,7 +58,7 @@ class EntityModel {
     static getUniqueKeyValuePairsFrom(data) {  
         pre: _.isPlainObject(data);    
         
-        let ukFields = getUniqueKeyFieldsFrom(data);
+        let ukFields = this.getUniqueKeyFieldsFrom(data);
         return _.pick(data, ukFields);
     }
     
@@ -66,14 +66,14 @@ class EntityModel {
      * Find one record, returns a model object containing the record or undefined if nothing found.
      * @param {object|array} condition - Query condition, key-value pair will be joined with 'AND', array element will be joined with 'OR'.
      * @param {object} [findOptions] - findOptions     
-     * @property {object} [findOptions.$select] - Selected fields
-     * @property {object} [findOptions.$where] - Extra condition
+     * @property {object} [findOptions.$association] - Joinings
+     * @property {object} [findOptions.$projection] - Selected fields
+     * @property {object} [findOptions.$query] - Extra condition
      * @property {object} [findOptions.$groupBy] - Group by fields
-     * @property {object} [findOptions.$having] - Having fields
      * @property {object} [findOptions.$orderBy] - Order by fields
      * @property {number} [findOptions.$offset] - Offset
      * @property {number} [findOptions.$limit] - Limit     
-     * @property {bool} [findOptions.$fetchArray=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [findOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @property {bool} [findOptions.$includeDeleted=false] - Include those marked as logical deleted.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection]
@@ -82,7 +82,7 @@ class EntityModel {
     static async findOne_(findOptions, connOptions) { 
         pre: findOptions;
 
-        findOptions = this._prepareWhere(findOptions, true /* for single record */);
+        findOptions = this._prepareQueries(findOptions, true /* for single record */);
         
         let context = {             
             findOptions,
@@ -91,6 +91,10 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
+        if (findOptions.$association) {
+            findOptions.$association = this._prepareAssociations(findOptions.$association);
+        }
+
         return this._safeExecute_(async (context) => {            
             let records = await this.db.connector.find_(
                 this.meta.name, 
@@ -99,35 +103,42 @@ class EntityModel {
             );
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
 
-            if (records.length === 0) return undefined;
+            if (findOptions.$association) {  
+                //rows, coloumns, aliasMap                    
+                if (records[0].length === 0) return undefined;
+
+                records = this._mapRecordsToObjects(records, findOptions.$association);
+            } else if (records.length === 0) {
+                return undefined;
+            }
 
             assert: records.length === 1;
             let result = records[0];
 
-            if (context.findOptions.$fetchArray) return result;
+            if (context.findOptions.$unboxing) return result;
 
             return this.populate(result);
         }, context);
     }
 
     /**
-     * Find records matching the condition, returns an array of model object or an array of records directly if $fetchArray = true.     
+     * Find records matching the condition, returns an array of model object or an array of records directly if $unboxing = true.     
      * @param {object} [findOptions] - findOptions     
-     * @property {object} [findOptions.$select] - Selected fields
-     * @property {object} [findOptions.$where] - Extra condition
+     * @property {object} [findOptions.$association] - Joinings
+     * @property {object} [findOptions.$projection] - Selected fields
+     * @property {object} [findOptions.$query] - Extra condition
      * @property {object} [findOptions.$groupBy] - Group by fields
-     * @property {object} [findOptions.$having] - Having fields
      * @property {object} [findOptions.$orderBy] - Order by fields
      * @property {number} [findOptions.$offset] - Offset
      * @property {number} [findOptions.$limit] - Limit     
-     * @property {bool} [findOptions.$fetchArray=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [findOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @property {bool} [findOptions.$includeDeleted=false] - Include those marked as logical deleted.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection]
      * @returns {array}
      */
     static async findAll_(findOptions, connOptions) {
-        findOptions = this._prepareWhere(findOptions);
+        findOptions = this._prepareQueries(findOptions);
 
         let context = {             
             findOptions,
@@ -136,15 +147,24 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
-        return this._safeExecute_(async (context) => {            
+        if (findOptions.$association) {
+            findOptions.$association = this._prepareAssociations(findOptions.$association);
+        }
+
+        return this._safeExecute_(async (context) => {             
             let records = await this.db.connector.find_(
                 this.meta.name, 
                 context.findOptions, 
                 context.connOptions
             );
+
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
 
-            if (context.findOptions.$fetchArray) return records;
+            if (findOptions.$association) {                
+                records = this._mapRecordsToObjects(records, findOptions.$association);
+            }
+
+            if (context.findOptions.$unboxing) return records;
 
             return records.map(row => this.populate(row));
         }, context);
@@ -155,7 +175,7 @@ class EntityModel {
      * @param {object} data - Entity data 
      * @param {object} [createOptions] - Create options     
      * @property {bool} [createOptions.$retrieveCreated=false] - Retrieve the newly created record from db.
-     * @property {bool} [createOptions.$fetchArray=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [createOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection]
      * @returns {EntityModel}
@@ -182,7 +202,7 @@ class EntityModel {
 
             await this.afterCreate_(context);
             
-            return createOptions.$fetchArray ? context.latest : this.populate(context.latest);
+            return createOptions.$unboxing ? context.latest : this.populate(context.latest);
         }, context);
     }
 
@@ -190,24 +210,36 @@ class EntityModel {
      * Update an existing entity with given data.
      * @param {object} data - Entity data with at least one unique key (pair) given
      * @param {object} [updateOptions] - Update options
-     * @property {object} [updateOptions.$where] - Extra condition
+     * @property {object} [updateOptions.$query] - Extra condition
      * @property {bool} [updateOptions.$retrieveUpdated=false] - Retrieve the updated entity from database
-     * @property {bool} [updateOptions.$fetchArray=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [updateOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection]
      * @returns {object}
      */
     static async update_(data, updateOptions, connOptions) {
+        if (updateOptions && updateOptions.$byPassReadOnly) {
+            throw new OolongUsageError('Unexpected usage.', { 
+                entity: this.meta.name, 
+                reason: '$byPassReadOnly option is not allow to be set from public update_ method.',
+                updateOptions
+            });     
+        }
+
+        return this._update_(data, updateOptions, connOptions);
+    }
+    
+    static async _update_(data, updateOptions, connOptions) {
         if (!updateOptions) {
             let conditionFields = this.getUniqueKeyFieldsFrom(data);
             if (_.isEmpty(conditionFields)) {
                 throw new OolongUsageError('Primary key value(s) or at least one group of unique key value(s) is required for updating an entity.');
             }
-            updateOptions = { $where: _.pick(data, conditionFields) };
+            updateOptions = { $query: _.pick(data, conditionFields) };
             data = _.omit(data, conditionFields);
         }
 
-        updateOptions = this._prepareWhere(updateOptions, true /* for single record */);
+        updateOptions = this._prepareQueries(updateOptions, true /* for single record */);
 
         let context = { 
             raw: data, 
@@ -223,22 +255,22 @@ class EntityModel {
             context.result = await this.db.connector.update_(
                 this.meta.name, 
                 context.latest, 
-                context.updateOptions.$where,
+                context.updateOptions.$query,
                 context.connOptions
             );
 
             await this.afterUpdate_(context);
             
-            return updateOptions.$fetchArray ? context.latest : this.populate(context.latest);
+            return updateOptions.$unboxing ? context.latest : this.populate(context.latest);
         }, context);
     }
 
     /**
      * Remove an existing entity with given data.     
      * @param {object} [deleteOptions] - Update options
-     * @property {object} [deleteOptions.$where] - Extra condition
+     * @property {object} [deleteOptions.$query] - Extra condition
      * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database
-     * @property {bool} [deleteOptions.$fetchArray=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [deleteOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection] 
@@ -246,18 +278,19 @@ class EntityModel {
     static async delete_(deleteOptions, connOptions) {
         pre: deleteOptions;
 
-        deleteOptions = this._prepareWhere(deleteOptions, true /* for single record */);
+        deleteOptions = this._prepareQueries(deleteOptions, true /* for single record */);
 
-        if (_.isEmpty(deleteOptions.$where)) {
+        if (_.isEmpty(deleteOptions.$query)) {
             throw new OolongUsageError('Empty condition is not allowed for deleting an entity.');
         }
 
         if (this.meta.features.logicalDeletion && !deleteOptions.$physicalDeletion) {
             let { field, value } = this.meta.features.logicalDeletion;
-            return this.update_({ [field]: value }, { 
-                $where: deleteOptions.$where, 
+            return this._update_({ [field]: value }, { 
+                $query: deleteOptions.$query, 
                 $retrieveUpdated: deleteOptions.$retrieveDeleted,
-                $fetchArray: deleteOptions.$fetchArray
+                $unboxing: deleteOptions.$unboxing,
+                $byPassReadOnly: new Set([field])
             });
         }
         
@@ -271,39 +304,20 @@ class EntityModel {
 
             context.result = await this.db.connector.delete_(
                 this.meta.name,                 
-                context.deleteOptions.$where,
+                context.deleteOptions.$query,
                 context.connOptions
             );
             
-            return deleteOptions.$fetchArray ? context.existing : this.populate(context.existing);
+            return deleteOptions.$unboxing ? context.existing : this.populate(context.existing);
         }, context);
-    }
-
-    /**
-     * Merge two query conditions using given operator.
-     * @param {*} condition1 
-     * @param {*} condition2 
-     * @param {*} operator 
-     * @returns {object}
-     */
-    static mergeCondition(condition1, condition2, operator = '$and') {        
-        if (_.isEmpty(condition1)) {
-            return condition2;
-        }
-
-        if (_.isEmpty(condition2)) {
-            return condition1;
-        }
-
-        return { [operator]: [ condition1, condition2 ] };
     }
 
     /**
      * Check whether a data record contains primary key or at least one unique key pair.
      * @param {object} data 
      */
-    static containsUniqueKey(data) {
-        return _.find(this.meta.uniqueKeys, fields => _.every(fields, f => _.isNil(data[f])));
+    static _containsUniqueKey(data) {
+        return _.find(this.meta.uniqueKeys, fields => _.every(fields, f => !_.isNil(data[f])));
     }
 
     /**
@@ -311,7 +325,7 @@ class EntityModel {
      * @param {*} condition 
      */
     static _ensureContainsUniqueKey(condition) {
-        let containsUniqueKey = this.containsUniqueKey(condition);
+        let containsUniqueKey = this._containsUniqueKey(condition);
 
         if (!containsUniqueKey) {
             throw new OolongUsageError('Unexpected usage.', { 
@@ -350,7 +364,7 @@ class EntityModel {
                 context.connOptions.connection = await this.db.connector.beginTransaction_();                           
             } // else already in a transaction                        
 
-            existing = await this.findOne_({ $where: context.updateOptions.$where, $fetchArray: true }, context.connOptions);            
+            existing = await this.findOne_({ $query: context.updateOptions.$query, $unboxing: true }, context.connOptions);            
             context.existing = existing;                        
         }        
 
@@ -358,15 +372,30 @@ class EntityModel {
             if (fieldName in raw) {
                 //field value given in raw data
                 if (fieldInfo.readOnly) {
-                    //read only, not allow to set by input value
-                    throw new DataValidationError(`Read-only field "${fieldName}" is not allowed to be set by manual input.`, {
-                        entity: name,                        
-                        fieldInfo: fieldInfo 
-                    });
+                    if (!isUpdating || !context.updateOptions.$byPassReadOnly.has(fieldName)) {
+                        //read only, not allow to set by input value
+                        throw new DataValidationError(`Read-only field "${fieldName}" is not allowed to be set by manual input.`, {
+                            entity: name,                        
+                            fieldInfo: fieldInfo 
+                        });
+                    }
                 }  
 
-                if (isUpdating && fieldInfo.writeOnce) {      
-                    if (existing && !_.isNil(existing[fieldName])) {
+                if (isUpdating && fieldInfo.freezeAfterNonDefault) {
+                    assert: existing, '"freezeAfterNonDefault" qualifier requires existing data.';
+
+                    if (existing[fieldName] !== fieldInfo.default) {
+                        //freezeAfterNonDefault, not allow to change if value is non-default
+                        throw new DataValidationError(`FreezeAfterNonDefault field "${fieldName}" is not allowed to be changed.`, {
+                            entity: name,                        
+                            fieldInfo: fieldInfo 
+                        });
+                    }
+                }
+
+                if (isUpdating && fieldInfo.writeOnce) {     
+                    assert: existing, '"writeOnce" qualifier requires existing data.';
+                    if (!_.isNil(existing[fieldName])) {
                         throw new DataValidationError(`Write-once field "${fieldName}" is not allowed to be update once it was set.`, {
                             entity: name,
                             fieldInfo: fieldInfo 
@@ -511,24 +540,32 @@ class EntityModel {
         return _.find(obj, (v, k) => k[0] === '$');
     }
 
-    static _prepareWhere(options, forSingleRecord = false) {
-        if (options && !options.$where && !this._hasReservedKeys(options)) {
-            options = { $where: options };
+    static _prepareQueries(options, forSingleRecord = false) {
+        if (options && !options.$query && !this._hasReservedKeys(options)) {
+            options = { $query: options };
         }
 
         if (forSingleRecord) {
-            if (!_.isPlainObject(options.$where)) {
+            if (!_.isPlainObject(options.$query)) {
                 if (Array.isArray(this.meta.keyField)) {
                     throw new OolongUsageError('Cannot use a singular value as condition to query against a entity with combined primary key.');
                 }
     
-                options.$where = { [this.meta.keyField]: options.$where };
+                options.$query = { [this.meta.keyField]: options.$query };
             } else {
-                this._ensureContainsUniqueKey(options.$where);
+                this._ensureContainsUniqueKey(options.$query);
             }        
         }        
 
         return options || {};
+    }
+
+    static _prepareAssociations() {
+        throw new Error('Should be override by driver-specific subclass.');
+    }
+
+    static _mapRecordsToObjects() {
+        throw new Error('Should be override by driver-specific subclass.');
     }
 }
 

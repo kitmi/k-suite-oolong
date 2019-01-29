@@ -43,7 +43,6 @@
                 "id": {
                     "type": "integer",
                     "auto": true,
-                    "readOnly": true,
                     "writeOnce": true,
                     "startFrom": 100000,
                     "displayName": "Id"
@@ -143,16 +142,6 @@
                     "comment": "User Locale",
                     "displayName": "User Locale"
                 },
-                "isEmailVerified": {
-                    "type": "boolean",
-                    "default": false,
-                    "displayName": "Is Email Verified"
-                },
-                "isMobileVerified": {
-                    "type": "boolean",
-                    "default": false,
-                    "displayName": "Is Mobile Verified"
-                },
                 "status": {
                     "type": "enum",
                     "values": [
@@ -169,10 +158,13 @@
                     ],
                     "displayName": "User Status"
                 },
-                "tag": {
-                    "type": "array",
-                    "optional": true,
-                    "displayName": "Tag"
+                "testToken": {
+                    "type": "datetime",
+                    "default": {
+                        "oolType": "SymbolToken",
+                        "name": "now"
+                    },
+                    "displayName": "Test Token"
                 },
                 "createdAt": {
                     "type": "datetime",
@@ -307,6 +299,32 @@
                 }
             },
             "key": "code"
+        },
+        "group": {
+            "name": "group",
+            "displayName": "Group",
+            "comment": "Group",
+            "features": {
+                "autoId": {
+                    "field": "id"
+                }
+            },
+            "fields": {
+                "id": {
+                    "type": "integer",
+                    "auto": true,
+                    "writeOnce": true,
+                    "displayName": "Id"
+                },
+                "name": {
+                    "type": "text",
+                    "maxLength": 255,
+                    "optional": true,
+                    "comment": "Group Name",
+                    "displayName": "Group Name"
+                }
+            },
+            "key": "id"
         }
     },
     "datasets": {},

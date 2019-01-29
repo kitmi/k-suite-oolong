@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require('path');
-const { _, fs, pascalCase, replaceAll }  = require('rk-utils');
+const { _, fs, pascalCase, replaceAll, putIntoBucket }  = require('rk-utils');
 const swig  = require('swig-templates');
 
 const OolTypes = require('../lang/OolTypes');
@@ -119,11 +119,25 @@ class DaoModeler {
                 name: entityInstanceName,
                 keyField: entity.key,
                 fields: _.mapValues(entity.fields, f => f.toJSON()),
-                indexes: entity.indexes || [],
-                features: entity.features || [],
-                uniqueKeys,
-                fieldDependencies: fieldReferences
+                features: entity.features || {},
+                uniqueKeys
             };
+
+            if (!_.isEmpty(entity.indexes)) {
+                modelMeta.indexes = entity.indexes;
+            }
+
+            if (!_.isEmpty(entity.features)) {
+                modelMeta.features = entity.features;
+            }
+
+            if (!_.isEmpty(entity.associations)) {
+                modelMeta.associations = entity.associations;
+            }
+
+            if (!_.isEmpty(fieldReferences)) {
+                modelMeta.fieldDependencies = fieldReferences;
+            }            
 
             //build customized interfaces            
             if (entity.interfaces) {
@@ -157,13 +171,12 @@ class DaoModeler {
             let locals = {
                 imports: importLines.join('\n'),
                 className: capitalized,
-                entityMeta: JSON.stringify(modelMeta, null, 4),
+                entityMeta: indentLines(JSON.stringify(modelMeta, null, 4), 4),
                 classBody: indentLines(astClassMain.map(block => JsLang.astToCode(block)).join('\n\n'), 8),
-                //functors: 
-                /* _.reduce(sharedContext.newFunctorFiles, (result, functor) => {
-                    result['$' + functor.functionName] = functor.functionName;
+                functors: indentLines(JsLang.astToCode(JsLang.astValue(_.reduce(sharedContext.newFunctorFiles, (result, functor) => {
+                    result['$' + functor.functionName] = JsLang.astId(functor.functionName);
                     return result;
-                }, {}) */
+                }, {}))), 4) 
             };
 
             let classTemplate = path.resolve(__dirname, 'database', this.connector.driver, 'EntityModel.js.swig');
@@ -281,7 +294,11 @@ class DaoModeler {
     */
 
     _processFieldModifiers(entity, sharedContext) {
-        let compileContext = OolToAst.createCompileContext(entity.name, this.logger, sharedContext);
+        let compileContext = OolToAst.createCompileContext(entity.oolModule.name, this.logger, sharedContext);
+        compileContext.variables['raw'] = { source: 'context', finalized: true };
+        compileContext.variables['i18n'] = { source: 'context', finalized: true };
+        compileContext.variables['connector'] = { source: 'context', finalized: true };
+        compileContext.variables['latest'] = { source: 'context' };
 
         const allFinished = OolToAst.createTopoId(compileContext, 'done.');
 
@@ -291,10 +308,17 @@ class DaoModeler {
         _.forOwn(entity.fields, (field, fieldName) => {
             let topoId = OolToAst.compileField(fieldName, field, compileContext);
             OolToAst.dependsOn(compileContext, topoId, allFinished);
+
+            if (field.writeOnce || field.freezeAfterNonDefault) {
+                putIntoBucket(fieldReferences, fieldName, fieldName);
+            }
         });
 
         let deps = compileContext.topoSort.sort();
+        this.logger.verbose('All dependencies:\n' + JSON.stringify(deps, null, 2));
+
         deps = deps.filter(dep => compileContext.mapOfTokenToMeta.has(dep));
+        this.logger.verbose('All necessary source code:\n' + JSON.stringify(deps, null, 2));
 
         let methodBodyValidateAndFill = [], lastFieldsGroup, 
             methodBodyCache = [], 
@@ -438,12 +462,7 @@ class DaoModeler {
                 JsLang.astVarDeclare('$meta', JsLang.astVarRef('this.meta.interfaces.' + name), true, false, 'Retrieving the meta data')
             ];
 
-            let compileContext = OolToAst.createCompileContext(entity.name, this.logger, sharedContext);
-
-            //scan all used models in advance
-            _.each(method.implementation, (operation) => {
-                compileContext.modelVars.add(operation.model);
-            });
+            let compileContext = OolToAst.createCompileContext(entity.oolModule.name, this.logger, sharedContext);
             
             let paramMeta;
 
@@ -465,16 +484,16 @@ class DaoModeler {
             }
 
             let deps = compileContext.topoSort.sort();
-            this.logger.verbose('All dependencies:\n' + JSON.stringify(deps, null, 2));
+            //this.logger.verbose('All dependencies:\n' + JSON.stringify(deps, null, 2));
 
             deps = deps.filter(dep => compileContext.mapOfTokenToMeta.has(dep));
-            this.logger.verbose('All necessary source code:\n' + JSON.stringify(deps, null, 2));
+            //this.logger.verbose('All necessary source code:\n' + JSON.stringify(deps, null, 2));
 
             _.each(deps, dep => {
                 let sourceMap = compileContext.mapOfTokenToMeta.get(dep);
                 let astBlock = compileContext.astMap[dep];
 
-                this.logger.verbose('Code point "' + dep + '":\n' + JSON.stringify(sourceMap, null, 2));
+                //this.logger.verbose('Code point "' + dep + '":\n' + JSON.stringify(sourceMap, null, 2));
 
                 let targetFieldName = sourceMap.target; //getFieldName(sourceMap.target);      
 
@@ -482,11 +501,18 @@ class DaoModeler {
                     astBlock = Snippets._validateCheck(targetFieldName, astBlock);
 
                 } else if (sourceMap.type === OolToAst.AST_BLK_PROCESSOR_CALL) {
-                    astBlock = JsLang.astAssign(JsLang.astVarRef(sourceMap.target, true), astBlock, `Processing "${targetFieldName}"`);                    
+                    if (sourceMap.needDeclare) {
+                        astBlock = JsLang.astVarDeclare(JsLang.astVarRef(sourceMap.target), astBlock, false, false, `Processing "${targetFieldName}"`);                    
+                    } else {
+                        astBlock = JsLang.astAssign(JsLang.astVarRef(sourceMap.target, true), astBlock, `Processing "${targetFieldName}"`);                    
+                    }
                     
                 } else if (sourceMap.type === OolToAst.AST_BLK_ACTIVATOR_CALL) {
-                    astBlock = JsLang.astAssign(JsLang.astVarRef(sourceMap.target, true), astBlock, `Activating "${targetFieldName}"`);                    
-                    
+                    if (sourceMap.needDeclare) {
+                        astBlock = JsLang.astVarDeclare(JsLang.astVarRef(sourceMap.target), astBlock, false, false, `Processing "${targetFieldName}"`);                    
+                    } else {
+                        astBlock = JsLang.astAssign(JsLang.astVarRef(sourceMap.target, true), astBlock, `Activating "${targetFieldName}"`);                    
+                    }                    
                 }
 
                 astBody = astBody.concat(_.castArray(astBlock));
@@ -504,6 +530,7 @@ class DaoModeler {
         acceptParams.forEach((param, i) => {
             OolToAst.compileParam(i, param, compileContext);
             paramMeta[param.name] = param;
+            compileContext.variables[param.name] = { source: 'argument' };
         });
 
         return paramMeta;

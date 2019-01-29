@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 const path = require('path');
 
 const { _ } = require('rk-utils');
-const { generateDisplayName, deepCloneField, Clonable, entityNaming } = require('./OolUtils');
+const { generateDisplayName, deepCloneField, Clonable, entityNaming, fieldNaming, prefixNaming } = require('./OolUtils');
 
 const Field = require('./Field');
 
@@ -289,6 +289,17 @@ class Entity extends Clonable {
         return name in this.fields;
     }
 
+    addAssociation(name, destEntity, props) {
+        if (!this.associations) {
+            this.associations = {};
+        }
+
+        this.associations[name] = {
+            entity: destEntity.name,
+            ...props
+        };
+    }
+
     /**
      * Add a association field.
      * @param {string} name
@@ -307,7 +318,10 @@ class Entity extends Clonable {
             //return;
         }
 
-        this.addField(name, destField);
+        let destFieldInfo = _.omit(destField, ['default', 'auto', 'writeOnce', 'startFrom', 'readOnly', 'forceUpdate', 'freezeAfterNonDefault']);
+
+        this.addField(name, destFieldInfo);    
+        this.fields[name].displayName = fieldNaming(prefixNaming(destEntity.name, destField.name));   
     }
 
     /**
@@ -386,8 +400,18 @@ class Entity extends Clonable {
     /**
      * Returns the association info if there is connection to the given destination entity.
      */
-    getReferenceTo(entityName, connectedBy) {
-        return this.info.associations && _.find(this.info.associations, assoc => assoc.destEntity === entityName && connectedBy === assoc.connectedBy);
+    getReferenceTo(entityName, excludes) {
+        return this.info.associations && _.find(
+            this.info.associations, assoc => {
+                if (excludes) {
+                    if (excludes.association && assoc === excludes.association) return false;
+                    if (excludes.type && assoc.type === excludes.type) return false;
+                    if (excludes.associations && excludes.associations.indexOf(assoc) > -1) return false;
+                    if (excludes.types && excludes.types.indexOf(assoc.type) > -1) return false;
+                }
+                return assoc.destEntity === entityName;
+            }
+        );
     }
 
     /**
@@ -412,7 +436,7 @@ class Entity extends Clonable {
         deepCloneField(this, entity, 'comment');
         deepCloneField(this, entity, 'features');
         deepCloneField(this, entity, 'fields');    
-        deepCloneField(this, entity, 'accociations');        
+        deepCloneField(this, entity, 'associations');        
         deepCloneField(this, entity, 'key');        
         deepCloneField(this, entity, 'indexes');        
         deepCloneField(this, entity, 'interfaces');
@@ -433,7 +457,7 @@ class Entity extends Clonable {
             comment: this.comment,            
             features: this.features,            
             fields: _.mapValues(this.fields, field => field.toJSON()),
-            associations: this.accociations,
+            associations: this.associations,
             key: this.key,
             indexes: this.indexes
         };

@@ -237,6 +237,8 @@ class Linker {
                 let uniqueId = this.getElementUniqueId(oolModule, OolTypes.Element.CONST, value.name);
                 let ownerModule = this.getModuleById(this._mapOfReferenceToModuleId.get(uniqueId));
                 return this.translateOolValue(ownerModule, refedValue);
+            } else if (value.oolType) {
+                throw new Error(`todo: translateOolValue with type: ${value.oolType}`)
             }
 
             return _.mapValues(value, v => this.translateOolValue(oolModule, v));
@@ -306,8 +308,7 @@ class Linker {
         let targetModule;        
 
         if (elementType in refererModule && elementName in refererModule[elementType]) {
-            // see if it exists in the same module
-            assert: !this._elementsCache.hasOwnProperty(elementType + ':' + elementName + '@' + refererModule.id);
+            // see if it exists in the same module                        
             targetModule = refererModule;
         } else {
             // search reversely by the namespaces

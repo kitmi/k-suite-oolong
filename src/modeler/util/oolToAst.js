@@ -53,11 +53,22 @@ const OOL_MODIFIER_BUILTIN = {
     [OolTypes.Modifier.ACTIVATOR]: OolongActivators 
 };
 
+const OPERATOR_TOKEN = {
+    ">": "$gt",
+    "<": "$lt",
+    ">=": "$gte",
+    "<=": "$lte",
+    "==": "$eq",
+    "!=": "$ne",
+    "in": "$in",
+    "notIn": "$nin"
+};
+
 /**
  * Compile a conditional expression
  * @param {object} test
  * @param {object} compileContext
- * @property {string} compileContext.targetName
+ * @property {string} compileContext.moduleName
  * @property {TopoSort} compileContext.topoSort
  * @property {object} compileContext.astMap - Topo Id to ast map
  * @param {string} startTopoId
@@ -274,6 +285,7 @@ function compileAdHocValidator(topoId, value, functor, compileContext) {
 
 /**
  * Compile a modifier from ool to ast.
+ * @param topoId - startTopoId
  * @param value
  * @param functors
  * @param compileContext
@@ -322,10 +334,28 @@ function compileModifier(topoId, value, functor, compileContext) {
     }    
 
     if (isTopLevelBlock(topoId)) {
+        let targetVarName = value.name;
+        let needDeclare = false;
+
+        if (!isDotSeparateName(value.name) && compileContext.variables[value.name] && functor.oolType !== OolTypes.Modifier.VALIDATOR) {
+            //conflict with existing variables, need to rename to another variable
+            let counter = 1;
+            do {
+                counter++;       
+                targetVarName = value.name + counter.toString();         
+            } while (compileContext.variables.hasOwnProperty(targetVarName));            
+
+            compileContext.variables[targetVarName] = { type: 'localVariable', source: 'modifier' };
+            needDeclare = true;
+        }
+
+        //if (compileContext.variables[])
+
         addCodeBlock(compileContext, topoId, {
             type: OOL_MODIFIER_CODE_FLAG[functor.oolType],
-            target: value.name,
-            references: references   // latest., exsiting., raw.
+            target: targetVarName,
+            references,   // latest., exsiting., raw.
+            needDeclare
         });
     }
 
@@ -395,7 +425,7 @@ function translateModifier(functor, compileContext, args) {
         let builtins = OOL_MODIFIER_BUILTIN[functor.oolType];
 
         if (!(functionName in builtins)) {
-            fileName = './' + OOL_MODIFIER_PATH[functor.oolType] + '/' + compileContext.targetName + '-' + functionName + '.js';
+            fileName = './' + OOL_MODIFIER_PATH[functor.oolType] + '/' + compileContext.moduleName + '-' + functionName + '.js';
             functorId = functionName;
 
             if (!compileContext.mapOfFunctorToFile[functorId]) {
@@ -421,7 +451,7 @@ function translateModifier(functor, compileContext, args) {
  * @param {string} startTopoId - The topological id of the starting process to the target value, default as the param name
  * @param {object} varOol - Target value ool node.
  * @param {object} compileContext - Compilation context.
- * @property {string} compileContext.targetName
+ * @property {string} compileContext.moduleName
  * @property {TopoSort} compileContext.topoSort
  * @property {object} compileContext.astMap - Topo Id to ast map
  * @returns {string} Last topo Id
@@ -449,7 +479,7 @@ function compilePipedValue(startTopoId, varOol, compileContext) {
  * @param {string} startTopoId - The topological id of the starting process to the target value, default as the param name
  * @param {object} varOol - Target value ool node.
  * @param {object} compileContext - Compilation context.
- * @property {string} compileContext.targetName
+ * @property {string} compileContext.moduleName
  * @property {TopoSort} compileContext.topoSort
  * @property {object} compileContext.astMap - Topo Id to ast map
  * @returns {string} Last topo Id
@@ -457,7 +487,7 @@ function compilePipedValue(startTopoId, varOol, compileContext) {
 function compileVariableReference(startTopoId, varOol, compileContext) {
     pre: _.isPlainObject(varOol) && varOol.oolType === 'ObjectReference';
 
-    let [ baseName, others ] = varOol.name.split('.', 2);
+    //let [ baseName, others ] = varOol.name.split('.', 2);
     /*
     if (compileContext.modelVars && compileContext.modelVars.has(baseName) && others) {
         varOol.name = baseName + '.data' + '.' + others;
@@ -529,8 +559,11 @@ function compileConcreteValueExpression(startTopoId, value, compileContext) {
 
             let dependency;
 
-            if (compileContext.modelVars && compileContext.modelVars.has(refBase)) {
-                //user, user.password or user.data.password
+            if (!compileContext.variables[refBase]) {
+                throw new Error(`Referenced undefined variable: ${value.name}`);                
+            } 
+
+            if (compileContext.variables[refBase].type === 'entity' && !compileContext.variables[refBase].ongoing) {
                 dependency = refBase;
             } else if (refBase === 'latest' && rest.length > 0) {
                 //latest.password
@@ -540,9 +573,7 @@ function compileConcreteValueExpression(startTopoId, value, compileContext) {
                 }
             } else if (_.isEmpty(rest)) {
                 dependency = refBase + ':ready';
-            } else {
-                throw new Error('Unrecognized object reference: ' + JSON.stringify(value));
-            }
+            } 
 
             if (dependency) {
                 dependsOn(compileContext, dependency, startTopoId);
@@ -552,9 +583,7 @@ function compileConcreteValueExpression(startTopoId, value, compileContext) {
         }
 
         if (value.oolType === 'RegExp') {
-            compileContext.astMap[startTopoId] = JsLang.astValue(value);
-            //console.log(compileContext.astMap[startTopoId]);
-            //throw new Error(startTopoId);
+            compileContext.astMap[startTopoId] = JsLang.astValue(value);            
             return startTopoId;
         }
         
@@ -696,16 +725,25 @@ function wrapParamReference(name, value) {
     return ref;
 }
 
+function hasModelField(operand, compileContext) {
+    if (_.isPlainObject(operand) && operand.oolType === 'ObjectReference') {
+        let [ baseVar, ...rest ] = operand.name.split('.');
+
+        return compileContext.variables[baseVar] && compileContext.variables[baseVar].ongoing && rest.length > 0;        
+    }
+
+    return false;    
+}
+
 /**
- * Translate a then clause from ool into ast
+ * Translate a then clause from ool into ast in return block.
  * @param {string} startId
  * @param {string} endId
  * @param then
  * @param compileContext
- * @param assignTo
  * @returns {object} AST object
  */
-function translateThenAst(startId, endId, then, compileContext, assignTo) {
+function translateReturnThenAst(startId, endId, then, compileContext) {
     if (_.isPlainObject(then)) {
         if (then.oolType === 'ThrowExpression') {
             let args;
@@ -728,9 +766,82 @@ function translateThenAst(startId, endId, then, compileContext, assignTo) {
         then = compileContext.astMap[valueEndId]; 
     }   
 
-    if (!assignTo) {
-        return JsLang.astReturn(then);
+    return JsLang.astReturn(then);
+}
+
+/**
+ * Translate a then clause from ool into ast
+ * @param {string} startId
+ * @param {string} endId
+ * @param then
+ * @param compileContext
+ * @param assignTo
+ * @returns {object} AST object
+ */
+function translateThenAst(startId, endId, then, compileContext, assignTo) {
+    if (_.isPlainObject(then)) {
+        if (then.oolType === 'ThrowExpression') {
+            let args;
+            if (then.args) {
+                args = translateArgs(startId, then.args, compileContext);
+            } else {
+                args = [];
+            }
+            return JsLang.astThrow(then.errorType || defaultError, then.message || args);
+        }
+
+        if (then.oolType === 'LogicalExpression') {
+            /*
+            switch (then.operator) {
+                case 'and':
+                    op = '&&';
+                    break;
+
+                case 'or':
+                    op = '||';
+                    break;
+
+                default:
+                    throw new Error('Unsupported test operator: ' + test.operator);
+            }
+            */
+        }
+
+        if (then.oolType === 'BinaryExpression') {
+            if (!hasModelField(then.left, compileContext)) {                
+                throw new Error('Invalid query condition: the left operand need to be an entity field.');
+            }
+
+            if (hasModelField(then.right, compileContext)) {                
+                throw new Error('Invalid query condition: the right operand should not be an entity field. Use dataset instead if joining is required.');
+            }
+
+            let condition = {};
+            let startRightId = createTopoId(compileContext, startId + '$binOp:right');
+            dependsOn(compileContext, startId, startRightId);
+
+            let lastRightId = compileConcreteValueExpression(startRightId, then.right, compileContext);
+            dependsOn(compileContext, lastRightId, endId);
+            
+            if (then.operator === '==') {
+                condition[then.left.name.split('.', 2)[1]] = compileContext.astMap[lastRightId];
+            } else {
+                condition[then.left.name.split('.', 2)[1]] = { [OPERATOR_TOKEN[op]]: compileContext.astMap[lastRightId] };
+            }
+
+            return JsLang.astAssign(assignTo, JsLang.astValue(condition));           
+        }
+
+        if (then.oolType === 'UnaryExpression') {
+            
+        }
     }
+
+    //then expression is an oolong concrete value    
+    if (_.isArray(then) || _.isPlainObject(then)) {
+        let valueEndId = compileConcreteValueExpression(startId, then, compileContext);    
+        then = compileContext.astMap[valueEndId]; 
+    }   
 
     return JsLang.astAssign(assignTo, then);
 }
@@ -792,6 +903,8 @@ function compileFindOne(index, operation, compileContext, dependency) {
 
     assert: operation.condition;
 
+    compileContext.variables[operation.model] = { type: 'entity', source: 'findOne', ongoing: true };
+
     if (operation.condition.oolType) {
         //special condition
 
@@ -847,14 +960,20 @@ function compileFindOne(index, operation, compileContext, dependency) {
             });
 
             ast = ast.concat(_.castArray(lastStatement));
+        } else {
+            throw new Error('todo');
         }
 
 
+    } else {
+        throw new Error('todo');
     }
 
     ast.push(
         JsLang.astVarDeclare(operation.model, JsLang.astAwait(`this.findOne_`, JsLang.astVarRef(conditionVarName)))
     );
+
+    delete compileContext.variables[operation.model].ongoing;
 
     let modelTopoId = createTopoId(compileContext, operation.model);
     dependsOn(compileContext, endTopoId, modelTopoId);
@@ -942,7 +1061,7 @@ function compileExceptionalReturn(oolNode, compileContext, dependency) {
 
                 compileContext.astMap[exceptionEndId] = JsLang.astIf(
                     getCodeRepresentationOf(lastTopoId, compileContext),
-                    JsLang.astBlock(translateThenAst(
+                    JsLang.astBlock(translateReturnThenAst(
                         thenStartId,
                         exceptionEndId,
                         item.then, compileContext)),
@@ -983,10 +1102,6 @@ function createTopoId(compileContext, name) {
     assert: !compileContext.topoSort.hasDependency(name), 'Already in topoSort!';
 
     compileContext.topoNodes.add(name);
-
-    if (name === '') {
-        throw new Error();
-    }
 
     return name;
 }
@@ -1034,10 +1149,11 @@ function getCodeRepresentationOf(topoId, compileContext) {
     return compileContext.astMap[topoId];
 }
 
-function createCompileContext(targetName, logger, sharedContext) {
+function createCompileContext(moduleName, logger, sharedContext) {
     let compileContext = {
-        targetName,        
+        moduleName,        
         logger,
+        variables: {},
         topoNodes: new Set(),
         topoSort: new TopoSort(),
         astMap: {}, // Store the AST for a node
@@ -1049,7 +1165,7 @@ function createCompileContext(targetName, logger, sharedContext) {
 
     compileContext.mainStartId = createTopoId(compileContext, '$main');
 
-    logger.verbose(`Created compilation context for "${targetName}".`);
+    logger.verbose(`Created compilation context for "${moduleName}".`);
 
     return compileContext;
 }

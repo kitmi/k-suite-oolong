@@ -72,9 +72,11 @@ class MySQLMigration {
 
             let className = pascalCase(this.schemaName);
             let Db = require(path.join(this.modelPath, className));
-            let db = new Db(this.connector.connectionString, this.connector.options);
+            let db = new Db(this.connector.connectionString, this.connector.options);            
 
             try {
+                await db.connector.execute_('SET FOREIGN_KEY_CHECKS=0;');
+
                 await eachAsync_(data, async (records, entityName) => {
                     let Model = db.model(entityName);                        
                     let items = Array.isArray(records) ? records : [ records ];
@@ -84,6 +86,8 @@ class MySQLMigration {
                         this.logger.log('verbose', `Created a(n) ${entityName} entity: ${JSON.stringify(model.$pkValues)}`);
                     });
                 });
+
+                await db.connector.execute_('SET FOREIGN_KEY_CHECKS=1;');
             } catch (error) {
                 throw error;
             } finally {

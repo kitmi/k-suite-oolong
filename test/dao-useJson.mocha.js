@@ -102,7 +102,7 @@ describe('e2e:oolong:dao:useJson', function () {
         savedUser.mobile.should.be.equal(saved.mobile);
         should.not.exist(savedUser.updatedAt);
 
-        await User.delete_({ $where: savedUser.id, $physicalDeletion: true });
+        await User.delete_({ $query: savedUser.id, $physicalDeletion: true });
 
         await db.close_();
     });
@@ -123,7 +123,7 @@ describe('e2e:oolong:dao:useJson', function () {
         Object.keys(user).length.should.be.exactly(1);
         user.mobile.should.be.equal('0423456000');
 
-        user = await User.update_({ password: '123457' }, { $where: { email: 'abc@gefg.hij' }, $retrieveUpdated: true });
+        user = await User.update_({ password: '123457' }, { $query: { email: 'abc@gefg.hij' }, $retrieveUpdated: true });
         user.password.should.be.equal('123457');
         user.should.have.keys('email', 'mobile');
         user.mobile.should.be.equal('0423456000');
@@ -133,7 +133,7 @@ describe('e2e:oolong:dao:useJson', function () {
         
         user.status.should.be.equal('active');
 
-        await User.delete_({ $where: created.id, $physicalDeletion: true });
+        await User.delete_({ $query: created.id, $physicalDeletion: true });
 
         await db.close_();
     });
@@ -161,7 +161,7 @@ describe('e2e:oolong:dao:useJson', function () {
 
         let User = db.model('user');  
 
-        await User.delete_({ $where: { mobile: '0423456001' }, $physicalDeletion: true });
+        await User.delete_({ $query: { mobile: '0423456001' }, $physicalDeletion: true });
 
         let user = await User.create_({                        
             mobile: '0423456001',
