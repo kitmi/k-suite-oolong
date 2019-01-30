@@ -323,7 +323,7 @@ class Linker {
             });
 
             if (index === -1) {                
-                throw new Error(`${elementType} "${elementName}" not found in imported namespaces.`);
+                throw new Error(`${elementType} "${elementName}" not found in imported namespaces. Referer: ${refererModule.id}`);
             }
         }
 

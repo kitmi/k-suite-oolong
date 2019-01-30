@@ -49,7 +49,7 @@ class MySQLEntityModel extends EntityModel {
             if (errorCode === 'ER_NO_REFERENCED_ROW_2') {
                 throw new BusinessError('The new entity is referencing to an unexisting entity.');
             } else if (errorCode === 'ER_DUP_ENTRY') {
-                throw new BusinessError(error.message);
+                throw new BusinessError(error.message + ` while creating a new "${this.meta.name}".`);
             }
 
             throw error;

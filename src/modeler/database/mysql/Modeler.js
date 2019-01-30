@@ -233,6 +233,7 @@ class MySQLModeler {
         }
 
         let destKeyField = destEntity.getKeyField();
+
         if (Array.isArray(destKeyField)) {
             throw new Error(`Destination entity "${destEntityName}" with combination primary key is not supported.`);
         }
@@ -1061,19 +1062,30 @@ class MySQLModeler {
 
         let sql = '';
 
-        if (!info.optional && !info.hasOwnProperty('default') && !info.hasOwnProperty('auto')) {
-            if (UNSUPPORTED_DEFAULT_VALUE.has(type)) {
-                return '';
+        if (!info.optional) {      
+            if (info.hasOwnProperty('default')) {
+                let defaultValue = info['default'];
+
+                if (info.type === 'boolean') {
+                    sql += ' DEFAULT ' + (Types.BOOLEAN.sanitize(defaultValue) ? '1' : '0');
+                } 
+
+                //todo: other types
+
+            } else if (!info.hasOwnProperty('auto')) {
+                if (UNSUPPORTED_DEFAULT_VALUE.has(type)) {
+                    return '';
+                }
+
+                if (info.type === 'boolean' || info.type === 'integer' || info.type === 'number') {
+                    sql += ' DEFAULT 0';
+                } else {
+                    sql += ' DEFAULT ""';
+                } 
+
+                info.createByDb = true;
             }
-
-            if (info.type === 'boolean' || info.type === 'integer' || info.type === 'number') {
-                sql += ' DEFAULT 0';
-            } else {
-                sql += ' DEFAULT ""';
-            } 
-
-            info.createByDb = true;
-        }
+        }        
     
         /*
         if (info.hasOwnProperty('default') && typeof info.default === 'object' && info.default.oolType === 'SymbolToken') {

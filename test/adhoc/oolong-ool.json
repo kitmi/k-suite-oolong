@@ -6,6 +6,14 @@
                 "logSQLStatement": true,
                 "reverseRules": "reverseRules.js",
                 "saveDatabaseMeta": true
+            },
+            "test": {
+                "connection": "mysql://root:root@localhost/fnd",
+                "logSQLStatement": true
+            },
+            "test2": {
+                "connection": "mysql://root:root@localhost/scvy",
+                "logSQLStatement": true
             }
         }
     },

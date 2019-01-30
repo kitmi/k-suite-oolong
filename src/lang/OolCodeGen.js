@@ -218,7 +218,7 @@ class OolCodeGen {
 
                     this._translateType(field, lineInfo);
 
-                    lineInfo.push(KW_COMMENT + ' ' + (field.comment || Util.quote(this.generate_field_comment(enityName, name))));
+                    lineInfo.push(KW_COMMENT + ' ' + Util.quote(field.comment || this.generate_field_comment(enityName, name)));
 
                     this.appendLine(...lineInfo);
                 });
@@ -287,6 +287,8 @@ class OolCodeGen {
             //if (!typeMeta.qualifiers.includes(k)) {
             //    throw new Error(`"${k}" is not a valid qualifier for type "${field.type}".`);
             //}
+            if (k === 'comment') return;
+
             if (typeof v === 'boolean' || isNothing(v)) {
                 if (v) {
                     lineInfo.push(k);

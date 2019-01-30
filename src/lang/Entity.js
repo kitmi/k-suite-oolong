@@ -319,6 +319,7 @@ class Entity extends Clonable {
         }
 
         let destFieldInfo = _.omit(destField, ['default', 'auto', 'writeOnce', 'startFrom', 'readOnly', 'forceUpdate', 'freezeAfterNonDefault']);
+        destFieldInfo.name = name;
 
         this.addField(name, destFieldInfo);    
         this.fields[name].displayName = fieldNaming(prefixNaming(destEntity.name, destField.name));   
@@ -341,12 +342,13 @@ class Entity extends Clonable {
 
         if (rawInfo instanceof Field) {
             field = rawInfo.clone();
+            field.name = name; // todo: displayName
         } else {
             let fullRawInfo = this.linker.trackBackType(this.oolModule, rawInfo);
 
             field = new Field(name, fullRawInfo);
             field.link();
-        }        
+        }                
         
         this.fields[name] = field;
 
