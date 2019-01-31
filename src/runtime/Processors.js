@@ -3,5 +3,8 @@
 const { _ } = require('rk-utils');
 
 module.exports = {
-    stringDasherize: s => _.words(s).join('-')
+    trim : (s, chars) => _.trim(s, chars),
+    stringDasherize : s => _.words(s).join('-'),
+    upperCase : s => s.toUpperCase(),
+    lowerCase : s => s.toLowerCase()
 };

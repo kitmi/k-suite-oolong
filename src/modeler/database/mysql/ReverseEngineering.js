@@ -152,7 +152,7 @@ class MySQLReverseEngineering {
                 associations.push({ type: 'hasMany', from: fkColName,  entity: this._entityNaming(ref.REFERENCED_TABLE_NAME) });
             }
 
-            fields[fkColName] = { type: '$association', code: fields[fkColName].code };
+            delete fields[fkColName];// = { type: '$association', code: fields[fkColName].code };
         }
 
         return associations;
@@ -298,28 +298,28 @@ class MySQLReverseEngineering {
                 break;
 
             case 'bigint':
-                typeInfo.type = 'int';
+                typeInfo.type = 'integer';
                 typeInfo.digits = col.NUMERIC_PRECISION || 18;
                 typeInfo.bytes = 8;
                 if (_.endsWith(col.COLUMN_TYPE, ' unsigned')) typeInfo.unsigned = true;
                 break;
 
             case 'int':
-                typeInfo.type = 'int';
+                typeInfo.type = 'integer';
                 typeInfo.digits = col.NUMERIC_PRECISION || 10;
                 typeInfo.bytes = 4;
                 if (_.endsWith(col.COLUMN_TYPE, ' unsigned')) typeInfo.unsigned = true;
                 break;
 
             case 'mediumint':
-                typeInfo.type = 'int';
+                typeInfo.type = 'integer';
                 typeInfo.digits = col.NUMERIC_PRECISION || 7;
                 typeInfo.bytes = 3;
                 if (_.endsWith(col.COLUMN_TYPE, ' unsigned')) typeInfo.unsigned = true;
                 break;
 
             case 'smallint':
-                typeInfo.type = 'int';
+                typeInfo.type = 'integer';
                 typeInfo.digits = col.NUMERIC_PRECISION || 4;
                 typeInfo.bytes = 2;
                 if (_.endsWith(col.COLUMN_TYPE, ' unsigned')) typeInfo.unsigned = true;
@@ -327,9 +327,9 @@ class MySQLReverseEngineering {
 
             case 'tinyint':
                 if (_.startsWith(col.COLUMN_TYPE, 'tinyint(1)')) {
-                    typeInfo.type = 'bool';
+                    typeInfo.type = 'boolean';
                 } else {
-                    typeInfo.type = 'int';
+                    typeInfo.type = 'integer';
                     typeInfo.digits = col.NUMERIC_PRECISION || 2;
                     typeInfo.bytes = 1;
                     if (_.endsWith(col.COLUMN_TYPE, ' unsigned')) typeInfo.unsigned = true;
