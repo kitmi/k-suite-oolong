@@ -362,13 +362,14 @@ class MySQLReverseEngineering {
                 break;
 
             case 'decimal':
-                typeInfo.type = 'decimal';
+                typeInfo.type = 'number';
                 typeInfo.totalDigits = col.NUMERIC_PRECISION;
                 typeInfo.decimalDigits = col.NUMERIC_SCALE;
+                typeInfo.exact = true;
                 break;
 
             case 'float':
-                typeInfo.type = 'float';
+                typeInfo.type = 'number';
                 typeInfo.totalDigits = col.NUMERIC_PRECISION;
                 typeInfo.decimalDigits = col.NUMERIC_SCALE;
                 break;
