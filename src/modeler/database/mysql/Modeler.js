@@ -240,21 +240,18 @@ class MySQLModeler {
 
         switch (assoc.type) {
             case 'hasOne':
-                throw new Error('todo');
-            break;
-
             case 'hasMany':                
                 let backRef = destEntity.getReferenceTo(entity.name, { type: 'refersTo', association: assoc });
                 if (backRef) {
-                    if (backRef.type === 'hasMany') {
+                    if (backRef.type === 'hasMany' || backRef.type === 'hasOne') {
                         let connEntityName = OolUtils.entityNaming(assoc.connectedBy);
 
                         if (!connEntityName) {
                             throw new Error(`"connectedBy" required for m:n relation. Source: ${entity.name}, destination: ${destEntityName}`);
                         } 
 
-                        let tag1 = `${entity.name}:m-${destEntityName}:n by ${connEntityName}`;
-                        let tag2 = `${destEntityName}:m-${entity.name}:n by ${connEntityName}`;
+                        let tag1 = `${entity.name}:${ assoc.type === 'hasMany' ? 'm' : '1' }-${destEntityName}:${ backRef.type === 'hasMany' ? 'n' : '1' } by ${connEntityName}`;
+                        let tag2 = `${destEntityName}:${ backRef.type === 'hasMany' ? 'm' : '1' }-${entity.name}::${ assoc.type === 'hasMany' ? 'n' : '1' } by ${connEntityName}`;
 
                         if (this._processedRef.has(tag1) || this._processedRef.has(tag2)) {
                             //already processed, skip
@@ -264,12 +261,12 @@ class MySQLModeler {
                         entity.addAssociation(
                             assoc.srcField || pluralize(destEntityName), 
                             destEntity, 
-                            { isList: true, optional: assoc.optional, connectedBy: connEntityName }
+                            { optional: assoc.optional, connectedBy: connEntityName, ...(assoc.type === 'hasMany' ? { isList: true } : {}) }
                         );
                         destEntity.addAssociation(
                             backRef.srcField || pluralize(entity.name), 
                             entity, 
-                            { isList: true, optional: backRef.optional, connectedBy: connEntityName }
+                            { optional: backRef.optional, connectedBy: connEntityName, ...(backRef.type === 'hasMany' ? { isList: true } : {})  }
                         );
 
                         let connEntity = schema.entities[connEntityName];
@@ -288,9 +285,7 @@ class MySQLModeler {
                             //leave it to the referenced entity                                                 
                         }
                     } else {
-                        assert: backRef.type === 'hasOne';
-
-                        throw new Error('todo: Many to one');
+                        throw new Error('Unexpected path');                    
                     } 
                 }
 
