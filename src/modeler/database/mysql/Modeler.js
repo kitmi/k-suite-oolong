@@ -963,6 +963,8 @@ class MySQLModeler {
 
                 if (info.type === 'boolean' || info.type === 'integer' || info.type === 'number') {
                     sql += ' DEFAULT 0';
+                } else if (info.type === 'datetime') {
+                    sql += ' DEFAULT CURRENT_TIMESTAMP';
                 } else {
                     sql += ' DEFAULT ""';
                 } 

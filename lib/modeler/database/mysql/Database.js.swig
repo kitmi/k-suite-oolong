@@ -1,6 +1,6 @@
 const { pascalCase } = require('rk-utils');
 
-const { Connector, getEntityModelOfDriver } = require('@k-suite/oolong');
+const { Connector, getEntityModelOfDriver, Errors: { BusinessError } } = require('@k-suite/oolong');
 const BaseEntityModel = getEntityModelOfDriver('{{ driver }}');
 
 class {{ className }} {
@@ -24,7 +24,18 @@ class {{ className }} {
         let modelClassName = pascalCase(entityName);
         if (this._modelCache[modelClassName]) return this._modelCache[modelClassName];
 
-        const entitySpecMixin = require(`./{{ schemaName }}/${modelClassName}`);        
+        let entitySpecMixin;
+
+        try {
+            entitySpecMixin = require(`./{{ schemaName }}/${modelClassName}`);        
+        } catch (error) {
+            if (error.code === 'MODULE_NOT_FOUND') {
+                throw new BusinessError(`Entity "${modelClassName}" not found.`);
+            }
+
+            throw error;
+        }
+
         let modelClass = entitySpecMixin(this, BaseEntityModel);
 
         this._modelCache[entityName] = modelClass;
