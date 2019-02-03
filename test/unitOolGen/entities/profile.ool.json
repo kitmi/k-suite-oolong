@@ -13,13 +13,13 @@
       "associations": [
         {
           "type": "refersTo",
-          "from": "gender",
-          "entity": "gender"
+          "srcField": "gender",
+          "destEntity": "gender"
         },
         {
           "type": "belongsTo",
-          "from": "user",
-          "entity": "user"
+          "srcField": "user",
+          "destEntity": "user"
         }
       ],
       "key": [

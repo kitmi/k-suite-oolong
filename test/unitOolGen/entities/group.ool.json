@@ -19,7 +19,8 @@
       "associations": [
         {
           "type": "hasMany",
-          "entity": "user"
+          "destEntity": "user",
+          "connectedBy": "userGroup"
         }
       ],
       "key": [

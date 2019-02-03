@@ -402,15 +402,21 @@ class Entity extends Clonable {
     /**
      * Returns the association info if there is connection to the given destination entity.
      */
-    getReferenceTo(entityName, excludes) {
+    getReferenceTo(entityName, includes, excludes) {
         return this.info.associations && _.find(
             this.info.associations, assoc => {
+                if (includes) {
+                    if (_.find(includes, (value, prop) => typeof value === 'function' ? !value(assoc[prop]) : !_.isEqual(assoc[prop], value))) return false;
+                }
+
                 if (excludes) {
                     if (excludes.association && assoc === excludes.association) return false;
                     if (excludes.type && assoc.type === excludes.type) return false;
                     if (excludes.associations && excludes.associations.indexOf(assoc) > -1) return false;
                     if (excludes.types && excludes.types.indexOf(assoc.type) > -1) return false;
+                    if (excludes.props && _.find(excludes.props, prop => assoc[prop])) return false;
                 }
+
                 return assoc.destEntity === entityName;
             }
         );

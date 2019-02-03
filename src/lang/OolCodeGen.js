@@ -229,13 +229,13 @@ class OolCodeGen {
             if (!_.isEmpty(entity.associations)) {
                 this.appendLine().appendLine(KW_ASSOCIATIONS).indent();
 
-                entity.associations.forEach(({ type, from, entity, through }) => {
-                    if (from) {
-                        this.appendLine(type, Util.quote(entity, "'"), 'as', Util.quote(from, "'"));
-                    } else if (through) {
-                        this.appendLine(type, Util.quote(entity, "'"), 'through', Util.quote(through, "'"));
+                entity.associations.forEach(({ type, srcField, destEntity, connectedBy }) => {
+                    if (srcField) {
+                        this.appendLine(type, Util.quote(destEntity, "'"), 'as', Util.quote(srcField, "'"));
+                    } else if (connectedBy) {
+                        this.appendLine(type, Util.quote(destEntity, "'"), 'connectedBy', Util.quote(connectedBy, "'"));
                     } else {
-                        this.appendLine(type, Util.quote(entity, "'"));
+                        this.appendLine(type, Util.quote(destEntity, "'"));
                     }                    
                 });
 

@@ -25,7 +25,7 @@ entity user
 
   associations
     hasMany 'profile'
-    hasMany 'group' through 'usergroup'
+    hasMany 'group' connectedBy 'usergroup'
 
   index
     email is unique

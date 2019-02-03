@@ -137,12 +137,12 @@
       },
       "associations": [{
           "type": "hasMany",
-          "entity": "profile"
+          "destEntity": "profile"
         },
         {
           "type": "hasMany",
-          "entity": "group",
-          "through": "usergroup"
+          "destEntity": "group",
+          "connectedBy": "usergroup"
         }
       ],
       "indexes": [

@@ -135,6 +135,20 @@ describe('unit:lang:Linker', function () {
         });
     });
 
+    describe('manyToMany', function () {
+        it('linker.link', function () {
+            linker.link('manyToMany.ool', 'manyToMany');
+            linker.schemas.should.have.key('manyToMany')
+            let linked = linker.schemas['manyToMany'].toJSON();
+            
+            linked.entities.should.have.key('company', 'companyRelation', 'companyRelationType');
+
+            let company = linker.schemas['manyToMany'].entities['company'];
+
+            company.should.have.key('name', 'displayName', 'fields', 'key', 'info');
+        });
+    });
+
     describe('link json sources', function () {
         it('linker.options.useJsonSource=true', function () {
             let linker2 = new Linker({ useJsonSource: true, dslSourcePath: SOURCE_PATH });

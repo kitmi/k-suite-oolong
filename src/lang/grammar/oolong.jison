@@ -22,7 +22,7 @@
         'dataset': new Set(['is']),
     
         // level 2
-        'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo', 'connected', 'by', 'through', 'as', 'optional']),
+        'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo', 'connectedBy', 'with', 'as', 'optional']),
         'entity.index': new Set(['is', 'unique']),
         'entity.interface': new Set(['accept', 'find', 'findOne', 'return']),
 
@@ -129,11 +129,12 @@
         }
 
         dump(loc, token) {
-            
-            token ? console.log(loc, token) : console.log(loc);
-            console.log('indents:', this.indents.join(' -> '), 'current indent:', this.indent, 'current dedented:', this.dedented);                   
-            console.log('lastState:', this.lastState, 'comment:', this.comment, 'eof:', this.eof, 'brackets:', this.brackets.join(' -> '),'stack:', this.stack.join(' -> '));
-            console.log();
+            if (0) {
+                token ? console.log(loc, token) : console.log(loc);
+                console.log('indents:', this.indents.join(' -> '), 'current indent:', this.indent, 'current dedented:', this.dedented);                   
+                console.log('lastState:', this.lastState, 'comment:', this.comment, 'eof:', this.eof, 'brackets:', this.brackets.join(' -> '),'stack:', this.stack.join(' -> '));
+                console.log();
+            }
             
             return this;
         }
@@ -167,13 +168,13 @@
         }
 
         enterState(state) {
-            console.log('> enter state:', state, '\n');
+            //console.log('> enter state:', state, '\n');
             this.stack.push(state);
             return this;
         }
 
         exitState(state) {
-            console.log('< exit state:', state, '\n');
+            //console.log('< exit state:', state, '\n');
             let last = this.stack.pop();
             if (state !== last) {
                 throw new Error(`Unmatched "${state}" state!`);
@@ -1111,15 +1112,15 @@ associations_block
     ;
 
 association_item
-    : "hasOne" identifier_or_string (association_as)? (association_optional)? -> { type: 'hasOne', destEntity: $2, ...$3, ...$4 }
+    : "hasOne" identifier_or_string (association_through)? (association_as)? (association_optional)? -> { type: 'hasOne', destEntity: $2, ...$3, ...$4, ...$5 }
     | "hasMany" identifier_or_string (association_through)? (association_as)? (association_optional)? -> { type: 'hasMany', destEntity: $2, ...$3, ...$4, ...$5 }
     | "refersTo" identifier_or_string (association_as)? (association_optional)? -> { type: 'refersTo', destEntity: $2, ...$3, ...$4 }
     | "belongsTo" identifier_or_string (association_as)? (association_optional)? -> { type: 'belongsTo', destEntity: $2, ...$3, ...$4 }
     ;
 
 association_through
-    : "through" identifier_or_string -> { connectedBy: $2 }
-    | "connected" "by" identifier_or_string -> { connectedBy: $3 }
+    : "connectedBy" identifier_string_or_dotname -> { connectedBy: $2 }
+    | "connectedBy" identifier_string_or_dotname "with" conditional_expression -> { connectedBy: $2, connectedWith: $4 }
     ;
 
 association_as

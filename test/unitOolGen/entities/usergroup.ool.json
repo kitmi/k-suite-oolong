@@ -7,13 +7,13 @@
       "associations": [
         {
           "type": "refersTo",
-          "from": "groupid",
-          "entity": "group"
+          "srcField": "groupid",
+          "destEntity": "group"
         },
         {
           "type": "refersTo",
-          "from": "userid",
-          "entity": "user"
+          "srcField": "userid",
+          "destEntity": "user"
         }
       ],
       "key": [

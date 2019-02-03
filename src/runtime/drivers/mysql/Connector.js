@@ -284,7 +284,7 @@ class MySQLConnector extends Connector {
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false;
 
         if (!_.isEmpty($association)) {            
-            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1);
+            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, params);
             hasJoining = model;
         }
 
@@ -361,17 +361,26 @@ class MySQLConnector extends Connector {
      * @param {*} aliasMap 
      * @param {*} params 
      */
-    _joinAssociations(associations, parentAliasKey, parentAlias, aliasMap, startId) {
+    _joinAssociations(associations, parentAliasKey, parentAlias, aliasMap, startId, params) {
         let joinings = [];
 
-        _.each(associations, ({ entity, joinType, anchor, localField, remoteField, isList, subAssociations }) => {                
+        _.each(associations, ({ entity, joinType, anchor, localField, remoteField, isList, subAssociations, connectedWith }) => {                
             let alias = ntol(startId++); 
             let aliasKey = parentAliasKey + '.' + anchor;
             aliasMap[aliasKey] = alias; 
 
-            joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`);
+            if (connectedWith) {
+                joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ` + 
+                    this._joinCondition([ 
+                        `${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`,
+                        connectedWith
+                    ], params, 'AND', parentAliasKey, aliasMap)
+                );
+            } else {
+                joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`);
+            }
             
-            let subJoinings = this._joinAssociations(subAssociations, aliasKey, alias, aliasMap, startId);
+            let subJoinings = this._joinAssociations(subAssociations, aliasKey, alias, aliasMap, startId, params);
             startId += subJoinings.length;
             joinings = joinings.concat(subJoinings);
         });
@@ -451,7 +460,7 @@ class MySQLConnector extends Connector {
 
     _replaceFieldNameWithAlias(fieldName, mainEntity, aliasMap) {
         let parts = fieldName.split('.');
-        if (parts.length > 2) {
+        if (parts.length > 1) {
             let actualFieldName = parts.pop();
             let alias = aliasMap[mainEntity + '.' + parts.join('.')];
             if (!alias) {

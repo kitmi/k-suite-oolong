@@ -97,6 +97,8 @@ class MySQLMigration {
             let sql = fs.readFileSync(dataFile, {encoding: 'utf8'});
             let result = await this.connector.execute_(sql, null, { multipleStatements: 1 });
             this.logger.log('verbose', `Executed SQL file: ${dataFile}`, result);
+        } else if (ext === '.xlsx') {
+            throw new Error('todo.');
         } else {
             throw new Error('Unsupported data file format.');
         }

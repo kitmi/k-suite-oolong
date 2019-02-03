@@ -315,10 +315,10 @@ class DaoModeler {
         });
 
         let deps = compileContext.topoSort.sort();
-        this.logger.verbose('All dependencies:\n' + JSON.stringify(deps, null, 2));
+        //this.logger.verbose('All dependencies:\n' + JSON.stringify(deps, null, 2));
 
         deps = deps.filter(dep => compileContext.mapOfTokenToMeta.has(dep));
-        this.logger.verbose('All necessary source code:\n' + JSON.stringify(deps, null, 2));
+        //this.logger.verbose('All necessary source code:\n' + JSON.stringify(deps, null, 2));
 
         let methodBodyValidateAndFill = [], lastFieldsGroup, 
             methodBodyCache = [], 

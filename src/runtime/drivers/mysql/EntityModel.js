@@ -145,26 +145,31 @@ class MySQLEntityModel extends EntityModel {
                 optional: assocInfo.optional
             };
             
-            if (assocInfo.isList) {
+            if (assocInfo.connectedBy) {
                 detail.localField = cache[base] ? cache[base].entity.meta.keyField : this.meta.keyField;
                 detail.remoteField = assocInfo.remoteField || this.meta.name;
 
-                if (assocInfo.connectedBy) {
-                    detail.entity = assocInfo.connectedBy;
-                    detail.keyField = this.db.model(assocInfo.connectedBy).meta.keyField;
+                detail.entity = assocInfo.connectedBy;
+                detail.keyField = this.db.model(assocInfo.connectedBy).meta.keyField;
 
-                    detail.subAssociations = [
-                        {
-                            entity: remoteEntityName,
-                            keyField: remoteEntity.meta.keyField,
-                            joinType: 'LEFT JOIN',
-                            anchor: remoteEntityName,
-                            localField: remoteEntityName,
-                            remoteField: remoteEntity.meta.keyField,
-                            isList: false
-                        }
-                    ];
+                if (assocInfo.connectedWith) {
+                    detail.connectedWith = assocInfo.connectedWith;
                 }
+
+                detail.subAssociations = [
+                    {
+                        entity: remoteEntityName,
+                        keyField: remoteEntity.meta.keyField,
+                        joinType: 'LEFT JOIN',
+                        anchor: assocInfo.refersToField,
+                        localField: assocInfo.refersToField,
+                        remoteField: remoteEntity.meta.keyField,
+                        isList: false
+                    }
+                ];
+            } else if (assoc.isList) {
+                detail.localField = cache[base] ? cache[base].entity.meta.keyField : this.meta.keyField;
+                detail.remoteField = assocInfo.remoteField || this.meta.name;
             } else {
                 detail.localField = anchor;
                 detail.remoteField = remoteEntity.meta.keyField;
@@ -237,12 +242,7 @@ class MySQLEntityModel extends EntityModel {
                         mergeRecord(existingSubRow, subObj, subAssociations);
                     }
                 } else {       
-                    if (!isList) {
-                        console.log(associations);
-                        console.log(anchor);
-                        console.log('rowKey', rowKey);
-                        console.log('subIndexes', subIndexes);
-
+                    if (!isList) {                        
                         throw new Error('');
                     }
                                      
