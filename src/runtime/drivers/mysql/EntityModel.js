@@ -140,10 +140,16 @@ class MySQLEntityModel extends EntityModel {
                 entity: remoteEntityName,
                 keyField: remoteEntity.meta.keyField,
                 joinType: 'LEFT JOIN',
-                anchor,
-                isList: assocInfo.isList,
-                optional: assocInfo.optional
+                anchor
             };
+
+            if (assocInfo.isList) {
+                detail.isList = true;
+            }
+
+            if (assocInfo.optional) {
+                detail.optional = true;
+            }
             
             if (assocInfo.connectedBy) {
                 detail.localField = cache[base] ? cache[base].entity.meta.keyField : this.meta.keyField;
@@ -167,7 +173,7 @@ class MySQLEntityModel extends EntityModel {
                         isList: false
                     }
                 ];
-            } else if (assoc.isList) {
+            } else if (assocInfo.isList) {
                 detail.localField = cache[base] ? cache[base].entity.meta.keyField : this.meta.keyField;
                 detail.remoteField = assocInfo.remoteField || this.meta.name;
             } else {
@@ -242,9 +248,7 @@ class MySQLEntityModel extends EntityModel {
                         mergeRecord(existingSubRow, subObj, subAssociations);
                     }
                 } else {       
-                    if (!isList) {                        
-                        throw new Error('');
-                    }
+                    assert: isList;
                                      
                     if (existingRow.rowObject[key]) {
                         existingRow.rowObject[key].push(subObj);
