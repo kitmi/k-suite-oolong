@@ -18,10 +18,10 @@ module.exports = {
             let trimmed = value.trim();
             if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
                 return JSON.parse(trimmed);
-            }                   
+            }
         }
 
-        throw new TypeError(`Invalid object: ${value}`);
+        return value;
     },
 
     defaultValue: {},

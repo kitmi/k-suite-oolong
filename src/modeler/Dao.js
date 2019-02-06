@@ -5,7 +5,6 @@ const { _, fs, pascalCase, replaceAll, putIntoBucket }  = require('rk-utils');
 const swig  = require('swig-templates');
 
 const OolTypes = require('../lang/OolTypes');
-const OolUtil = require('../lang/OolUtils');
 const JsLang = require('./util/ast.js');
 const OolToAst = require('./util/oolToAst.js');
 const Snippets = require('./dao/snippets');
@@ -54,11 +53,13 @@ class DaoModeler {
      * @param {object} context
      * @property {Logger} context.logger - Logger object          
      * @property {object} context.modelOutputPath - Generated model output path
+     * @property {object} context.manifestOutputPath - Entities manifest output path
      * @param {Connector} connector      
      */
     constructor(context, connector) {
         this.logger = context.logger;       
         this.outputPath = context.modelOutputPath;
+        this.manifestPath = context.manifestOutputPath;
 
         this.connector = connector;        
     }
@@ -69,6 +70,10 @@ class DaoModeler {
         this._generateSchemaModel(schema);
         this._generateEntityModel(schema);
         //this._generateViewModel();
+
+        if (this.manifestPath) {
+            this._generateEntityManifest(schema);
+        }
     }
 
     _generateSchemaModel(schema) {
@@ -188,7 +193,17 @@ class DaoModeler {
 
             this.logger.log('info', 'Generated entity model: ' + modelFilePath);
         });
-    };
+    }
+
+    _generateEntityManifest(schema) {
+        let entities = _.mapValues(schema.entities, e => ({}));
+
+        let outputFilePath = path.resolve(this.manifestPath, schema.name + '.manifest.json');
+        fs.ensureFileSync(outputFilePath);
+        fs.writeFileSync(outputFilePath, JSON.stringify(entities, null, 4));
+
+        this.logger.log('info', 'Generated schema manifest: ' + outputFilePath);
+}
 
     /*
     _generateViewModel(schema, dbService) {        

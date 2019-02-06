@@ -6,7 +6,7 @@ const path = require('path');
 const ntol = require('number-to-letter');
 
 const Util = require('rk-utils');
-const { _, fs } = Util;
+const { _, fs, quote } = Util;
 
 const OolUtils = require('../../../lang/OolUtils');
 const Entity = require('../../../lang/Entity');
@@ -1071,7 +1071,9 @@ class MySQLModeler {
                     sql += ' DEFAULT 0';
                 } else if (info.type === 'datetime') {
                     sql += ' DEFAULT CURRENT_TIMESTAMP';
-                } else {
+                } else if (info.type === 'enum') {
+                    sql += ' DEFAULT ' +  quote(info.values[0]);
+                }  else {
                     sql += ' DEFAULT ""';
                 } 
 

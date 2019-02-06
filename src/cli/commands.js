@@ -212,9 +212,12 @@ exports.build = async (core) => {
         throw new Error('"oolong.scriptOutputDir" not found in oolong config.');
     }
 
+    let manifestOutputDir = Util.getValueByPath(oolongConfig, 'oolong.manifestOutputDir');
+    
     let dslSourcePath = core.app.toAbsolutePath(dslSourceDir);    
     let modelOutputPath = core.app.toAbsolutePath(modelOutputDir);
     let scriptOutputPath = core.app.toAbsolutePath(scriptOutputDir);
+    let manifestOutputPath = manifestOutputDir && core.app.toAbsolutePath(manifestOutputDir);
 
     if (!fs.existsSync(dslSourcePath)) {
         return Promise.reject(`DSL source directory "${dslSourcePath}" not found.`);
@@ -228,6 +231,7 @@ exports.build = async (core) => {
         dslSourcePath,
         modelOutputPath,
         scriptOutputPath,
+        manifestOutputPath,
         useJsonSource,
         saveIntermediate,
         schemaDeployment: core.schemaDeployment

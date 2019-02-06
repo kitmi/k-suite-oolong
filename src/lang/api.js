@@ -58,6 +58,7 @@ const Connector = require('../runtime/Connector');
  * @property {string} context.dslSourcePath
  * @property {string} context.modelOutputPath         
  * @property {string} context.scriptOutputPath
+ * @property {string} context.manifestOutputPath
  * @property {bool} context.useJsonSource
  * @property {object} context.schemaDeployment   
  * @returns {Promise}
