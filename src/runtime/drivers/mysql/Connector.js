@@ -380,9 +380,11 @@ class MySQLConnector extends Connector {
                 joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`);
             }
             
-            let subJoinings = this._joinAssociations(subAssociations, aliasKey, alias, aliasMap, startId, params);
-            startId += subJoinings.length;
-            joinings = joinings.concat(subJoinings);
+            if (subAssociations) {                
+                let subJoinings = this._joinAssociations(subAssociations, aliasKey, alias, aliasMap, startId, params);
+                startId += subJoinings.length;
+                joinings = joinings.concat(subJoinings);
+            }
         });
 
         return joinings;

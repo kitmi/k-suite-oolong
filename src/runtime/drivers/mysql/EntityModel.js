@@ -132,7 +132,7 @@ class MySQLEntityModel extends EntityModel {
         
         associations.forEach(assoc => {
             let [ remoteEntity, base, anchor, assocInfo ] = this._getRelatedEntity(assoc, cache);
-            assert: assocInfo;
+            assert: assocInfo;            
 
             let remoteEntityName = remoteEntity.meta.name;
 
@@ -141,6 +141,11 @@ class MySQLEntityModel extends EntityModel {
                 keyField: remoteEntity.meta.keyField,
                 joinType: 'LEFT JOIN',
                 anchor
+            };
+
+            let toCache = {
+                entity: remoteEntity,
+                detail
             };
 
             if (assocInfo.isList) {
@@ -160,18 +165,19 @@ class MySQLEntityModel extends EntityModel {
 
                 if (assocInfo.connectedWith) {
                     detail.connectedWith = assocInfo.connectedWith;
-                }
+                }                
+
+                toCache.detail = {
+                    entity: remoteEntityName,
+                    keyField: remoteEntity.meta.keyField,
+                    joinType: 'LEFT JOIN',
+                    anchor: assocInfo.refersToField,
+                    localField: assocInfo.refersToField,
+                    remoteField: remoteEntity.meta.keyField
+                };
 
                 detail.subAssociations = [
-                    {
-                        entity: remoteEntityName,
-                        keyField: remoteEntity.meta.keyField,
-                        joinType: 'LEFT JOIN',
-                        anchor: assocInfo.refersToField,
-                        localField: assocInfo.refersToField,
-                        remoteField: remoteEntity.meta.keyField,
-                        isList: false
-                    }
+                    toCache.detail
                 ];
             } else if (assocInfo.isList) {
                 detail.localField = cache[base] ? cache[base].entity.meta.keyField : this.meta.keyField;
@@ -191,10 +197,7 @@ class MySQLEntityModel extends EntityModel {
                 hierarchy.push(detail);
             }
 
-            cache[assoc] = {
-                entity: remoteEntity,
-                detail
-            };
+            cache[assoc] = toCache;
         });
 
         return hierarchy;
