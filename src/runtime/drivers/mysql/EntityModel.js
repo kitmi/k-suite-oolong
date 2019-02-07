@@ -1,11 +1,11 @@
 "use strict";
 
 const Util = require('rk-utils');
-const { _, setValueByPath } = Util;
+const { _, setValueByPath, eachAsync_ } = Util;
 
 const { DateTime } = require('luxon');
 const EntityModel = require('../../EntityModel');
-const { BusinessError } = require('../../Errors');
+const { OolongUsageError, BusinessError } = require('../../Errors');
 
 /**
  * MySQL entity model class.
@@ -341,6 +341,45 @@ class MySQLEntityModel extends EntityModel {
         });
 
         return arrayOfObjs;
+    }
+
+    static _extractAssociations(data) {
+        let raw = {}, assocs = {};
+        
+        _.forOwn(data, (v, k) => {
+            if (k.startsWith(':')) {
+                assocs[k.substr(1)] = v;
+            } else {
+                raw[k] = v;
+            }
+        });
+        
+        return [ raw, assocs ];        
+    }
+
+    static async _createAssocs_(context, assocs) {
+        let meta = this.meta.associations;
+        let keyValue = context.latest[this.meta.keyField];
+
+        if (_.isNil(keyValue)) {
+            throw new OolongUsageError('Missing required primary key field value. Entity: ' + this.meta.name);
+        }
+
+        return eachAsync_(assocs, async (data, anchor) => {
+            let assocMeta = meta[anchor];
+            if (!assocMeta) {
+                throw new BusinessError(`Unknown association "${anchor}" of entity "${this.meta.name}".`);
+            }
+
+            if (!assocMeta.connectedBy) {
+                throw new BusinessError(`Unsupported association type, "${anchor}" of entity "${this.meta.name}". Currently only supports many-to-many association.`);
+            }
+
+            let assocModel = this.db.model(assocMeta.connectedBy);
+            console.log(data);
+
+            return assocModel.create_({ ...data, [assocMeta.remoteField]: keyValue }, context.createOptions, context.connOptions);  
+        });
     }
 }
 

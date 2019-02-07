@@ -183,13 +183,29 @@ class EntityModel {
     static async create_(data, createOptions, connOptions) {
         createOptions || (createOptions = {});
 
+        let [ raw, associations ] = this._extractAssociations(data);
+
         let context = { 
-            raw: data, 
+            raw, 
             createOptions,
             connOptions
-        };
+        };       
+        
+        let needCreateAssocs = false;
+
+        if (!_.isEmpty(associations)) {
+            needCreateAssocs = true;
+        }
 
         return this._safeExecute_(async (context) => {
+            if (needCreateAssocs) {
+                if (!context.connOptions || !context.connOptions.connection) {                
+                    context.connOptions || (context.connOptions = {});
+    
+                    context.connOptions.connection = await this.db.connector.beginTransaction_();                           
+                } // else already in a transaction                        
+            }
+
             await this._prepareEntityData_(context);          
 
             await Features.applyRules_(Rules.RULE_BEFORE_CREATE, this, context);    
@@ -201,6 +217,10 @@ class EntityModel {
             );
 
             await this.afterCreate_(context);
+
+            if (needCreateAssocs) {
+                await this._createAssocs_(context, associations);
+            }
             
             return createOptions.$unboxing ? context.latest : this.populate(context.latest);
         }, context);
@@ -565,6 +585,14 @@ class EntityModel {
     }
 
     static _mapRecordsToObjects() {
+        throw new Error('Should be override by driver-specific subclass.');
+    }
+
+    static _extractAssociations(data) {
+        throw new Error('Should be override by driver-specific subclass.');    
+    }
+
+    static async _createAssocs_(context, assocs) {
         throw new Error('Should be override by driver-specific subclass.');
     }
 }

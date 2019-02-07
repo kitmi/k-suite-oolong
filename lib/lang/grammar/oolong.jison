@@ -421,7 +421,7 @@ bytes                   {integer}("B"|"b")
 bit_integer             {integer}("K"|"M"|"G"|"T")
 big_integer             {integer}"n"
 integer                 ({decinteger})|({hexinteger})|({octinteger})
-decinteger              (([1-9]{digit}*)|"0")
+decinteger              ("-")?(([1-9]{digit}*)|"0")
 hexinteger              "0"[x|X]{hexdigit}+
 octinteger              "0"[o|O]{octdigit}+
 bininteger              "0"[b|B]{bindigit}+
@@ -430,8 +430,8 @@ octdigit                [0-7]
 bindigit                [0|1]
 
 floatnumber             {exponentfloat}|{pointfloat}
-exponentfloat           ({digit}+|{pointfloat}){exponent}
-pointfloat              ({digit}*{fraction})|({digit}+".")
+exponentfloat           ("-")?({digit}+|{pointfloat}){exponent}
+pointfloat              ("-")?({digit}*{fraction})|({digit}+".")
 fraction                "."{digit}+
 exponent                [e|E][\+|\-]({digit})+
 

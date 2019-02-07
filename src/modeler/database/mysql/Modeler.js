@@ -336,7 +336,53 @@ class MySQLModeler {
                         throw new Error('Unexpected path. Entity: ' + entity.name + ', association: ' + JSON.stringify(assoc, null, 2));                    
                     } 
                 } else {
-                    throw new Error('Back reference not found. Entity: ' + entity.name + ', association: ' + JSON.stringify(assoc, null, 2));
+                    let connectedByParts = assoc.connectedBy.split('.');
+                    assert: connectedByParts.length <= 2;
+
+                    let connectedByField = (connectedByParts.length > 1 && connectedByParts[1]) || entity.name;
+                    let connEntityName = OolUtils.entityNaming(connectedByParts[0]);
+
+                    if (!connEntityName) {
+                        throw new Error(`"connectedBy" required for m:n relation. Source: ${entity.name}, destination: ${destEntityName}`);
+                    } 
+
+                    let tag1 = `${entity.name}:${ assoc.type === 'hasMany' ? 'm' : '1' }-${destEntityName}:* by ${connEntityName}`;
+
+                    if (assoc.srcField) {
+                        tag1 += ' ' + assoc.srcField;
+                    }                    
+
+                    assert: !this._processedRef.has(tag1);                    
+                    
+                    let connectedByField2 = destEntity.name;
+
+                    if (connectedByField === connectedByField2) {
+                        throw new Error('Cannot use the same "connectedBy" field in a relation entity.');
+                    }
+
+                    let connEntity = schema.entities[connEntityName];
+                    if (!connEntity) {
+                        connEntity = this._addRelationEntity(schema, connEntityName, connectedByField, connectedByField2);
+                    } 
+                        
+                    this._updateRelationEntity(connEntity, entity, destEntity, connectedByField, connectedByField2);
+
+                    let localFieldName = assoc.srcField || pluralize(destEntityName);
+
+                    entity.addAssociation(
+                        localFieldName, 
+                        destEntity, 
+                        { 
+                            optional: assoc.optional, 
+                            connectedBy: connEntityName, 
+                            remoteField: connectedByField,
+                            refersToField: connectedByField2,                                
+                            ...(assoc.type === 'hasMany' ? { isList: true } : {}), 
+                            ...(assoc.connectedWith ? { connectedWith: this._oolConditionToQueryCondition(entity, connEntity, destEntity, connectedByField, connectedByField2, assoc.connectedWith, localFieldName) } : {}) 
+                        }
+                    );
+
+                    this._processedRef.add(tag1);                        
                 }
 
             break;
@@ -560,6 +606,11 @@ class MySQLModeler {
         let relationEntityName = relationEntity.name;
 
         if (relationEntity.info.associations) {
+            if (relationEntityName === 'companyRole') {
+                console.dir(relationEntity.info.associations, {depth: 10, colors: true});
+                console.log(connectedByField, connectedByField2);
+            }
+
             let hasRefToEntity1 = false, hasRefToEntity2 = false;            
 
             _.each(relationEntity.info.associations, assoc => {
@@ -574,6 +625,9 @@ class MySQLModeler {
 
             if (hasRefToEntity1 && hasRefToEntity2) {
                 this._relationEntities[relationEntityName] = true;
+                if (relationEntityName === 'companyRole') {
+                    console.log('OK');
+                }
                 return;
             }
         }

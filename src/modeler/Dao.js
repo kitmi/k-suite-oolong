@@ -196,14 +196,14 @@ class DaoModeler {
     }
 
     _generateEntityManifest(schema) {
-        let entities = _.mapValues(schema.entities, e => ({}));
+        let entities = Object.keys(schema.entities).sort().reduce((result, v) => { result[v] = {}; return result; }, {});
 
         let outputFilePath = path.resolve(this.manifestPath, schema.name + '.manifest.json');
         fs.ensureFileSync(outputFilePath);
         fs.writeFileSync(outputFilePath, JSON.stringify(entities, null, 4));
 
         this.logger.log('info', 'Generated schema manifest: ' + outputFilePath);
-}
+    }
 
     /*
     _generateViewModel(schema, dbService) {        
