@@ -91,6 +91,8 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
+        //this.serialize(context.findOptions.$query);
+
         if (findOptions.$association) {
             findOptions.$association = this._prepareAssociations(findOptions.$association);
         }
@@ -146,6 +148,8 @@ class EntityModel {
         }; 
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
+
+        //this.serialize(context.findOptions.$query);
 
         if (findOptions.$association) {
             findOptions.$association = this._prepareAssociations(findOptions.$association);
@@ -561,23 +565,31 @@ class EntityModel {
     }
 
     static _prepareQueries(options, forSingleRecord = false) {
-        if (options && !options.$query && !this._hasReservedKeys(options)) {
-            options = { $query: options };
+        if (!_.isPlainObject(options)) {
+            if (forSingleRecord && Array.isArray(this.meta.keyField)) {
+                throw new OolongUsageError('Cannot use a singular value as condition to query against a entity with combined primary key.');
+            }
+
+            return options ? { $query: { [this.meta.keyField]: options } } : {};
         }
 
-        if (forSingleRecord) {
-            if (!_.isPlainObject(options.$query)) {
-                if (Array.isArray(this.meta.keyField)) {
-                    throw new OolongUsageError('Cannot use a singular value as condition to query against a entity with combined primary key.');
-                }
-    
-                options.$query = { [this.meta.keyField]: options.$query };
+        let normalizedOptions = {}, query = {};
+
+        _.forOwn(options, (v, k) => {
+            if (k[0] === '$') {
+                normalizedOptions[k] = v;
             } else {
-                this._ensureContainsUniqueKey(options.$query);
-            }        
+                query[k] = v;
+            }
+        });
+
+        normalizedOptions.$query = { ...query, ...normalizedOptions.$query };
+
+        if (forSingleRecord) {
+            this._ensureContainsUniqueKey(normalizedOptions.$query);
         }        
 
-        return options || {};
+        return normalizedOptions;
     }
 
     static _prepareAssociations() {
