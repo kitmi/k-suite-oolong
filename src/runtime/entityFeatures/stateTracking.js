@@ -9,7 +9,7 @@ const Generators = require('../Generators');
  */
 
 module.exports = {
-    [Rules.RULE_AFTER_VALIDATION]: ({ feature, entityModel, context }, next) => {
+    [Rules.RULE_AFTER_VALIDATION]: (feature, entityModel, context) => {
         feature.forEach(featureItem => {
             if (featureItem.field in context.latest) {
                 let targetState = context.latest[featureItem.field];
@@ -18,6 +18,6 @@ module.exports = {
             }
         });        
 
-        return next();
+        return true;
     }
 };

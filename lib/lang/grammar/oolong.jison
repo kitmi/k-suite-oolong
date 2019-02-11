@@ -18,7 +18,7 @@
     const SUB_KEYWORDS = { 
         // level 1
         'schema': new Set(['entities', 'views']),
-        'entity': new Set(['with', 'has', 'associations', 'key', 'index', 'data', 'interface']),
+        'entity': new Set(['with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes']),
         'dataset': new Set(['is']),
     
         // level 2
@@ -63,7 +63,7 @@
     //statements can be in one line
     const ONE_LINE_KEYWORDS = [ 
         new Set(['import', 'type', 'const', 'entity']), // level
-        new Set(['entity.key', 'entity.data', 'entity.interface.return.when'])
+        new Set(['entity.key', 'entity.data', 'entity.interface.return.when', 'entity.mixes'])
     ];
 
     const SUPPORT_WORD_OPERATOR = new Set([
@@ -1035,7 +1035,7 @@ entity_statement
 
 entity_statement_header
     : entity_statement_header0 -> [ $1, {} ]
-    | entity_statement_header0 "extends" identifier_or_string -> [ $1, { base: $3 } ]
+    | entity_statement_header0 "extends" identifier_or_string_list -> [ $1, { base: $3 } ]    
     ;
 
 entity_statement_header0
@@ -1059,6 +1059,11 @@ entity_sub_item
     | index_statement
     | data_statement
     | interfaces_statement
+    | mixin_statement
+    ;
+
+mixin_statement
+    : "mixes" identifier_or_string_list NEWLINE -> { mixins: $2 }
     ;
 
 comment_or_not
@@ -1228,7 +1233,7 @@ find_one_keywords
 find_one_operation
     : find_one_keywords identifier_or_string selection_inline_keywords conditional_expression -> { oolType: 'findOne', model: $2, condition: $4 }
     | find_one_keywords identifier_or_string case_statement -> { oolType: 'findOne', model: $2, condition: $3 }
-    ;
+    ;    
 
 cases_keywords
     : ":"
@@ -1561,7 +1566,12 @@ inline_object
 
 kv_pair_item
     : identifier_or_string ":" modifiable_value -> {[$1]: $3}
+    | identifier non_exist -> {[$1]: state.normalizeReference($1)}
     | INTEGER ":" modifiable_value -> {[$1]: $3}
+    ;
+
+non_exist
+    :
     ;
 
 kv_pairs

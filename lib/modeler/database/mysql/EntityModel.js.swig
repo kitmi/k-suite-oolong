@@ -18,5 +18,5 @@ module.exports = (db, BaseEntityModel) => {
     {{ className }}Spec.db = db;
     {{ className }}Spec.meta = {{ entityMeta|safe }};
 
-    return Object.assign({{ className }}Spec, {{ functors|safe }});
+    return Object.assign({{ className }}Spec, {{ functors|safe }}{% for m in mixins %}{% if loop.first %}, {% endif %}{{m}}{% if not loop.last %}, {% endif %}{% endfor %});
 };

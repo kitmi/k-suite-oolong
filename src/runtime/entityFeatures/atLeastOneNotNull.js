@@ -11,7 +11,7 @@ const Rules = require('../../enum/Rules');
  */
 
 module.exports = {
-    [Rules.RULE_BEFORE_CREATE]: ({ feature, entityModel, context }, next) => {
+    [Rules.RULE_BEFORE_CREATE]: (feature, entityModel, context) => {
         _.each(feature, item => {
             if (_.every(item, fieldName => _.isNil(context.latest[fieldName]))) {
                 throw new DataValidationError(`At least one of these fields ${ item.map(f => Util.quote(f)).join(', ') } should not be null.`, {
@@ -21,9 +21,10 @@ module.exports = {
             }
         });  
 
-        return next();
+        return true;
     },
-    [Rules.RULE_BEFORE_UPDATE]: ({ feature, entityModel, context }, next) => {
+
+    [Rules.RULE_BEFORE_UPDATE]: (feature, entityModel, context) => {
         _.each(feature, item => {
             if (_.every(item, fieldName => context.latest.hasOwnProperty(fieldName) ? 
                 _.isNil(context.latest[fieldName]) : 
@@ -36,6 +37,6 @@ module.exports = {
             }
         });  
 
-        return next();
+        return true;
     }
 };

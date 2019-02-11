@@ -587,6 +587,24 @@ class MySQLConnector extends Connector {
     
                             valuesSeq.push(v);
                             return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' NOT IN ?';
+
+                            case '$startWith':
+
+                            if (typeof v !== 'string') {
+                                throw new Error('The value should be a string when using "$startWith" operator.');
+                            }
+
+                            valuesSeq.push(`${v}%`);
+                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
+
+                            case '$endWith':
+
+                            if (typeof v !== 'string') {
+                                throw new Error('The value should be a string when using "$endWith" operator.');
+                            }
+
+                            valuesSeq.push(`%${v}`);
+                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
     
                             default:
                             throw new Error(`Unsupported condition operator: "${k}"!`);

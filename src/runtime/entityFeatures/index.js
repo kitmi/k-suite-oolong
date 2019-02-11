@@ -1,27 +1,43 @@
 "use strict";
 
 const path = require('path');
-const { _, fs, eachAsync_ } = require('rk-utils');
-const { HashRules } = require('@k-suite/rules-engine');
+const { _, fs } = require('rk-utils');
 
 const basePath = path.resolve(__dirname);
 const features = fs.readdirSync(basePath);
 
-const featureRules = new HashRules();
+const featureRules = {};
 
 features.forEach(file => {
     let f = path.join(basePath, file);
     if (fs.statSync(f).isFile() && _.endsWith(file, '.js')) {
-        let g = path.basename(file, '.js');
-        if (g === 'index') return;
+        let featureName = path.basename(file, '.js');
+        if (featureName === 'index') return;
 
-        let feature = require(f);
+        let feature = require(f);       
 
-        _.forOwn(feature, (actions, ruleName) => featureRules.addRule(g+'.'+ruleName, actions));      
+        _.forOwn(feature, (action, ruleName) => {
+            let key = featureName + '.' + ruleName;
+
+            assert: !(key in featureRules), key;
+            featureRules[key] = action;
+        });      
     }
 });
 
 module.exports = {
-    applyRules_: async (ruleName, entityModel, context) => 
-        eachAsync_(entityModel.meta.features, (feature, name) => featureRules.run_(name + '.' + ruleName, { feature, entityModel, context }))    
+    applyRules_: async (ruleName, entityModel, context) => {
+        for (let featureName in entityModel.meta.features) {
+            let key = featureName + '.' + ruleName;
+            let action = featureRules[key];
+
+            if (action) {
+                let featureInfo = entityModel.meta.features[featureName];
+                let asExpected = await action(featureInfo, entityModel, context);
+                if (!asExpected) return false;
+            }
+        }
+
+        return true;
+    }        
 };

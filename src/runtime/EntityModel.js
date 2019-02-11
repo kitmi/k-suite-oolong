@@ -308,20 +308,15 @@ class EntityModel {
             throw new OolongUsageError('Empty condition is not allowed for deleting an entity.');
         }
 
-        if (this.meta.features.logicalDeletion && !deleteOptions.$physicalDeletion) {
-            let { field, value } = this.meta.features.logicalDeletion;
-            return this._update_({ [field]: value }, { 
-                $query: deleteOptions.$query, 
-                $retrieveUpdated: deleteOptions.$retrieveDeleted,
-                $unboxing: deleteOptions.$unboxing,
-                $byPassReadOnly: new Set([field])
-            });
-        }
-        
         let context = { 
             deleteOptions,
             connOptions
         };
+
+        let notFinished = await Features.applyRules_(Rules.RULE_BEFORE_DELETE, this, context);     
+        if (!notFinished) {
+            return context.latest;
+        }        
         
         return this._safeExecute_(async (context) => {
             await this.beforeDelete_(context);

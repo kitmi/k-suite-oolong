@@ -88,6 +88,8 @@ class MySQLEntityModel extends EntityModel {
             let condition = this.getUniqueKeyValuePairsFrom(context.latest);
             context.latest = await this.findOne_({ $query: condition, $unboxing: true}, context.connOptions);
         }
+
+        return true;
     }
 
     /**
@@ -100,6 +102,8 @@ class MySQLEntityModel extends EntityModel {
         if (context.updateOptions.$retrieveUpdated) {            
             context.latest = await this.findOne_({ $query: context.updateOptions.$query, $unboxing: true}, context.connOptions);
         }
+
+        return true;
     }
 
     /**

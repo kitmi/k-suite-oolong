@@ -51,13 +51,24 @@ function feature(entity, args = []) {
     if (newField) {
         fieldName = fieldInfo.name;
 
+        let timestampFieldName = 'deletedAt';
+        let deletedTimestamp = {
+            type: 'datetime',
+            readOnly: true,
+            optional: true,
+            writeOnce: true,
+            auto: true
+        };
+
         entity.addFeature(FEATURE_NAME, {
             field: fieldName,
-            value: true
+            value: true,
+            timestampField: timestampFieldName
         });
 
         entity.on('afterAddingFields', () => {
-            entity.addField(fieldName, fieldInfo)
+            entity.addField(fieldName, fieldInfo);
+            entity.addField(timestampFieldName, deletedTimestamp);
         });
     } else {
         entity.addFeature(FEATURE_NAME, featureSetting);

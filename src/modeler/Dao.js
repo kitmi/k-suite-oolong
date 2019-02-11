@@ -168,6 +168,26 @@ class DaoModeler {
                 });
             }
 
+            let mixins = [];
+
+            if (!_.isEmpty(entity.info.mixins)) {
+                let mixinsDirPath = path.resolve(this.outputPath, schema.name, 'mixins');
+                fs.ensureDirSync(mixinsDirPath);
+
+                entity.info.mixins.forEach(m => {
+                    let mixinName = pascalCase(m);
+
+                    let mixinFilePath = path.join(mixinsDirPath, mixinName + '.js');
+                    if (!fs.pathExistsSync(mixinFilePath)) {
+                        fs.writeFileSync(mixinFilePath, "throw new Error('to be implemented...')");
+                    }
+
+                    let mixinVarName = 'mixin' + mixinName;
+                    importLines.push(JsLang.astToCode(JsLang.astRequire(mixinVarName, './mixins/' + mixinName)));
+                    mixins.push(mixinVarName);
+                });
+            }
+
             //assemble the source code file
             //JsLang.astPushInBody(ast, astClassMain);
 
@@ -181,7 +201,8 @@ class DaoModeler {
                 functors: indentLines(JsLang.astToCode(JsLang.astValue(_.reduce(sharedContext.newFunctorFiles, (result, functor) => {
                     result['$' + functor.functionName] = JsLang.astId(functor.functionName);
                     return result;
-                }, {}))), 4) 
+                }, {}))), 4),
+                mixins 
             };
 
             let classTemplate = path.resolve(__dirname, 'database', this.connector.driver, 'EntityModel.js.swig');
