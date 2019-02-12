@@ -26,7 +26,11 @@ const withHttpStatus = (Base, STATUS) => class extends Base {
  */
 class BusinessError extends withExtraInfo(withName(Error)) {    
     constructor(message, status, ...others) {
-        super(message, ...others);
+        if (arguments.length === 1 && typeof message === 'number') {
+            super(HttpCode.getStatusText(message));
+        } else {
+            super(message, ...others);
+        }        
 
         this.status = status || HttpCode.BAD_REQUEST;
     }

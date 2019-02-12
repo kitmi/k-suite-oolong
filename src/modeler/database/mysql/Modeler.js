@@ -90,6 +90,9 @@ class MySQLModeler {
 
         _.each(existingEntities, (entity) => {
             if (!_.isEmpty(entity.info.associations)) {
+                if (entity.name === 'case') {
+                    console.log(entity.info.associations);
+                }
                 entity.info.associations.forEach(assoc => this._processAssociation(modelingSchema, entity, assoc));
             }
         });
@@ -335,7 +338,10 @@ class MySQLModeler {
                     } else {
                         throw new Error('Unexpected path. Entity: ' + entity.name + ', association: ' + JSON.stringify(assoc, null, 2));                    
                     } 
-                } else {
+                } else {                    
+                    if (!assoc.connectedBy) {
+                        throw assoc;
+                    }
                     let connectedByParts = assoc.connectedBy.split('.');
                     assert: connectedByParts.length <= 2;
 

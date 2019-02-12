@@ -18,26 +18,24 @@ class MySQLEntityModel extends EntityModel {
 
     /**
      * Serialize value into database acceptable format.
-     * @param {object} dataRecord 
+     * @param {object} name - Name of the symbol token 
      */
-    static serialize(dataRecord) {
-        _.forOwn(dataRecord, (value, fieldName) => {
-            let fieldMeta = this.meta.fields[fieldName];
-            
-            if (fieldMeta.type === 'datetime') {
-                if (typeof value === 'object' && value.oolType === 'SymbolToken') {
-                    if (value.name === 'now') {
-                        dataRecord[fieldName] = this.db.connector.raw('NOW()');
-                    }
-                }
+    static _translateSymbolToken(name) {
+        if (name === 'now') {
+            return this.db.connector.raw('NOW()');
+        } 
+        
+        throw new Error('not support');
+    }
 
-                if (value instanceof DateTime) {
-                    dataRecord[fieldName] = value.toISO({ includeOffset: false });
-                }
-            } else if (fieldMeta.type === 'boolean') {
-                dataRecord[fieldName] = dataRecord[fieldName] ? 1 : 0;
-            }
-        });
+    static _serialize(value) {
+        if (typeof value === 'boolean') return value ? 1 : 0;
+
+        if (value instanceof DateTime) {
+            return value.toISO({ includeOffset: false });
+        }
+
+        return value;
     }
 
     static async create_(...args) {
@@ -47,7 +45,7 @@ class MySQLEntityModel extends EntityModel {
             let errorCode = error.code;
 
             if (errorCode === 'ER_NO_REFERENCED_ROW_2') {
-                throw new BusinessError('The new entity is referencing to an unexisting entity.');
+                throw new BusinessError('The new entity is referencing to an unexisting entity. Detail: ' + error.message);
             } else if (errorCode === 'ER_DUP_ENTRY') {
                 throw new BusinessError(error.message + ` while creating a new "${this.meta.name}".`);
             }
@@ -378,12 +376,19 @@ class MySQLEntityModel extends EntityModel {
                 throw new BusinessError(`Unknown association "${anchor}" of entity "${this.meta.name}".`);
             }
 
-            if (!assocMeta.connectedBy) {
-                throw new BusinessError(`Unsupported association type, "${anchor}" of entity "${this.meta.name}". Currently only supports many-to-many association.`);
+            let assocModel;
+
+            if (assocMeta.connectedBy) {
+                assocModel = this.db.model(assocMeta.connectedBy);
+            } else {
+                assocModel = this.db.model(assocMeta.entity);
             }
 
-            let assocModel = this.db.model(assocMeta.connectedBy);
-            console.log(data);
+            if (assocMeta.isList) {
+                data = _.castArray(data);
+
+                return eachAsync_(data, item => assocModel.create_({ ...item, [assocMeta.remoteField]: keyValue }, context.createOptions, context.connOptions));
+            }
 
             return assocModel.create_({ ...data, [assocMeta.remoteField]: keyValue }, context.createOptions, context.connOptions);  
         });

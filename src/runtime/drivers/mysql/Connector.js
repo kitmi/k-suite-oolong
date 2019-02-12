@@ -283,7 +283,7 @@ class MySQLConnector extends Connector {
     async find_(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit }, options) {
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false;
 
-        if (!_.isEmpty($association)) {            
+        if ($association) {            
             joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, params);
             hasJoining = model;
         }
@@ -466,7 +466,9 @@ class MySQLConnector extends Connector {
             let actualFieldName = parts.pop();
             let alias = aliasMap[mainEntity + '.' + parts.join('.')];
             if (!alias) {
-                throw new BusinessError(`Unknown column reference: ${fieldName}`);
+                let msg = `Unknown column reference: ${fieldName}`;
+                this.log('debug', msg, aliasMap);
+                throw new BusinessError(msg);
             }
 
             return alias + '.' + mysql.escapeId(actualFieldName);

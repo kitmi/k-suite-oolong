@@ -210,7 +210,7 @@
         }
 
         normalizeSymbol(ref) {
-            return { oolType: 'SymbolToken', name: ref.substr(2) };
+            return { oorType: 'SymbolToken', name: ref.substr(2) };
         }                
         
         normalizeReference(ref) {

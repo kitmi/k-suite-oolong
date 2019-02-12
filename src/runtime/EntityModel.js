@@ -1,15 +1,18 @@
 "use strict";
 
+const HttpCode = require('http-status-codes');
 const Util = require('rk-utils');
 const { _ } = Util._;
 const Errors = require('./Errors');
 const Generators = require('./Generators');
 const Types = require('./types');
-const { DataValidationError, OolongUsageError, DsOperationError } = Errors;
+const { DataValidationError, OolongUsageError, DsOperationError, BusinessError } = Errors;
 const Features = require('./entityFeatures');
 const Rules = require('../enum/Rules');
 
 const { isNothing } = require('../utils/lang');
+
+const NEED_OVERRIDE = 'Should be overrided by driver-specific subclass.';
 
 /**
  * Base entity model class.
@@ -139,7 +142,7 @@ class EntityModel {
      * @property {object} [connOptions.connection]
      * @returns {array}
      */
-    static async findAll_(findOptions, connOptions) {
+    static async findAll_(findOptions, connOptions) {        
         findOptions = this._prepareQueries(findOptions);
 
         let context = {             
@@ -376,6 +379,8 @@ class EntityModel {
             context.i18n = i18n;
         }
 
+        let opOptions = isUpdating ? context.updateOptions : context.createOptions;
+
         if (isUpdating && this._dependsOnExistingData(raw)) {
             if (!context.connOptions || !context.connOptions.connection) {                
                 context.connOptions || (context.connOptions = {});
@@ -383,7 +388,7 @@ class EntityModel {
                 context.connOptions.connection = await this.db.connector.beginTransaction_();                           
             } // else already in a transaction                        
 
-            existing = await this.findOne_({ $query: context.updateOptions.$query, $unboxing: true }, context.connOptions);            
+            existing = await this.findOne_({ $query: opOptions.$query, $unboxing: true }, context.connOptions);            
             context.existing = existing;                        
         }        
 
@@ -391,7 +396,7 @@ class EntityModel {
             if (fieldName in raw) {
                 //field value given in raw data
                 if (fieldInfo.readOnly) {
-                    if (!isUpdating || !context.updateOptions.$byPassReadOnly.has(fieldName)) {
+                    if (!isUpdating || !opOptions.$byPassReadOnly.has(fieldName)) {
                         //read only, not allow to set by input value
                         throw new DataValidationError(`Read-only field "${fieldName}" is not allowed to be set by manual input.`, {
                             entity: name,                        
@@ -490,7 +495,7 @@ class EntityModel {
 
         await this.applyModifiers_(context, isUpdating);
 
-        this.serialize(context.latest);
+        context.latest = this.translateValue(latest, opOptions.$variables);
 
         return context;
     }
@@ -565,7 +570,7 @@ class EntityModel {
                 throw new OolongUsageError('Cannot use a singular value as condition to query against a entity with combined primary key.');
             }
 
-            return options ? { $query: { [this.meta.keyField]: options } } : {};
+            return options ? { $query: { [this.meta.keyField]: this.translateValue(options) } } : {};
         }
 
         let normalizedOptions = {}, query = {};
@@ -584,23 +589,73 @@ class EntityModel {
             this._ensureContainsUniqueKey(normalizedOptions.$query);
         }        
 
+        normalizedOptions.$query = this.translateValue(normalizedOptions.$query, normalizedOptions.$variables);
+
         return normalizedOptions;
     }
 
     static _prepareAssociations() {
-        throw new Error('Should be override by driver-specific subclass.');
+        throw new Error(NEED_OVERRIDE);
     }
 
     static _mapRecordsToObjects() {
-        throw new Error('Should be override by driver-specific subclass.');
+        throw new Error(NEED_OVERRIDE);
     }
 
     static _extractAssociations(data) {
-        throw new Error('Should be override by driver-specific subclass.');    
+        throw new Error(NEED_OVERRIDE);    
     }
 
     static async _createAssocs_(context, assocs) {
-        throw new Error('Should be override by driver-specific subclass.');
+        throw new Error(NEED_OVERRIDE);
+    }
+
+    static _translateSymbolToken(name) {
+        throw new Error(NEED_OVERRIDE);
+    }
+
+    static _serialize(value) {
+        throw new Error(NEED_OVERRIDE);
+    }
+
+    static translateValue(value, variables) {
+        if (_.isPlainObject(value)) {
+            if (value.oorType) {
+                if (value.oorType === 'SessionVariable') {
+                    if (!variables) {
+                        throw new OolongUsageError('Variables context missing.');
+                    }
+
+                    let refValue = variables[value.name];
+
+                    if (isNothing(refValue) && !value.optional) {
+                        let errArgs = [];
+                        if (value.missingMessage) {
+                            errArgs.push(value.missingMessage);
+                        }
+                        if (value.missingStatus) {
+                            errArgs.push(value.missingStatus || HttpCode.BAD_REQUEST);
+                        }
+
+                        throw new BusinessError(...errArgs);
+                    }
+
+                    return refValue;
+                } else if (value.oorType === 'SymbolToken') {
+                    return this._translateSymbolToken(value.name);
+                }
+
+                throw new Error('Not impletemented yet. ' + value.oolType);
+            }
+
+            return _.mapValues(value, (v) => this.translateValue(v, variables));
+        }
+
+        if (Array.isArray(value)) {
+            return value.map(v => this.translateValue(v, variables));
+        }
+
+        return this._serialize(value);
     }
 }
 
