@@ -364,7 +364,7 @@ class MySQLConnector extends Connector {
     _joinAssociations(associations, parentAliasKey, parentAlias, aliasMap, startId, params) {
         let joinings = [];
 
-        _.each(associations, ({ entity, joinType, anchor, localField, remoteField, isList, subAssociations, connectedWith }) => {                
+        _.each(associations, ({ entity, joinType, anchor, localField, remoteField, remoteFields, subAssociations, connectedWith }) => {                
             let alias = ntol(startId++); 
             let aliasKey = parentAliasKey + '.' + anchor;
             aliasMap[aliasKey] = alias; 
@@ -376,7 +376,11 @@ class MySQLConnector extends Connector {
                         connectedWith
                     ], params, 'AND', parentAliasKey, aliasMap)
                 );
-            } else {
+            } else if (remoteFields) {
+                joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ` + 
+                    remoteFields.map(remoteField => `${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`).join(' OR ')
+                );
+            } else {                
                 joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`);
             }
             
@@ -423,13 +427,13 @@ class MySQLConnector extends Connector {
                 if (key === '$all' || key === '$and') {
                     assert: Array.isArray(value) || _.isPlainObject(value), '"$and" operator value should be an array or plain object.';                    
 
-                    return this._joinCondition(value, valuesSeq, 'AND', hasJoining, aliasMap);
+                    return '(' + this._joinCondition(value, valuesSeq, 'AND', hasJoining, aliasMap) + ')';
                 }
     
                 if (key === '$any' || key === '$or') {
                     assert: Array.isArray(value) || _.isPlainObject(value), '"$or" operator value should be a plain object.';       
                     
-                    return this._joinCondition(value, valuesSeq, 'OR', hasJoining, aliasMap);
+                    return '(' + this._joinCondition(value, valuesSeq, 'OR', hasJoining, aliasMap) + ')';
                 }
 
                 if (key === '$not') {                    
@@ -578,7 +582,7 @@ class MySQLConnector extends Connector {
                             }
     
                             valuesSeq.push(v);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IN ?';
+                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IN (?)';
     
                             case '$nin':
                             case '$notIn':
@@ -588,7 +592,7 @@ class MySQLConnector extends Connector {
                             }
     
                             valuesSeq.push(v);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' NOT IN ?';
+                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' NOT IN (?)';
 
                             case '$startWith':
 

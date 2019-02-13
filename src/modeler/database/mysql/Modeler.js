@@ -252,7 +252,25 @@ class MySQLModeler {
                     if (assoc.connectedWith) {
                         includes.connectedWith = assoc.connectedWith;
                     }
-                }                
+                } else if (assoc.remoteField) {
+                    includes = { srcField: assoc.remoteField };
+                } else if (assoc.remoteFields) {
+                    if (!assoc.srcField) {
+                        throw new Error('"srcField" is required for multiple remote fields. Entity: ' + entity.name);
+                    } 
+                    
+                    entity.addAssociation(
+                        assoc.srcField, 
+                        destEntity, 
+                        { 
+                            optional: assoc.optional,                             
+                            remoteFields: assoc.remoteFields,                                
+                            ...(assoc.type === 'hasMany' ? { isList: true } : {})
+                        }
+                    );
+
+                    return;
+                }           
                 
                 let backRef = destEntity.getReferenceTo(entity.name, includes, excludes);
                 if (backRef) {
@@ -406,7 +424,13 @@ class MySQLModeler {
                 );
 
                 if (assoc.type === 'belongsTo') {
-                    let backRef = destEntity.getReferenceTo(entity.name, null, { types: [ 'refersTo', 'belongsTo' ], association: assoc });
+                    let backRef = destEntity.getReferenceTo(
+                        entity.name, 
+                        { 
+                            'remoteField': (remoteField) => _.isNil(remoteField) || remoteField == localField
+                        },  // includes
+                        { types: [ 'refersTo', 'belongsTo' ], association: assoc } // excludes
+                    );
                     if (!backRef) {
                         destEntity.addAssociation(
                             pluralize(entity.name), 

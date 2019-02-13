@@ -22,7 +22,7 @@
         'dataset': new Set(['is']),
     
         // level 2
-        'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo', 'connectedBy', 'with', 'as', 'optional']),
+        'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo', 'connectedBy', 'being', 'with', 'as', 'optional']),
         'entity.index': new Set(['is', 'unique']),
         'entity.interface': new Set(['accept', 'find', 'findOne', 'return']),
 
@@ -1124,8 +1124,10 @@ association_item
     ;
 
 association_through
-    : "connectedBy" identifier_string_or_dotname -> { connectedBy: $2 }
-    | "connectedBy" identifier_string_or_dotname "with" conditional_expression -> { connectedBy: $2, connectedWith: $4 }
+    : "connectedBy" identifier_string_or_dotname -> { connectedBy: $2 }    
+    | "connectedBy" identifier_string_or_dotname "with" conditional_expression -> { connectedBy: $2, connectedWith: $4 }    
+    | "being" identifier_or_string -> { remoteField: $2 }   
+    | "being" array_of_identifier_or_string -> { remoteFields: $2 }    
     ;
 
 association_as

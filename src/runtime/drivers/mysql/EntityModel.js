@@ -183,10 +183,21 @@ class MySQLEntityModel extends EntityModel {
                 ];
             } else if (assocInfo.isList) {
                 detail.localField = cache[base] ? cache[base].entity.meta.keyField : this.meta.keyField;
-                detail.remoteField = assocInfo.remoteField || this.meta.name;
+
+                if (assocInfo.remoteFields) {
+                    detail.remoteFields = assocInfo.remoteFields;
+                    detail.joinType = 'RIGHT JOIN';
+                } else {
+                    detail.remoteField = assocInfo.remoteField || this.meta.name;
+                }
             } else {
                 detail.localField = anchor;
-                detail.remoteField = remoteEntity.meta.keyField;
+                if (assocInfo.remoteFields) {
+                    detail.remoteFields = assocInfo.remoteFields;
+                    detail.joinType = 'RIGHT JOIN';
+                } else {
+                    detail.remoteField = remoteEntity.meta.keyField;
+                }
             }
 
             if (cache[base]) {
