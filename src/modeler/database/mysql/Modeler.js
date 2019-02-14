@@ -438,7 +438,7 @@ class MySQLModeler {
                         );
                     } else {
                         destEntity.addAssociation(
-                            backRef.srcField || pluralize(entity.name), 
+                            backRef.srcField || (backRef.type === 'hasMany' ? pluralize(entity.name) : entity.name), 
                             entity, 
                             { 
                                 isList: backRef.type === 'hasMany', 
