@@ -280,7 +280,7 @@ class MySQLConnector extends Connector {
      * @param {*} condition 
      * @param {*} options 
      */
-    async find_(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit }, options) {
+    async find_(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit, $totalCount }, options) {
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false;
 
         if ($association) {            
@@ -290,7 +290,9 @@ class MySQLConnector extends Connector {
 
         let whereClause = $query && this._joinCondition($query, params, null, hasJoining, aliasMap);
         
-        let sql = 'SELECT ' + ($projection ? this._buildColumns($projection, hasJoining, aliasMap) : '*') + ' FROM ' + mysql.escapeId(model);
+        let selectColomns = $projection ? this._buildColumns($projection, hasJoining, aliasMap) : '*';
+        
+        let sql = ' FROM ' + mysql.escapeId(model);
 
         if (hasJoining) {
             sql += ' A ' + joinings.join(' ');
@@ -308,6 +310,16 @@ class MySQLConnector extends Connector {
             sql += ' ' + this._buildOrderBy($orderBy, hasJoining, aliasMap);
         }
 
+        let result, totalCount;
+
+        if ($totalCount) {
+            let sqlCount = 'SELECT COUNT(*) AS count' + sql;
+            let [ countResult ] = await this.execute_(sqlCount, params, options);  
+            totalCount = countResult['count'];
+        }
+
+        sql = 'SELECT ' + selectColomns + sql;
+
         if (_.isInteger($limit) && $limit > 0) {
             sql += ' LIMIT ?';
             params.push($limit);
@@ -320,16 +332,26 @@ class MySQLConnector extends Connector {
 
         if (hasJoining) {
             options = { ...options, rowsAsArray: true };
-            let result = await this.execute_(sql, params, options);  
+            result = await this.execute_(sql, params, options);  
             let reverseAliasMap = _.reduce(aliasMap, (result, alias, nodePath) => {
                 result[alias] = nodePath.split('.').slice(1).map(n => ':' + n);
                 return result;
-            }, {});                 
+            }, {});
+            
+            if ($totalCount) {
+                return result.concat(reverseAliasMap, totalCount);
+            }
             
             return result.concat(reverseAliasMap);
+        } 
+
+        result = await this.execute_(sql, params, options);
+
+        if ($totalCount) {
+            return [ result, totalCount ];
         }
 
-        return this.execute_(sql, params, options);
+        return result;
     }
 
     getInsertedId(result) {

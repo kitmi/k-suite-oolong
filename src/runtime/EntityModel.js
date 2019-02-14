@@ -2,7 +2,7 @@
 
 const HttpCode = require('http-status-codes');
 const Util = require('rk-utils');
-const { _ } = Util._;
+const { _, getValueByPath } = Util._;
 const Errors = require('./Errors');
 const Generators = require('./Generators');
 const Types = require('./types');
@@ -94,8 +94,6 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
-        //this.serialize(context.findOptions.$query);
-
         if (findOptions.$association) {
             findOptions.$association = this._prepareAssociations(findOptions.$association);
         }
@@ -135,7 +133,8 @@ class EntityModel {
      * @property {object} [findOptions.$groupBy] - Group by fields
      * @property {object} [findOptions.$orderBy] - Order by fields
      * @property {number} [findOptions.$offset] - Offset
-     * @property {number} [findOptions.$limit] - Limit     
+     * @property {number} [findOptions.$limit] - Limit 
+     * @property {number} [findOptions.$totalCount] - Return totalCount      
      * @property {bool} [findOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @property {bool} [findOptions.$includeDeleted=false] - Include those marked as logical deleted.
      * @param {object} [connOptions]
@@ -152,13 +151,13 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
-        //this.serialize(context.findOptions.$query);
-
         if (findOptions.$association) {
             findOptions.$association = this._prepareAssociations(findOptions.$association);
         }
 
-        return this._safeExecute_(async (context) => {             
+        let totalCount;
+
+        let rows = await this._safeExecute_(async (context) => {             
             let records = await this.db.connector.find_(
                 this.meta.name, 
                 context.findOptions, 
@@ -167,14 +166,28 @@ class EntityModel {
 
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
 
-            if (findOptions.$association) {                
+            if (findOptions.$association) {
+                if (findOptions.$totalCount) {
+                    totalCount = records[3];
+                }                              
                 records = this._mapRecordsToObjects(records, findOptions.$association);
+            } else {
+                if (findOptions.$totalCount) {
+                    totalCount = records[1];
+                    records = records[0];
+                }    
             }
 
             if (context.findOptions.$unboxing) return records;
 
             return records.map(row => this.populate(row));
         }, context);
+
+        if (findOptions.$totalCount) {
+            return { totalItems: totalCount, items: rows };
+        }
+
+        return rows;
     }
 
     /**
@@ -626,9 +639,7 @@ class EntityModel {
                         throw new OolongUsageError('Variables context missing.');
                     }
 
-                    let refValue = variables[value.name];
-
-                    if (isNothing(refValue) && !value.optional) {
+                    if ((!variables.session || !(value.name in  variables.session)) && !value.optional) {
                         let errArgs = [];
                         if (value.missingMessage) {
                             errArgs.push(value.missingMessage);
@@ -640,7 +651,17 @@ class EntityModel {
                         throw new BusinessError(...errArgs);
                     }
 
-                    return refValue;
+                    return variables.session[value.name];
+                } else if (value.oorType === 'QueryVariable') {
+                    if (!variables) {
+                        throw new OolongUsageError('Variables context missing.');
+                    }
+
+                    if (!variables.query || !(value.name in variables.query)) {
+                        throw new BusinessError(HttpCode.BAD_REQUEST);
+                    }
+                    
+                    return variables.query[value.name];
                 } else if (value.oorType === 'SymbolToken') {
                     return this._translateSymbolToken(value.name);
                 }
