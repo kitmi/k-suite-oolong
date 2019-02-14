@@ -515,10 +515,6 @@ class MySQLConnector extends Connector {
             return this._replaceFieldNameWithAlias(fieldName, mainEntity, aliasMap); 
         }
 
-        if (!(fieldName in this.meta.fields)) {
-            throw new BusinessError(`Unknown column reference: ${fieldName}`);
-        }
-
         return mysql.escapeId(fieldName);
     }
 
@@ -645,6 +641,15 @@ class MySQLConnector extends Connector {
                             }
 
                             valuesSeq.push(`%${v}`);
+                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
+
+                            case '$like':
+
+                            if (typeof v !== 'string') {
+                                throw new Error('The value should be a string when using "$like" operator.');
+                            }
+
+                            valuesSeq.push(`%${v}%`);
                             return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
     
                             default:

@@ -657,8 +657,8 @@ class EntityModel {
                         throw new OolongUsageError('Variables context missing.');
                     }
 
-                    if (!variables.query || !(value.name in variables.query)) {
-                        throw new BusinessError(HttpCode.BAD_REQUEST);
+                    if (!variables.query || !(value.name in variables.query)) {                        
+                        throw new OolongUsageError(`Query parameter "${value.name}" in configuration not found.`);
                     }
                     
                     return variables.query[value.name];
