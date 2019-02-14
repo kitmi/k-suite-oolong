@@ -280,7 +280,46 @@ class MySQLConnector extends Connector {
      * @param {*} condition 
      * @param {*} options 
      */
-    async find_(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit, $totalCount }, options) {
+    async find_(model, condition, options) {
+        let sqlInfo = this.buildQuery(model, condition);
+
+        let result, totalCount;
+
+        if (sqlInfo.countSql) {            
+            let [ countResult ] = await this.execute_(sqlInfo.countSql, sqlInfo.params, options);  
+            totalCount = countResult['count'];
+        }
+
+        if (sqlInfo.hasJoining) {
+            options = { ...options, rowsAsArray: true };
+            result = await this.execute_(sqlInfo.sql, sqlInfo.params, options);  
+            let reverseAliasMap = _.reduce(sqlInfo.aliasMap, (result, alias, nodePath) => {
+                result[alias] = nodePath.split('.').slice(1).map(n => ':' + n);
+                return result;
+            }, {});
+            
+            if (sqlInfo.countSql) {
+                return result.concat(reverseAliasMap, totalCount);
+            }
+            
+            return result.concat(reverseAliasMap);
+        } 
+
+        result = await this.execute_(sqlInfo.sql, sqlInfo.params, options);
+
+        if (sqlInfo.countSql) {
+            return [ result, totalCount ];
+        }
+
+        return result;
+    }
+
+    /**
+     * Build sql statement.
+     * @param {*} model 
+     * @param {*} condition      
+     */
+    buildQuery(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit, $totalCount }) {
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false;
 
         if ($association) {            
@@ -303,14 +342,16 @@ class MySQLConnector extends Connector {
         }
 
         if ($groupBy) {
-            sql += ' ' + this._buildGroupBy($groupBy, hasJoining, aliasMap);
+            sql += ' ' + this._buildGroupBy($groupBy, params, hasJoining, aliasMap);
         }
 
         if ($orderBy) {
             sql += ' ' + this._buildOrderBy($orderBy, hasJoining, aliasMap);
         }
 
-        let result, totalCount;
+        let result = { params, hasJoining, aliasMap };
+
+        sql = 'SELECT ' + selectColomns + sql;
 
         if ($totalCount) {
             let countSubject;
@@ -320,12 +361,9 @@ class MySQLConnector extends Connector {
             } else {
                 countSubject = '*';
             }
-            let sqlCount = `SELECT COUNT(${countSubject}) AS count` + sql;
-            let [ countResult ] = await this.execute_(sqlCount, params, options);  
-            totalCount = countResult['count'];
-        }
 
-        sql = 'SELECT ' + selectColomns + sql;
+            result.countSql = `SELECT COUNT(${countSubject}) AS count` + sql;
+        }
 
         if (_.isInteger($limit) && $limit > 0) {
             sql += ' LIMIT ?';
@@ -337,27 +375,8 @@ class MySQLConnector extends Connector {
             params.push($offset);
         }
 
-        if (hasJoining) {
-            options = { ...options, rowsAsArray: true };
-            result = await this.execute_(sql, params, options);  
-            let reverseAliasMap = _.reduce(aliasMap, (result, alias, nodePath) => {
-                result[alias] = nodePath.split('.').slice(1).map(n => ':' + n);
-                return result;
-            }, {});
-            
-            if ($totalCount) {
-                return result.concat(reverseAliasMap, totalCount);
-            }
-            
-            return result.concat(reverseAliasMap);
-        } 
-
-        result = await this.execute_(sql, params, options);
-
-        if ($totalCount) {
-            return [ result, totalCount ];
-        }
-
+        result.sql = sql;
+        
         return result;
     }
 
@@ -393,8 +412,21 @@ class MySQLConnector extends Connector {
     _joinAssociations(associations, parentAliasKey, parentAlias, aliasMap, startId, params) {
         let joinings = [];
 
-        _.each(associations, ({ entity, joinType, anchor, localField, remoteField, remoteFields, subAssociations, connectedWith }) => {                
+        _.each(associations, assocInfo => { 
             let alias = ntol(startId++); 
+            let { joinType, localField, remoteField } = assocInfo;
+
+            if (assocInfo.sql) {
+                joinings.push(`${joinType} (${assocInfo.sql}) ${alias} ON ${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`);
+                assocInfo.params.forEach(p => params.push(p));
+                if (assocInfo.output) {                    
+                    aliasMap[aliaparentAliasKey + '.:' + aliassKey] = alias; 
+                }
+                
+                return;
+            }
+
+            let { entity, anchor, remoteFields, subAssociations, connectedWith } = assocInfo;            
             let aliasKey = parentAliasKey + '.' + anchor;
             aliasMap[aliasKey] = alias; 
 
@@ -676,20 +708,22 @@ class MySQLConnector extends Connector {
     _buildColumn(col, hasJoining, aliasMap) {
         if (typeof col === 'string') {  
             //it's a string if it's quoted when passed in          
-            return (isQuoted(col) || col === '*') ? col : mysql.escapeId(col);
+            return (isQuoted(col) || col === '*') ? col : this._escapeIdWithAlias(col, hasJoining, aliasMap);
         }
 
         if (typeof col === 'number') {
             return col;
         }
 
-        if (_.isPlainObject(col)) {
-            if (col.alias && typeof col.alias === 'string') {
-                return this._buildColumn(_.omit(col, ['alias'])) + ' AS ' + mysql.escapeId(col.alias);
-            } 
-            
+        if (_.isPlainObject(col)) {                         
+            if (col.alias) {
+                assert: typeof col.alias === 'string';
+
+                return this._buildColumn(_.omit(col, ['alias']), hasJoining, aliasMap) + ' AS ' + mysql.escapeId(col.alias);
+            }
+
             if (col.type === 'function') {
-                return col.name + '(' + (col.args ? this._buildColumns(col.args) : '') + ')';
+                return col.name + '(' + (col.args ? this._buildColumns(col.args, hasJoining, aliasMap) : '') + ')';
             }            
         }
 

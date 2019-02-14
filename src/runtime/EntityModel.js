@@ -95,7 +95,7 @@ class EntityModel {
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
         if (findOptions.$association) {
-            findOptions.$association = this._prepareAssociations(findOptions.$association);
+            findOptions.$association = this._prepareAssociations(findOptions);
         }
 
         return this._safeExecute_(async (context) => {            
@@ -152,7 +152,7 @@ class EntityModel {
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
         if (findOptions.$association) {
-            findOptions.$association = this._prepareAssociations(findOptions.$association);
+            findOptions.$association = this._prepareAssociations(findOptions);
         }
 
         let totalCount;

@@ -128,11 +128,24 @@ class MySQLEntityModel extends EntityModel {
      *      localField: <local field to join>
      *      remoteField: <remote field to join>
      *      subAssociations: { ... }  */
-    static _prepareAssociations(associations) {   
-        associations = associations.concat().sort();
+    static _prepareAssociations(findOptions) { 
+        let associations = findOptions.$association.concat().sort();        
+        
         let cache = {}, hierarchy = [];
         
         associations.forEach(assoc => {
+            if (_.isPlainObject(assoc)) {
+                hierarchy.push({ 
+                    entity: assoc.entity, 
+                    joinType: assoc.type, 
+                    output: assoc.output,
+                    ...this.db.connector.buildQuery(assoc.entity, 
+                        this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables })),
+                    ...assoc.on    
+                });
+                return;
+            }
+
             let [ remoteEntity, base, anchor, assocInfo ] = this._getRelatedEntity(assoc, cache);
             assert: assocInfo;            
 
@@ -250,7 +263,9 @@ class MySQLEntityModel extends EntityModel {
         let mainIndex = {};
 
         function mergeRecord(existingRow, rowObject, associations) {            
-            _.each(associations, ({ keyField, anchor, isList, subAssociations }) => {                
+            _.each(associations, ({ sql, keyField, anchor, isList, subAssociations }) => { 
+                if (sql) return;
+
                 let key = ':' + anchor;                
                 let subObj = rowObject[key]
                 let subIndexes = existingRow.subIndexes[key];
@@ -286,7 +301,11 @@ class MySQLEntityModel extends EntityModel {
         }
 
         function buildSubIndexes(rowObject, associations) {
-            return associations.reduce((indexes, { keyField, anchor, isList, subAssociations }) => {
+            return associations.reduce((indexes, { sql, keyField, anchor, isList, subAssociations }) => {
+                if (sql) {
+                    return indexes;
+                }
+
                 let key = ':'+anchor;
                 let subObject = rowObject[key];                                  
                 let subIndex = { 
@@ -334,9 +353,11 @@ class MySQLEntityModel extends EntityModel {
                         bucket[col.name] = value;                                
                     } else {
                         let nodePath = aliasMap[col.table];
-                        let subObject = { [col.name]: value };
-                        tableCache[col.table] = subObject;
-                        setValueByPath(result, nodePath, subObject);
+                        if (nodePath) {
+                            let subObject = { [col.name]: value };
+                            tableCache[col.table] = subObject;
+                            setValueByPath(result, nodePath, subObject);
+                        }
                     }                        
                 }
 

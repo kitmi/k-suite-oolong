@@ -356,11 +356,10 @@ class MySQLModeler {
                     } else {
                         throw new Error('Unexpected path. Entity: ' + entity.name + ', association: ' + JSON.stringify(assoc, null, 2));                    
                     } 
-                } else {                    
-                    if (!assoc.connectedBy) {
-                        throw assoc;
-                    }
-                    let connectedByParts = assoc.connectedBy.split('.');
+                } else {  
+                    // semi association 
+
+                    let connectedByParts = assoc.connectedBy ? assoc.connectedBy.split('.') : [ OolUtils.prefixNaming(entity.name, destEntityName) ];
                     assert: connectedByParts.length <= 2;
 
                     let connectedByField = (connectedByParts.length > 1 && connectedByParts[1]) || entity.name;
@@ -406,7 +405,7 @@ class MySQLModeler {
                         }
                     );
 
-                    this._processedRef.add(tag1);                        
+                    this._processedRef.add(tag1);            
                 }
 
             break;
@@ -635,12 +634,7 @@ class MySQLModeler {
     _updateRelationEntity(relationEntity, entity1, entity2, connectedByField, connectedByField2) {
         let relationEntityName = relationEntity.name;
 
-        if (relationEntity.info.associations) {
-            if (relationEntityName === 'companyRole') {
-                console.dir(relationEntity.info.associations, {depth: 10, colors: true});
-                console.log(connectedByField, connectedByField2);
-            }
-
+        if (relationEntity.info.associations) {               
             let hasRefToEntity1 = false, hasRefToEntity2 = false;            
 
             _.each(relationEntity.info.associations, assoc => {
@@ -654,10 +648,7 @@ class MySQLModeler {
             });
 
             if (hasRefToEntity1 && hasRefToEntity2) {
-                this._relationEntities[relationEntityName] = true;
-                if (relationEntityName === 'companyRole') {
-                    console.log('OK');
-                }
+                this._relationEntities[relationEntityName] = true;                
                 return;
             }
         }
