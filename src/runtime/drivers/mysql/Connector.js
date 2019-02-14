@@ -313,7 +313,14 @@ class MySQLConnector extends Connector {
         let result, totalCount;
 
         if ($totalCount) {
-            let sqlCount = 'SELECT COUNT(*) AS count' + sql;
+            let countSubject;
+
+            if (typeof $totalCount === 'string') {
+                countSubject = 'DISTINCT(' + this._escapeIdWithAlias($totalCount, hasJoining, aliasMap) + ')';
+            } else {
+                countSubject = '*';
+            }
+            let sqlCount = `SELECT COUNT(${countSubject}) AS count` + sql;
             let [ countResult ] = await this.execute_(sqlCount, params, options);  
             totalCount = countResult['count'];
         }
@@ -504,9 +511,15 @@ class MySQLConnector extends Connector {
     }
 
     _escapeIdWithAlias(fieldName, mainEntity, aliasMap) {
-        return (mainEntity ? 
-            this._replaceFieldNameWithAlias(fieldName, mainEntity, aliasMap) : 
-            mysql.escapeId(fieldName));
+        if (mainEntity) {
+            return this._replaceFieldNameWithAlias(fieldName, mainEntity, aliasMap); 
+        }
+
+        if (!(fieldName in this.meta.fields)) {
+            throw new BusinessError(`Unknown column reference: ${fieldName}`);
+        }
+
+        return mysql.escapeId(fieldName);
     }
 
     /**
