@@ -604,6 +604,10 @@ class EntityModel {
 
         normalizedOptions.$query = this.translateValue(normalizedOptions.$query, normalizedOptions.$variables);
 
+        if (normalizedOptions.$projection) {
+            normalizedOptions.$projection = this.translateValue(normalizedOptions.$projection, normalizedOptions.$variables);
+        }
+
         return normalizedOptions;
     }
 

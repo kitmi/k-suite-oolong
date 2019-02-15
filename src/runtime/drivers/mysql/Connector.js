@@ -320,16 +320,24 @@ class MySQLConnector extends Connector {
      * @param {*} condition      
      */
     buildQuery(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit, $totalCount }) {
-        let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false;
+        let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false, joiningParams = [];        
 
+        // build alias map first
+        // cache params
         if ($association) {            
-            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, params);
+            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams);
             hasJoining = model;
         }
 
-        let whereClause = $query && this._joinCondition($query, params, null, hasJoining, aliasMap);
-        
-        let selectColomns = $projection ? this._buildColumns($projection, hasJoining, aliasMap) : '*';
+        let selectColomns = $projection ? this._buildColumns($projection, params, hasJoining, aliasMap) : '*';
+
+        // move cached joining params into params
+        // should according to the place of clause in a sql 
+        if (hasJoining) {
+            joiningParams.forEach(p => params.push(p));
+        }
+
+        let whereClause = $query && this._joinCondition($query, params, null, hasJoining, aliasMap);        
         
         let sql = ' FROM ' + mysql.escapeId(model);
 
@@ -413,14 +421,14 @@ class MySQLConnector extends Connector {
         let joinings = [];
 
         _.each(associations, assocInfo => { 
-            let alias = ntol(startId++); 
+            let alias = assocInfo.alias || ntol(startId++); 
             let { joinType, localField, remoteField } = assocInfo;
 
             if (assocInfo.sql) {
                 joinings.push(`${joinType} (${assocInfo.sql}) ${alias} ON ${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`);
                 assocInfo.params.forEach(p => params.push(p));
                 if (assocInfo.output) {                    
-                    aliasMap[aliaparentAliasKey + '.:' + aliassKey] = alias; 
+                    aliasMap[parentAliasKey + '.:' + alias] = alias; 
                 }
                 
                 return;
@@ -469,14 +477,14 @@ class MySQLConnector extends Connector {
      *        array: not ( or )
      *        kv-pair: not ( and )     
      * @param {object} condition 
-     * @param {array} valuesSeq 
+     * @param {array} params 
      */
-    _joinCondition(condition, valuesSeq, joinOperator, hasJoining, aliasMap) {
+    _joinCondition(condition, params, joinOperator, hasJoining, aliasMap) {
         if (Array.isArray(condition)) {
             if (!joinOperator) {
                 joinOperator = 'OR';
             }
-            return condition.map(c => this._joinCondition(c, valuesSeq, null, hasJoining, aliasMap)).join(` ${joinOperator} `);
+            return condition.map(c => this._joinCondition(c, params, null, hasJoining, aliasMap)).join(` ${joinOperator} `);
         }
 
         if (_.isPlainObject(condition)) { 
@@ -488,27 +496,27 @@ class MySQLConnector extends Connector {
                 if (key === '$all' || key === '$and') {
                     assert: Array.isArray(value) || _.isPlainObject(value), '"$and" operator value should be an array or plain object.';                    
 
-                    return '(' + this._joinCondition(value, valuesSeq, 'AND', hasJoining, aliasMap) + ')';
+                    return '(' + this._joinCondition(value, params, 'AND', hasJoining, aliasMap) + ')';
                 }
     
                 if (key === '$any' || key === '$or') {
                     assert: Array.isArray(value) || _.isPlainObject(value), '"$or" operator value should be a plain object.';       
                     
-                    return '(' + this._joinCondition(value, valuesSeq, 'OR', hasJoining, aliasMap) + ')';
+                    return '(' + this._joinCondition(value, params, 'OR', hasJoining, aliasMap) + ')';
                 }
 
                 if (key === '$not') {                    
                     if (Array.isArray(value)) {
                         assert: value.length > 0, '"$not" operator value should be non-empty.';                     
 
-                        return 'NOT (' + this._joinCondition(value, valuesSeq, null, hasJoining, aliasMap) + ')';
+                        return 'NOT (' + this._joinCondition(value, params, null, hasJoining, aliasMap) + ')';
                     } 
                     
                     if (_.isPlainObject(value)) {
                         let numOfElement = Object.keys(value).length;   
                         assert: numOfElement > 0, '"$not" operator value should be non-empty.';                     
 
-                        return 'NOT (' + this._joinCondition(value, valuesSeq, null, hasJoining, aliasMap) + ')';
+                        return 'NOT (' + this._joinCondition(value, params, null, hasJoining, aliasMap) + ')';
                     } 
 
                     assert: typeof value === 'string', 'Unsupported condition!';
@@ -516,7 +524,7 @@ class MySQLConnector extends Connector {
                     return 'NOT (' + condition + ')';                    
                 }                
 
-                return this._wrapCondition(key, value, valuesSeq, hasJoining, aliasMap);
+                return this._wrapCondition(key, value, params, hasJoining, aliasMap);
             }).join(` ${joinOperator} `);
         }
 
@@ -701,11 +709,11 @@ class MySQLConnector extends Connector {
         return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ?';
     }
 
-    _buildColumns(columns, hasJoining, aliasMap) {        
-        return _.map(_.castArray(columns), col => this._buildColumn(col, hasJoining, aliasMap)).join(', ');
+    _buildColumns(columns, params, hasJoining, aliasMap) {        
+        return _.map(_.castArray(columns), col => this._buildColumn(col, params, hasJoining, aliasMap)).join(', ');
     }
 
-    _buildColumn(col, hasJoining, aliasMap) {
+    _buildColumn(col, params, hasJoining, aliasMap) {
         if (typeof col === 'string') {  
             //it's a string if it's quoted when passed in          
             return (isQuoted(col) || col === '*') ? col : this._escapeIdWithAlias(col, hasJoining, aliasMap);
@@ -719,12 +727,16 @@ class MySQLConnector extends Connector {
             if (col.alias) {
                 assert: typeof col.alias === 'string';
 
-                return this._buildColumn(_.omit(col, ['alias']), hasJoining, aliasMap) + ' AS ' + mysql.escapeId(col.alias);
+                return this._buildColumn(_.omit(col, ['alias']), params, hasJoining, aliasMap) + ' AS ' + mysql.escapeId(col.alias);
             }
 
             if (col.type === 'function') {
-                return col.name + '(' + (col.args ? this._buildColumns(col.args, hasJoining, aliasMap) : '') + ')';
+                return col.name + '(' + (col.args ? this._buildColumns(col.args, params, hasJoining, aliasMap) : '') + ')';
             }            
+
+            if (col.type === 'expression') {
+                return this._joinCondition(col.expr, params, null, hasJoining, aliasMap);
+            }
         }
 
         throw new OolongUsageError(`Unknow column syntax: ${JSON.stringify(col)}`);

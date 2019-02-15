@@ -139,9 +139,10 @@ class MySQLEntityModel extends EntityModel {
                     entity: assoc.entity, 
                     joinType: assoc.type, 
                     output: assoc.output,
+                    ...(assoc.alias ? { alias: assoc.alias } : {}),
+                    ...assoc.on,
                     ...this.db.connector.buildQuery(assoc.entity, 
-                        this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables })),
-                    ...assoc.on    
+                        this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables }))                        
                 });
                 return;
             }
