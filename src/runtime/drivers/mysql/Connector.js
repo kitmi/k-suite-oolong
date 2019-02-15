@@ -349,9 +349,7 @@ class MySQLConnector extends Connector {
             sql += ' ' + this._buildOrderBy($orderBy, hasJoining, aliasMap);
         }
 
-        let result = { params, hasJoining, aliasMap };
-
-        sql = 'SELECT ' + selectColomns + sql;
+        let result = { params, hasJoining, aliasMap };        
 
         if ($totalCount) {
             let countSubject;
@@ -364,6 +362,8 @@ class MySQLConnector extends Connector {
 
             result.countSql = `SELECT COUNT(${countSubject}) AS count` + sql;
         }
+
+        sql = 'SELECT ' + selectColomns + sql;
 
         if (_.isInteger($limit) && $limit > 0) {
             sql += ' LIMIT ?';
