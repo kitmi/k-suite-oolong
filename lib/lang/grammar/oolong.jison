@@ -22,7 +22,7 @@
         'dataset': new Set(['is']),
     
         // level 2
-        'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo', 'connectedBy', 'being', 'with', 'as', 'optional']),
+        'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo', 'connectedBy', 'when', 'being', 'with', 'as', 'optional']),
         'entity.index': new Set(['is', 'unique']),
         'entity.interface': new Set(['accept', 'find', 'findOne', 'return']),
 
@@ -1117,25 +1117,41 @@ associations_block
     ;
 
 association_item
-    : "hasOne" identifier_or_string (association_through)? (association_as)? (association_optional)? -> { type: 'hasOne', destEntity: $2, ...$3, ...$4, ...$5 }
-    | "hasMany" identifier_or_string (association_through)? (association_as)? (association_optional)? -> { type: 'hasMany', destEntity: $2, ...$3, ...$4, ...$5 }
-    | "refersTo" identifier_or_string (association_as)? (association_optional)? -> { type: 'refersTo', destEntity: $2, ...$3, ...$4 }
-    | "belongsTo" identifier_or_string (association_as)? (association_optional)? -> { type: 'belongsTo', destEntity: $2, ...$3, ...$4 }
+    : "hasOne" identifier_or_string (association_through)? (association_as)? (association_qualifiers)* -> { type: 'hasOne', destEntity: $2, ...$3, ...$4, ...Object.assign({}, ...$5) }
+    | "hasMany" identifier_or_string (association_through)? (association_as)? (association_qualifiers)* -> { type: 'hasMany', destEntity: $2, ...$3, ...$4, ...Object.assign({}, ...$5) }
+    | "refersTo" identifier_or_string (association_as)? (association_qualifiers)* -> { type: 'refersTo', destEntity: $2, ...$3, ...Object.assign({}, ...$4) }
+    | "belongsTo" identifier_or_string (association_as)? (association_qualifiers)* -> { type: 'belongsTo', destEntity: $2, ...$3, ...Object.assign({}, ...$4) }
     ;
 
 association_through
     : "connectedBy" identifier_string_or_dotname -> { connectedBy: $2 }    
     | "connectedBy" identifier_string_or_dotname "with" conditional_expression -> { connectedBy: $2, connectedWith: $4 }    
-    | "being" identifier_or_string -> { remoteField: $2 }   
-    | "being" array_of_identifier_or_string -> { remoteFields: $2 }    
+    | association_connection -> { remoteField: $1 }     
+    | "being" array_of_identifier_or_string -> { remoteField: $2 }  
+    | ":" NEWLINE INDENT association_cases DEDENT -> { remoteField: $4 } 
+    ;
+
+association_connection
+    : "being" identifier_or_string -> $2
+    | "being" identifier_or_string association_condition -> { by: $2, with: $3 }     
+    ;
+
+association_cases
+    : "when" association_connection NEWLINE -> [ $2 ]
+    | "when" association_connection NEWLINE association_cases -> [ $2 ].concat( $4 )
+    ;    
+
+association_condition
+    : "with" conditional_expression -> $2;
     ;
 
 association_as
     : "as" identifier_or_string -> { srcField: $2 }
     ;
 
-association_optional
+association_qualifiers
     : "optional" -> { optional: true }
+    | "default" "(" literal ")" -> { default: $literal }
     ;
 
 /*

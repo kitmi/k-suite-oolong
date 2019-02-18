@@ -289,15 +289,33 @@ class Entity extends Clonable {
         return name in this.fields;
     }
 
-    addAssociation(name, destEntity, props) {
+    /**
+     * Add association, dbms-specific
+     * @param {*} name 
+     * @param {*} props 
+     * @example
+     * e.g. mysql
+     *  entity - Associated entity name
+     *  join - Join type, e.g. INNER, LEFT, RIGHT, OUTER
+     *  exclude - Exclude in output columns
+     *  alias - Alias 
+     *  on - On conditions
+     *  dataset - Sub query
+     *  assocs - Child associations
+     *  optional - Optional
+     *  'default' - Default value
+     *  list - Is a list
+     */
+    addAssociation(name, props) {
         if (!this.associations) {
             this.associations = {};
+        }    
+
+        if (name in this.associations) {
+            throw new Error(`Association "${name}" already exists in entity "${this.name}". Props: ` + JSON.stringify(props));
         }
 
-        this.associations[name] = {
-            entity: destEntity.name,
-            ...props
-        };
+        this.associations[name] = props;
     }
 
     /**

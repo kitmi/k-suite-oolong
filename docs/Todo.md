@@ -7,3 +7,5 @@
 ## add triggers for calculated fields
 
 ## data template
+
+## join with logicalDeletion

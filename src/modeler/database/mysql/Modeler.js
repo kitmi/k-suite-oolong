@@ -227,7 +227,59 @@ class MySQLModeler {
         return modelingSchema;
     }    
 
+    _translateJoinCondition(context, localField, remoteField) {
+        if (Array.isArray(remoteField)) {
+            return remoteField.map(rf => this._translateJoinCondition(context, localField, rf));
+        }
+
+        if (_.isPlainObject(remoteField)) {
+            let ret = { [localField]: remoteField.by };
+            let withExtra = this._oolConditionToQueryCondition(context, remoteField.with);
+            
+            if (localField in withExtra) {
+                return { $and: [ ret, withExtra ] };
+            }
+            
+            return { ...ret, ...withExtra };
+        }
+
+        return { [localField]: remoteField };
+    }
+
+    _getAllRelatedFields(remoteField) {
+        if (!remoteField) return undefined;
+
+        if (Array.isArray(remoteField)) {
+            return remoteField.map(rf => this._getAllRelatedFields(rf));
+        }
+
+        if (_.isPlainObject(remoteField)) {
+            return remoteField.by;
+        }
+
+        return remoteField;
+    }
+
+    /**
+     * hasMany/hasOne - belongsTo      
+     * hasMany/hasOne - hasMany/hasOne [connectedBy] [connectedWith]
+     * hasMany - semi connection       
+     * refersTo - semi connection
+     *      
+     * remoteField:
+     *   1. fieldName
+     *   2. array of fieldName
+     *   3. { by , with }
+     *   4. array of fieldName and { by , with } mixed
+     *  
+     * @param {*} schema 
+     * @param {*} entity 
+     * @param {*} assoc 
+     */
     _processAssociation(schema, entity, assoc) {
+        let entityKeyField = entity.getKeyField();
+        assert: !Array.isArray(entityKeyField);
+
         let destEntityName = assoc.destEntity;
         //todo: cross db reference
         let destEntity = schema.entities[destEntityName];
@@ -245,48 +297,50 @@ class MySQLModeler {
             case 'hasOne':
             case 'hasMany':   
                 let includes;    
-                let excludes = { types: [ 'refersTo' ], association: assoc };
+                let excludes = { 
+                    types: [ 'refersTo' ], 
+                    association: assoc 
+                };
+
                 if (assoc.connectedBy) {
                     excludes.types.push('belongsTo');
-                    includes = { connectedBy: cb => cb && cb.split('.')[0] === assoc.connectedBy.split('.')[0] };
+                    includes = { 
+                        connectedBy: cb => cb && cb.split('.')[0] === assoc.connectedBy.split('.')[0] 
+                    };
+
                     if (assoc.connectedWith) {
                         includes.connectedWith = assoc.connectedWith;
                     }
-                } else if (assoc.remoteField) {
-                    includes = { srcField: assoc.remoteField };
-                } else if (assoc.remoteFields) {
-                    if (!assoc.srcField) {
-                        throw new Error('"srcField" is required for multiple remote fields. Entity: ' + entity.name);
-                    } 
-                    
-                    entity.addAssociation(
-                        assoc.srcField, 
-                        destEntity, 
-                        { 
-                            optional: assoc.optional,                             
-                            remoteFields: assoc.remoteFields,                                
-                            ...(assoc.type === 'hasMany' ? { isList: true } : {})
-                        }
-                    );
+                } else {                    
+                    let remoteFields = this._getAllRelatedFields(assoc.remoteField);
 
-                    return;
-                }           
+                    includes = { 
+                        srcField: remoteField => {
+                            remoteField || (remoteField = entity.name);
+
+                            return _.isNil(remoteFields) || (Array.isArray(remoteFields) ? remoteFields.indexOf(remoteField) > -1 : remoteFields === remoteField);
+                        } 
+                    };                                       
+                }         
                 
                 let backRef = destEntity.getReferenceTo(entity.name, includes, excludes);
                 if (backRef) {
                     if (backRef.type === 'hasMany' || backRef.type === 'hasOne') {
+                        if (!assoc.connectedBy) {
+                            throw new Error('"m2n" association requires "connectedBy" property. Entity: ' + entity.name + ' destination: ' + destEntityName);
+                        }
+
                         let connectedByParts = assoc.connectedBy.split('.');
                         assert: connectedByParts.length <= 2;
 
-                        let connectedByField = (connectedByParts.length > 1 && connectedByParts[1]) || entity.name;
+                        // connected by field is usually a refersTo assoc
+                        let connectedByField = (connectedByParts.length > 1 && connectedByParts[1]) || entity.name; 
                         let connEntityName = OolUtils.entityNaming(connectedByParts[0]);
 
-                        if (!connEntityName) {
-                            throw new Error(`"connectedBy" required for m:n relation. Source: ${entity.name}, destination: ${destEntityName}`);
-                        } 
+                        assert: connEntityName;
 
                         let tag1 = `${entity.name}:${ assoc.type === 'hasMany' ? 'm' : '1' }-${destEntityName}:${ backRef.type === 'hasMany' ? 'n' : '1' } by ${connEntityName}`;
-                        let tag2 = `${destEntityName}:${ backRef.type === 'hasMany' ? 'm' : '1' }-${entity.name}::${ assoc.type === 'hasMany' ? 'n' : '1' } by ${connEntityName}`;
+                        let tag2 = `${destEntityName}:${ backRef.type === 'hasMany' ? 'm' : '1' }-${entity.name}:${ assoc.type === 'hasMany' ? 'n' : '1' } by ${connEntityName}`;
 
                         if (assoc.srcField) {
                             tag1 += ' ' + assoc.srcField;
@@ -318,15 +372,19 @@ class MySQLModeler {
                         let localFieldName = assoc.srcField || pluralize(destEntityName);
 
                         entity.addAssociation(
-                            localFieldName, 
-                            destEntity, 
-                            { 
-                                optional: assoc.optional, 
-                                connectedBy: connEntityName, 
-                                remoteField: connectedByField,
-                                refersToField: connectedByField2,                                
-                                ...(assoc.type === 'hasMany' ? { isList: true } : {}), 
-                                ...(assoc.connectedWith ? { connectedWith: this._oolConditionToQueryCondition(entity, connEntity, destEntity, connectedByField, connectedByField2, assoc.connectedWith, localFieldName) } : {}) 
+                            localFieldName,
+                            {
+                                entity: connEntityName,
+                                key: connEntity.key,
+                                on: this._translateJoinCondition({ [connEntityName]: localFieldName }, entityKeyField, 
+                                    assoc.connectedWith ? {
+                                        by: connectedByField,
+                                        with: assoc.connectedWith
+                                    } : connectedByField
+                                ) ,
+                                ...(assoc.optional ? { optional: assoc.optional } : {}),                            
+                                ...(assoc.type === 'hasMany' ? { list: true } : {}),
+                                assoc: connectedByField2
                             }
                         );
 
@@ -334,14 +392,18 @@ class MySQLModeler {
 
                         destEntity.addAssociation(
                             remoteFieldName, 
-                            entity, 
                             { 
-                                optional: backRef.optional, 
-                                connectedBy: connEntityName, 
-                                remoteField: connectedByField2,
-                                refersToField: connectedByField,
-                                ...(backRef.type === 'hasMany' ? { isList: true } : {}), 
-                                ...(backRef.connectedWith ? { connectedWith: this._oolConditionToQueryCondition(destEntity, connEntity, entity, connectedByField2, connectedByField, backRef.connectedWith, remoteFieldName) } : {})   
+                                entity: connEntityName,
+                                key: connEntity.key,
+                                on: this._translateJoinCondition({ [connEntityName]: remoteFieldName }, destEntity.key, 
+                                    backRef.connectedWith ? {
+                                        by: connectedByField2,
+                                        with: backRef.connectedWith
+                                    } : connectedByField
+                                ) ,
+                                ...(backRef.optional ? { optional: backRef.optional } : {}),                            
+                                ...(backRef.type === 'hasMany' ? { list: true } : {}),
+                                assoc: connectedByField
                             }
                         );
 
@@ -351,7 +413,20 @@ class MySQLModeler {
                         if (assoc.connectedBy) {
                             throw new Error('todo: belongsTo connectedBy. entity: ' + entity.name);
                         } else {
-                            //leave it to the referenced entity                                                 
+                            //leave it to the referenced entity  
+                            let anchor = assoc.srcField || (assoc.type === 'hasMany' ? pluralize(destEntityName) : destEntityName);
+                            
+                            entity.addAssociation(
+                                anchor,                                 
+                                { 
+                                    entity: destEntityName,
+                                    key: destEntity.key,  
+                                    on: { [entity.key]: assoc.remoteField || entity.name },                                  
+                                    ...(assoc.optional ? { optional: assoc.optional } : {}),                            
+                                    ...(assoc.type === 'hasMany' ? { list: true } : {})
+                                }
+                            );
+                            
                         }
                     } else {
                         throw new Error('Unexpected path. Entity: ' + entity.name + ', association: ' + JSON.stringify(assoc, null, 2));                    
@@ -365,9 +440,7 @@ class MySQLModeler {
                     let connectedByField = (connectedByParts.length > 1 && connectedByParts[1]) || entity.name;
                     let connEntityName = OolUtils.entityNaming(connectedByParts[0]);
 
-                    if (!connEntityName) {
-                        throw new Error(`"connectedBy" required for m:n relation. Source: ${entity.name}, destination: ${destEntityName}`);
-                    } 
+                    assert: connEntityName;
 
                     let tag1 = `${entity.name}:${ assoc.type === 'hasMany' ? 'm' : '1' }-${destEntityName}:* by ${connEntityName}`;
 
@@ -377,10 +450,15 @@ class MySQLModeler {
 
                     assert: !this._processedRef.has(tag1);                    
                     
-                    let connectedByField2 = destEntity.name;
+                    let connectedByField2 = destEntityName;
 
                     if (connectedByField === connectedByField2) {
-                        throw new Error('Cannot use the same "connectedBy" field in a relation entity.');
+                        throw new Error('Cannot use the same "connectedBy" field in a relation entity. Detail: ' + JSON.stringify({
+                            src: entity.name,
+                            dest: destEntityName,
+                            srcField: assoc.srcField,
+                            connectedBy: connectedByField
+                        }));
                     }
 
                     let connEntity = schema.entities[connEntityName];
@@ -393,15 +471,19 @@ class MySQLModeler {
                     let localFieldName = assoc.srcField || pluralize(destEntityName);
 
                     entity.addAssociation(
-                        localFieldName, 
-                        destEntity, 
-                        { 
-                            optional: assoc.optional, 
-                            connectedBy: connEntityName, 
-                            remoteField: connectedByField,
-                            refersToField: connectedByField2,                                
-                            ...(assoc.type === 'hasMany' ? { isList: true } : {}), 
-                            ...(assoc.connectedWith ? { connectedWith: this._oolConditionToQueryCondition(entity, connEntity, destEntity, connectedByField, connectedByField2, assoc.connectedWith, localFieldName) } : {}) 
+                        localFieldName,
+                        {
+                            entity: connEntityName,
+                            key: connEntity.key,
+                            on: this._translateJoinCondition({ [connEntityName]: localFieldName }, entityKeyField, 
+                                assoc.connectedWith ? {
+                                    by: connectedByField,
+                                    with: assoc.connectedWith
+                                } : connectedByField
+                            ) ,
+                            ...(assoc.optional ? { optional: assoc.optional } : {}),                            
+                            ...(assoc.type === 'hasMany' ? { list: true } : {}),
+                            assoc: connectedByField2
                         }
                     );
 
@@ -413,40 +495,43 @@ class MySQLModeler {
             case 'refersTo':
             case 'belongsTo':
                 let localField = assoc.srcField || destEntityName;
-                let fieldProps = { ..._.omit(destKeyField, ['optional']), ..._.pick(assoc, ['optional']) };
+                let fieldProps = { ..._.omit(destKeyField, ['optional', 'default']), ..._.pick(assoc, ['optional', 'default']) };
 
                 entity.addAssocField(localField, destEntity, fieldProps);
                 entity.addAssociation(
-                    localField, 
-                    destEntity, 
-                    { isList: false, optional: assoc.optional }
+                    localField,                      
+                    { 
+                        entity: destEntityName, 
+                        key: destEntity.key,
+                        on: { [localField]:  destEntity.key }
+                    }
                 );
 
                 if (assoc.type === 'belongsTo') {
                     let backRef = destEntity.getReferenceTo(
                         entity.name, 
                         { 
-                            'remoteField': (remoteField) => _.isNil(remoteField) || remoteField == localField
+                            'remoteField': (remoteField) => {
+                                let remoteFields = this._getAllRelatedFields(remoteField);
+
+                                return _.isNil(remoteFields) || (Array.isArray(remoteFields) ? remoteFields.indexOf(localField) > -1 : remoteFields === localField);
+                            }
                         },  // includes
                         { types: [ 'refersTo', 'belongsTo' ], association: assoc } // excludes
                     );
+
                     if (!backRef) {
                         destEntity.addAssociation(
-                            pluralize(entity.name), 
-                            entity, 
-                            { isList: true, remoteField: localField }
-                        );
-                    } else {
-                        destEntity.addAssociation(
-                            backRef.srcField || (backRef.type === 'hasMany' ? pluralize(entity.name) : entity.name), 
-                            entity, 
+                            pluralize(entity.name),                              
                             { 
-                                isList: backRef.type === 'hasMany', 
-                                remoteField: localField,
-                                optional: backRef.optional 
+                                entity: entity.name, 
+                                key: entity.key,
+                                on: { [destEntity.key]: localField },
+                                list: true, 
+                                optional: true
                             }
                         );
-                    }
+                    } 
                 }
 
                 this._addReference(entity.name, localField, destEntityName, destKeyField.name);
@@ -454,11 +539,7 @@ class MySQLModeler {
         }
     }
 
-    _oolConditionToQueryCondition(entity, connEntity, destEntity, localFieldName, remoteFieldName, oolCon, anchor) {
-        let context = { 
-            [connEntity.name] : anchor
-        };        
-
+    _oolConditionToQueryCondition(context, oolCon) {
         assert: oolCon.oolType;
 
         if (oolCon.oolType === 'BinaryExpression') {
@@ -478,6 +559,8 @@ class MySQLModeler {
                 }; 
             }
         }
+
+        throw new Error('Unknown syntax: ' + JSON.stringify(oolCon));
     }
 
     _translateReference(context, ref) {
@@ -492,6 +575,18 @@ class MySQLModeler {
     }
 
     _addReference(left, leftField, right, rightField) {
+        if (Array.isArray(leftField)) {
+            leftField.forEach(lf => this._addReference(left, lf, right, rightField));
+            return;
+        }
+
+        if (_.isPlainObject(leftField)) {
+            this._addReference(left, leftField.by, right. rightField);
+            return;
+        }
+
+        assert: typeof leftField === 'string';
+
         let refs4LeftEntity = this._references[left];
         if (!refs4LeftEntity) {
             refs4LeftEntity = [];
@@ -501,14 +596,10 @@ class MySQLModeler {
                 item => (item.leftField === leftField && item.right === right && item.rightField === rightField)
             );
     
-            if (found) {
-                return this;
-            }
+            if (found) return;
         }        
 
         refs4LeftEntity.push({leftField, right, rightField});
-
-        return this;
     }
 
     _getReferenceOfField(left, leftField) {
@@ -668,11 +759,11 @@ class MySQLModeler {
 
         relationEntity.addAssociation(
             connectedByField, 
-            entity1
+            { entity: entity1.name }
         );
         relationEntity.addAssociation(
             connectedByField2, 
-            entity2
+            { entity: entity2.name }
         );
 
         this._addReference(relationEntityName, connectedByField, entity1.name, keyEntity1.name);
