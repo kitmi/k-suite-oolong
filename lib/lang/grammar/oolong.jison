@@ -22,24 +22,36 @@
         'dataset': new Set(['is']),
     
         // level 2
-        'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo', 'connectedBy', 'when', 'being', 'with', 'as', 'optional']),
+        'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo']),
         'entity.index': new Set(['is', 'unique']),
         'entity.interface': new Set(['accept', 'find', 'findOne', 'return']),
 
         'dataset.body': new Set(['with']),
 
         // level 3
+        'entity.associations.item': new Set(['connectedBy', 'when', 'being', 'with', 'as', 'optional']),        
         'entity.interface.find': new Set(['a', 'an', 'the', 'one', 'by', 'cases', 'selected', 'selectedBy', "of", "which", "where", "when", "with", "otherwise", "else"]),           
         'entity.interface.return': new Set(["unless", "when"]),           
 
         // level 4
+        'entity.associations.item.when': new Set(['being']),        
         'entity.interface.find.when': new Set(['when', 'else', 'otherwise']),           
         'entity.interface.find.else': new Set(['return', 'throw']),
 
-        'entity.interface.return.when': new Set(['exists', 'null', 'throw'])
+        'entity.interface.return.when': new Set(['exists', 'null', 'throw']),
+
+        // level 5
+        'entity.associations.item.when.being': new Set(['with', 'when'])
     };
 
     const NEXT_STATE = {
+        'entity.associations.hasOne': 'entity.associations.item',
+        'entity.associations.hasMany': 'entity.associations.item',
+        'entity.associations.refersTo': 'entity.associations.item',
+        'entity.associations.belongsTo': 'entity.associations.item',
+        'entity.associations.item.when': 'entity.associations.item.when',
+        'entity.associations.item.when.being': 'entity.associations.item.when.being',
+
         'entity.interface.accept': 'entity.interface.accept',
         'entity.interface.find': 'entity.interface.find',
         'entity.interface.findOne': 'entity.interface.find',
@@ -52,23 +64,39 @@
         'dataset.is': 'dataset.body'
     };
 
-    const STATE_STOPPER = {        
+    const DEDENT_STOPPER = new Set([                
+        'entity.associations.item.when.being'
+    ]);
+
+    const NEWLINE_STOPPER = new Set([                
+        'import', 
+        'type', 
+        'const', 
+        'entity',
+        'entity.key', 
+        'entity.data', 
+        'entity.interface.return.when', 
+        'entity.mixes',
+        'entity.associations.item'
+    ]);
+
+    const NEWLINE_STOPPER_INDENT_EXCEPTION = new Set([                
+        'entity.associations.item'
+    ]);
+
+    const STATE_STOPPER = {                
+        'entity.associations.item.when.being': new Set(['when']),
         'entity.interface.find.when': new Set(['else', 'otherwise'])
     };
 
     const FINAL_STATE = {        
         'entity.interface.find.else': 'entity.interface.find'
     };
-    
-    //statements can be in one line
-    const ONE_LINE_KEYWORDS = [ 
-        new Set(['import', 'type', 'const', 'entity']), // level
-        new Set(['entity.key', 'entity.data', 'entity.interface.return.when', 'entity.mixes'])
-    ];
 
     const SUPPORT_WORD_OPERATOR = new Set([
         'entity.interface.find.when',
-        'entity.interface.return.when'        
+        'entity.interface.return.when',
+        'entity.associations.item.when'                
     ]);
 
     //indented child starting state
@@ -86,6 +114,7 @@
             this.brackets = [];
             this.state = {};
             this.stack = [];
+            this.newlineStopFlag = [];
         }
 
         get hasOpenBracket() {
@@ -100,8 +129,16 @@
             return this.indents.length > 0;
         }
 
+        markNewlineStop(flag) {
+            this.newlineStopFlag[this.newlineStopFlag.length-1] = flag;
+        }
+
         doIndent() {
             this.indents.push(this.indent);
+
+            if (NEWLINE_STOPPER_INDENT_EXCEPTION.has(this.lastState)) {
+                this.markNewlineStop(false);
+            }
         }
 
         doDedent() {
@@ -120,6 +157,16 @@
             if (this.dedented === 0) {
                 throw new Error('Inconsistent indentation!');
             }
+
+            if (DEDENT_STOPPER.has(state.lastState)) {
+                state.exitState(state.lastState);
+            }
+        }
+
+        doNewline() {
+            if (state.hasIndent && this.newlineStopFlag[this.newlineStopFlag.length-1]) {
+                state.exitState(state.lastState);
+            }        
         }
 
         dedentAll() {
@@ -129,9 +176,9 @@
         }
 
         dump(loc, token) {
-            if (0) {
+            if (1) {
                 token ? console.log(loc, token) : console.log(loc);
-                console.log('indents:', this.indents.join(' -> '), 'current indent:', this.indent, 'current dedented:', this.dedented);                   
+                console.log('indents:', this.indents.join(' -> '), 'current indent:', this.indent, 'current dedented:', this.dedented, 'nl stop', this.newlineStopFlag);                   
                 console.log('lastState:', this.lastState, 'comment:', this.comment, 'eof:', this.eof, 'brackets:', this.brackets.join(' -> '),'stack:', this.stack.join(' -> '));
                 console.log();
             }
@@ -168,13 +215,14 @@
         }
 
         enterState(state) {
-            //console.log('> enter state:', state, '\n');
+            console.log('> enter state:', state, '\n');
             this.stack.push(state);
+            this.newlineStopFlag.push(NEWLINE_STOPPER.has(state) ? true : false);
             return this;
         }
 
         exitState(state) {
-            //console.log('< exit state:', state, '\n');
+            console.log('< exit state:', state, '\n');
             let last = this.stack.pop();
             if (state !== last) {
                 throw new Error(`Unmatched "${state}" state!`);
@@ -188,6 +236,8 @@
                     console.log('< exit state:', last, '\n');
                 } while (last !== finalStateToExit);
             }
+
+            this.newlineStopFlag.pop();
 
             return this;
         }
@@ -532,7 +582,7 @@ escapeseq               \\.
                             } else if (state.indent < last) {
                                 //dedent
                                 state.doDedent();
-                                this.begin('DEDENTED');  
+                                this.begin('DEDENTED');                                  
 
                                 state.dump('<EMPTY>. dedent');   
                             } else {
@@ -547,10 +597,6 @@ escapeseq               \\.
                                     if (state.lastState === 'type.name') {
                                         state.exitState('type.name');
                                     }
-
-                                    if (ONE_LINE_KEYWORDS[0].has(state.lastState)) {
-                                        state.exitState(state.lastState);
-                                    }     
                                 }                                                                                
 
                                 state.dump('<EMPTY>. same');                                       
@@ -665,9 +711,7 @@ escapeseq               \\.
                                 state.dump('<INLINE>{newline}');                                
                                 state.indent = 0;
 
-                                if (state.hasIndent && ONE_LINE_KEYWORDS[1].has(state.lastState)) {
-                                    state.exitState(state.lastState);
-                                }                                  
+                                state.doNewline();                          
 
                                 return 'NEWLINE';
                             }
@@ -1117,19 +1161,31 @@ associations_block
     ;
 
 association_item
-    : "hasOne" identifier_or_string (association_through)? (association_as)? (association_qualifiers)* -> { type: 'hasOne', destEntity: $2, ...$3, ...$4, ...Object.assign({}, ...$5) }
-    | "hasMany" identifier_or_string (association_through)? (association_as)? (association_qualifiers)* -> { type: 'hasMany', destEntity: $2, ...$3, ...$4, ...Object.assign({}, ...$5) }
-    | "refersTo" identifier_or_string (association_as)? (association_qualifiers)* -> { type: 'refersTo', destEntity: $2, ...$3, ...Object.assign({}, ...$4) }
-    | "belongsTo" identifier_or_string (association_as)? (association_qualifiers)* -> { type: 'belongsTo', destEntity: $2, ...$3, ...Object.assign({}, ...$4) }
+    : association_type_referee identifier_or_string (association_through)? (association_as)? (association_qualifiers)* -> { type: $1, destEntity: $2, ...$3, ...$4, ...Object.assign({}, ...$5) }    
+    | association_type_referee NEWLINE INDENT identifier_or_string association_cases_block (association_as)? (association_qualifiers)* NEWLINE DEDENT -> { type: $1, destEntity: $3, ...$5, ...$6, ...Object.assign({}, ...$7) }
+    | association_type_referer identifier_or_string (association_as)? (association_qualifiers)* -> { type: $1, destEntity: $2, ...$3, ...Object.assign({}, ...$4) }      
     ;
+
+association_type_referee
+    : "hasOne"
+    | "hasMany"
+    ;    
+
+association_type_referer
+    : "refersTo"
+    | "belongsTo"
+    ;    
 
 association_through
     : "connectedBy" identifier_string_or_dotname -> { connectedBy: $2 }    
     | "connectedBy" identifier_string_or_dotname "with" conditional_expression -> { connectedBy: $2, connectedWith: $4 }    
     | association_connection -> { remoteField: $1 }     
-    | "being" array_of_identifier_or_string -> { remoteField: $2 }  
-    | ":" NEWLINE INDENT association_cases DEDENT -> { remoteField: $4 } 
+    | "being" array_of_identifier_or_string -> { remoteField: $2 }      
     ;
+
+association_cases_block
+    : ":" NEWLINE INDENT association_cases DEDENT -> { remoteField: $4 } 
+    ;    
 
 association_connection
     : "being" identifier_or_string -> $2
