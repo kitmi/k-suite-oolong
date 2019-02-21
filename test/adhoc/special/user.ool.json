@@ -146,6 +146,11 @@
                 },
                 {
                     "type": "hasMany",
+                    "destEntity": "userData",
+                    "optional": true
+                },
+                {
+                    "type": "hasMany",
                     "destEntity": "user",
                     "connectedBy": "userContact.user1",
                     "srcField": "contacts",
@@ -161,50 +166,39 @@
                 {
                     "type": "hasMany",
                     "destEntity": "userMessage",
-                    "remoteField": "sender",
+                    "remoteField": {
+                        "by": "owner",
+                        "with": {
+                            "oolType": "UnaryExpression",
+                            "operator": "is-null",
+                            "argument": {
+                                "oolType": "ObjectReference",
+                                "name": "userMessage.origin"
+                            }
+                        }
+                    },
                     "srcField": "outMessages"
                 },
                 {
                     "type": "hasMany",
                     "destEntity": "userMessage",
-                    "remoteField": "receiver",
+                    "remoteField": {
+                        "by": "owner",
+                        "with": {
+                            "oolType": "UnaryExpression",
+                            "operator": "is-not-null",
+                            "argument": {
+                                "oolType": "ObjectReference",
+                                "name": "userMessage.origin"
+                            }
+                        }
+                    },
                     "srcField": "inMessages"
                 },
                 {
                     "type": "hasMany",
-                    "destEntity": "",
-                    "remoteField": [
-                        {
-                            "by": "sender",
-                            "with": {
-                                "oolType": "BinaryExpression",
-                                "operator": "==",
-                                "left": {
-                                    "oolType": "ObjectReference",
-                                    "name": "contacts.user2"
-                                },
-                                "right": {
-                                    "oolType": "ConstReference",
-                                    "name": "receiver"
-                                }
-                            }
-                        },
-                        {
-                            "by": "receiver",
-                            "with": {
-                                "oolType": "BinaryExpression",
-                                "operator": "==",
-                                "left": {
-                                    "oolType": "ObjectReference",
-                                    "name": "contacts.user2"
-                                },
-                                "right": {
-                                    "oolType": "ConstReference",
-                                    "name": "sender"
-                                }
-                            }
-                        }
-                    ],
+                    "destEntity": "userMessage",
+                    "remoteField": "owner",
                     "srcField": "allMessages"
                 }
             ],
@@ -331,6 +325,52 @@
                 }
             ]
         },
+        "userDataType": {
+            "base": [
+                "dictionary"
+            ],
+            "comment": "User Data Types",
+            "data": [
+                {
+                    "code": "XERO",
+                    "name": "XERO Contact Id"
+                }
+            ]
+        },
+        "userData": {
+            "comment": "User Data",
+            "features": [
+                "autoId",
+                "createTimestamp"
+            ],
+            "fields": {
+                "data": {
+                    "name": "data",
+                    "type": "object",
+                    "optional": true
+                }
+            },
+            "associations": [
+                {
+                    "type": "belongsTo",
+                    "destEntity": "user"
+                },
+                {
+                    "type": "refersTo",
+                    "destEntity": "userDataType",
+                    "srcField": "type"
+                }
+            ],
+            "indexes": [
+                {
+                    "fields": [
+                        "user",
+                        "type"
+                    ],
+                    "unique": true
+                }
+            ]
+        },
         "userContact": {
             "comment": "User Contacts",
             "features": [
@@ -351,6 +391,12 @@
                 },
                 "messagePinned": {
                     "name": "messagePinned",
+                    "type": "boolean",
+                    "optional": true,
+                    "comment": "Whether to show on top"
+                },
+                "archived": {
+                    "name": "archived",
                     "type": "boolean",
                     "optional": true,
                     "comment": "Whether to show in latest message list, shown if pinned"
@@ -391,7 +437,7 @@
                         "name": "TEST_STAFF_USER_ID1"
                     },
                     "commentName": "Jason",
-                    "messagePinned": true
+                    "archived": true
                 },
                 {
                     "user1": {
@@ -444,7 +490,7 @@
                         "oolType": "ConstReference",
                         "name": "TEST_STAFF_USER_ID2"
                     },
-                    "messagePinned": true
+                    "archived": true
                 }
             ]
         }

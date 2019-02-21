@@ -43,23 +43,25 @@ entity user
     stateTracking("status")
 
   has   
-    locale : text default("en_AU") -- "User Locale"    
+    locale : text default("en_AU") -- "User Locale"        
     status : userStatus default("inactive") -- "User Status"
 
   associations
     belongsTo person optional
     belongsTo company optional
     refersTo userType as type
+    hasMany userData optional
     hasMany user connectedBy userContact.user1 as contacts optional
     hasMany user connectedBy userContact.user2 as contactOf optional
-    hasMany userMessage being sender as outMessages
-    hasMany userMessage being receiver as inMessages
-    
-    hasMany 
-      userMessage :
-        when being sender with @contacts.user2 == receiver
-        when being receiver with @contacts.user2 == sender
-      as allMessages    
+    hasMany userMessage being owner with @userMessage.origin is null as outMessages
+    hasMany userMessage being owner with @userMessage.origin is not null as inMessages
+    hasMany userMessage being owner as allMessages
+
+    //userMessage being sender on @contacts.user2 == receiver or (being receiver and @contacts.user2 == sender) where @contacts.messagePinned as pinnedMessages 
+      // join userContact on userContact.user1 == user.id 
+      // join userMessage on (userMessage.sender = user.id and userMessage.receiver = userContact.user2) or (userMessage.sender = user.id and userMessage.receiver = userContact.user2) 
+      // join (select from userMessage where ) 
+      // where userContact.messagePinned = 1
 
   data [
     {
@@ -135,6 +137,25 @@ entity user
     latest : max(msg.statusSentTimestamp) 
   groupBy contact   */  
 
+entity userDataType extends dictionary
+  -- "User Data Types"
+  data [
+    { code: 'XERO', name: 'XERO Contact Id' }
+  ]  
+
+entity userData
+  -- "User Data"  
+  with
+    autoId
+    createTimestamp
+  has
+    data : object optional
+  associations
+    belongsTo user
+    refersTo userDataType as type
+  index
+    [ user, type ] is unique      
+
 entity userContact
   -- "User Contacts"
   with
@@ -144,17 +165,18 @@ entity userContact
   has
     commentName : name optional
     blackListed : boolean optional
-    messagePinned : boolean optional -- "Whether to show in latest message list, shown if pinned"
+    messagePinned : boolean optional -- "Whether to show on top"
+    archived : boolean optional -- "Whether to show in latest message list, shown if pinned"
   associations  
     refersTo user as user1
     refersTo user as user2
   data [
     { user1: ADMIN_ROCKIE_ID, user2: ADMIN_KERR_ID, commentName: 'Fat Kerr', blackListed: true },
-    { user1: ADMIN_ROCKIE_ID, user2: TEST_STAFF_USER_ID1, commentName: 'Jason', messagePinned: true },
+    { user1: ADMIN_ROCKIE_ID, user2: TEST_STAFF_USER_ID1, commentName: 'Jason', archived: true },
     { user1: ADMIN_ROCKIE_ID, user2: TEST_STAFF_USER_ID2, commentName: 'Miya', messagePinned: true },
     { user1: ADMIN_KERR_ID, user2: ADMIN_ROCKIE_ID },
     { user1: ADMIN_KERR_ID, user2: TEST_STAFF_USER_ID1 },
     { user1: ADMIN_KERR_ID, user2: TEST_STAFF_USER_ID2 },
-    { user1: TEST_STAFF_USER_ID1, user2: TEST_STAFF_USER_ID2, messagePinned: true }
+    { user1: TEST_STAFF_USER_ID1, user2: TEST_STAFF_USER_ID2, archived: true }
   ]
 

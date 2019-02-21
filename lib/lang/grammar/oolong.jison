@@ -42,7 +42,7 @@
         'entity.interface.return.when': new Set(['exists', 'null', 'throw']),
 
         // level 5
-        'entity.associations.item.block.when': new Set(['being', 'with']),        
+        'entity.associations.item.block.when': new Set(['being', 'with' ]),        
     };
 
     //next state transition table
@@ -125,7 +125,8 @@
     const SUPPORT_WORD_OPERATOR = new Set([
         'entity.interface.find.when',
         'entity.interface.return.when',
-        'entity.associations.item.when'                
+        'entity.associations.item',
+        'entity.associations.item.block.when'                
     ]);
 
     //indented child starting state
@@ -554,7 +555,7 @@ regexp_flag             "i"|"g"|"m"|"y"
 
 // reserved
 symbol_operators        {relation_operators}|{syntax_operators}|{math_operators}
-word_operators          {logical_operators}|{math_operators2}|{relation_operators2}
+word_operators          {logical_operators}|{math_operators2}|{relation_operators2}|{predicate_operators}
 bracket_operators       "("|")"|"["|"]"|"{"|"}"
 syntax_operators        "|~"|","|":"|"|>"|"|="|"--"|"=>"|"~"|"="|"->"
 comment_operators       "//"
@@ -563,6 +564,7 @@ logical_operators       "not"|"and"|"or"
 math_operators          "+"|"-"|"*"|"/"
 math_operators2         "mod"|"div"
 relation_operators2     "in"|"is"|"like"
+predicate_operators     "exists"|"null"
 
 // javascript
 javascript              "<js>"{longstringitem}*?"</js>"

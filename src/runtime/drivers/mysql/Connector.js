@@ -319,7 +319,7 @@ class MySQLConnector extends Connector {
      * @param {*} model 
      * @param {*} condition      
      */
-    buildQuery(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit, $totalCount }) {
+    buildQuery(model, { $association, $projection, $query, $groupBy, $having, $orderBy, $offset, $limit, $totalCount }) {
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false, joiningParams = [];        
 
         // build alias map first
@@ -335,13 +335,7 @@ class MySQLConnector extends Connector {
         // should according to the place of clause in a sql 
         if (hasJoining) {
             joiningParams.forEach(p => params.push(p));
-        }
-        
-        let whereClause;
-        
-        if ($query) {
-            whereClause = this._joinCondition($query, params, null, hasJoining, aliasMap);                    
-        }        
+        }            
         
         let sql = ' FROM ' + mysql.escapeId(model);
 
@@ -349,12 +343,19 @@ class MySQLConnector extends Connector {
             sql += ' A ' + joinings.join(' ');
         }
 
-        if (whereClause) {
-            sql += ' WHERE ' + whereClause;
-        }
+        if ($query) {
+            let whereClause = this._joinCondition($query, params, null, hasJoining, aliasMap);   
+            if (whereClause) {
+                sql += ' WHERE ' + whereClause;
+            }                             
+        }    
 
         if ($groupBy) {
             sql += ' ' + this._buildGroupBy($groupBy, params, hasJoining, aliasMap);
+        }
+
+        if ($having) {
+            sql += ' HAVING ' + this._joinCondition($having, params, null, hasJoining, aliasMap);                    
         }
 
         if ($orderBy) {
