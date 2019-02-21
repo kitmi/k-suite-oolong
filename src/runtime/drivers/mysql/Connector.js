@@ -458,6 +458,8 @@ class MySQLConnector extends Connector {
             let aliasKey = parentAliasKey + '.' + anchor;
             aliasMap[aliasKey] = alias; 
 
+            console.log(anchor, on);
+
             joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ${this._joinCondition(on, params, null, parentAliasKey, aliasMap)}`);
             
             if (subAssocs) {                
@@ -535,7 +537,9 @@ class MySQLConnector extends Connector {
             }).join(` ${joinOperator} `);
         }
 
-        assert: typeof condition === 'string', 'Unsupported condition!';
+        if (typeof condition !== 'string') {
+            throw new Error('Unsupported condition!\n Value: ' + JSON.stringify(condition));
+        }
 
         return condition;
     }

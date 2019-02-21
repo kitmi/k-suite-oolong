@@ -575,7 +575,7 @@ class MySQLModeler {
             if (oolCon.operator === '==') {
                 let left = oolCon.left;
                 if (left.oolType && left.oolType === 'ObjectReference') {
-                    left = this._translateReference(context, left.name);
+                    left = this._translateReference(context, left.name, true);
                 }
 
                 let right = oolCon.right;
@@ -592,7 +592,7 @@ class MySQLModeler {
         throw new Error('Unknown syntax: ' + JSON.stringify(oolCon));
     }
 
-    _translateReference(context, ref) {
+    _translateReference(context, ref, asKey) {
         let [ base, ...other ] = ref.split('.');
 
         let translated = context[base];
@@ -601,7 +601,13 @@ class MySQLModeler {
             throw new Error(`Referenced object "${ref}" not found in context.`);
         }
 
-        return this._toColumnReference([ translated, ...other ].join('.'));
+        let refName = [ translated, ...other ].join('.');
+
+        if (asKey) {
+            return refName;
+        }
+
+        return this._toColumnReference(refName);
     }
 
     _addReference(left, leftField, right, rightField) {

@@ -149,7 +149,7 @@ class MySQLEntityModel extends EntityModel {
             } else {
                 this._loadAssocIntoTable(assocTable, cache, assoc);
             }            
-        });
+        });        
 
         return assocTable;
     }
@@ -161,18 +161,21 @@ class MySQLEntityModel extends EntityModel {
      * @param {*} assoc - Dotted path
      */
     static _loadAssocIntoTable(assocTable, cache, assoc) {
-        let parts = assoc.split('.');
-        let result;   
+        if (cache[assoc]) return cache[assoc];
 
-        if (parts.length === 1) {                
+        let lastPos = assoc.lastIndexOf('.');        
+        let result;  
+
+        if (lastPos === -1) {                
             result = cache[assoc] = assocTable[assoc] = { ...this.meta.associations[assoc] };
         } else {
-            let base = parts.slice(0, -1).join('.');  
-            let last = parts.pop();            
+            let base = assoc.substr(0, lastPos);
+            let last = assoc.substr(lastPos+1);         
                 
             let baseNode = cache[base];
             if (!baseNode) {
-                cache[base] = baseNode = this._loadAssocIntoTable(assocTable, cache, base);                                
+                console.log(base, last);
+                baseNode = this._loadAssocIntoTable(assocTable, cache, base);                                                
             }            
 
             let entity = this.db.model(baseNode.entity);
@@ -182,7 +185,7 @@ class MySQLEntityModel extends EntityModel {
                 baseNode.subAssocs = {};
             } 
 
-            baseNode.subAssocs[last] = result;
+            cache[assoc] = baseNode.subAssocs[last] = result;
         }      
 
         if (result.assoc) {
