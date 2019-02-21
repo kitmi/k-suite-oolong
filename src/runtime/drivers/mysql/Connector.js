@@ -324,8 +324,10 @@ class MySQLConnector extends Connector {
 
         // build alias map first
         // cache params
-        if ($association) {                             
-            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams);            
+        if ($association) {  
+            console.dir($association, { depth: 16, colors: true });                           
+            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams); 
+            console.log(joinings);                                      
             hasJoining = model;
         }
 

@@ -1,7 +1,7 @@
 "use strict";
 
 const Util = require('rk-utils');
-const { _, setValueByPath, eachAsync_, fs } = Util;
+const { _, getValueByPath, setValueByPath, eachAsync_, fs } = Util;
 
 const { DateTime } = require('luxon');
 const EntityModel = require('../../EntityModel');
@@ -122,15 +122,13 @@ class MySQLEntityModel extends EntityModel {
         }
     }
 
-    /*      entity: <remote entity>
-     *      joinType: 'LEFT JOIN|INNER JOIN|FULL OUTER JOIN'
-     *      anchor: 'local property to place the remote entity'
-     *      localField: <local field to join>
-     *      remoteField: <remote field to join>
-     *      subAssociations: { ... }  */
+    /**
+     * 
+     * @param {*} findOptions 
+     */
     static _prepareAssociations(findOptions) { 
         let associations = _.uniq(findOptions.$association).sort();        
-        let assocTable = {}, counter = 0;       
+        let assocTable = {}, counter = 0, cache = {};       
 
         associations.forEach(assoc => {
             if (_.isPlainObject(assoc)) {
@@ -149,29 +147,33 @@ class MySQLEntityModel extends EntityModel {
                         this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables })) : {})                       
                 };
             } else {
-                this._loadAssoc(assocTable, assoc);
+                this._loadAssocIntoTable(assocTable, cache, assoc);
             }            
         });
 
         return assocTable;
     }
 
-    static _loadAssoc(cache, assoc) {
-        if (cache[assoc]) return cache[assoc];
-
+    /**
+     * 
+     * @param {*} assocTable - Hierarchy with subAssocs
+     * @param {*} cache - Dotted path as key
+     * @param {*} assoc - Dotted path
+     */
+    static _loadAssocIntoTable(assocTable, cache, assoc) {
         let parts = assoc.split('.');
         let result;   
 
         if (parts.length === 1) {                
-             result = cache[assoc] = { ...this.meta.associations[assoc] };
+            result = cache[assoc] = assocTable[assoc] = { ...this.meta.associations[assoc] };
         } else {
             let base = parts.slice(0, -1).join('.');  
-            let last = parts.pop();
+            let last = parts.pop();            
                 
             let baseNode = cache[base];
-            if (!cache[base]) {
-                baseNode = this._loadAssoc(cache, base);
-            }
+            if (!baseNode) {
+                cache[base] = baseNode = this._loadAssocIntoTable(assocTable, cache, base);                                
+            }            
 
             let entity = this.db.model(baseNode.entity);
             result = { ...entity.meta.associations[last] };
@@ -184,7 +186,7 @@ class MySQLEntityModel extends EntityModel {
         }      
 
         if (result.assoc) {
-            this._loadAssoc(cache, assoc + '.' + result.assoc);
+            this._loadAssocIntoTable(assocTable, cache, assoc + '.' + result.assoc);
         }
 
         return result;
