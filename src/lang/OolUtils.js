@@ -1,6 +1,7 @@
 "use strict";
 
 const { _ } = require('rk-utils');
+const pluralize = require('pluralize');
 
 class Clonable {
     linked = false;
@@ -143,6 +144,13 @@ exports.parseReferenceInDocument = (schema, doc, ref) => {
         entity,
         field
     };
+};
+
+exports.pluralize = (name) => {
+    let parts = _.kebabCase(name).split('-');
+    let last = pluralize(parts.pop().toLowerCase());
+    parts.push(last);
+    return _.camelCase(parts.join('-'));
 };
 
 exports.deepClone = deepClone;

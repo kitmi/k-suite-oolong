@@ -60,12 +60,6 @@ entity user
         when being sender with @contacts.user2 == receiver
         when being receiver with @contacts.user2 == sender
       as allMessages    
-    
-    //userMessage being sender on @contacts.user2 == receiver or (being receiver and @contacts.user2 == sender) where @contacts.messagePinned as pinnedMessages 
-      // join userContact on userContact.user1 == user.id 
-      // join userMessage on (userMessage.sender = user.id and userMessage.receiver = userContact.user2) or (userMessage.sender = user.id and userMessage.receiver = userContact.user2) 
-      // join (select from userMessage where ) 
-      // where userContact.messagePinned = 1
 
   data [
     {

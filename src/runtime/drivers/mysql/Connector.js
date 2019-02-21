@@ -324,8 +324,8 @@ class MySQLConnector extends Connector {
 
         // build alias map first
         // cache params
-        if ($association) {            
-            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams);
+        if ($association) {                             
+            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams);            
             hasJoining = model;
         }
 
@@ -336,8 +336,12 @@ class MySQLConnector extends Connector {
         if (hasJoining) {
             joiningParams.forEach(p => params.push(p));
         }
-
-        let whereClause = $query && this._joinCondition($query, params, null, hasJoining, aliasMap);        
+        
+        let whereClause;
+        
+        if ($query) {
+            whereClause = this._joinCondition($query, params, null, hasJoining, aliasMap);                    
+        }        
         
         let sql = ' FROM ' + mysql.escapeId(model);
 
@@ -400,6 +404,16 @@ class MySQLConnector extends Connector {
             undefined;
     }
 
+    _generateAlias(index, anchor) {
+        let alias = ntol(index);
+
+        if (this.options.verboseAlias) {
+            return _.snakeCase(anchor).toUpperCase() + '_' + alias;
+        }
+
+        return alias;
+    }
+
     /**
      * Extract associations into joining clauses.
      *  {
@@ -420,41 +434,31 @@ class MySQLConnector extends Connector {
     _joinAssociations(associations, parentAliasKey, parentAlias, aliasMap, startId, params) {
         let joinings = [];
 
-        _.each(associations, assocInfo => { 
-            let alias = assocInfo.alias || ntol(startId++); 
-            let { joinType, localField, remoteField } = assocInfo;
+        _.each(associations, (assocInfo, anchor) => { 
+            let alias = assocInfo.alias || this._generateAlias(startId++, anchor); 
+            let { joinType, on } = assocInfo;
+
+            joinType || (joinType = 'LEFT JOIN');
 
             if (assocInfo.sql) {
-                joinings.push(`${joinType} (${assocInfo.sql}) ${alias} ON ${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`);
-                assocInfo.params.forEach(p => params.push(p));
                 if (assocInfo.output) {                    
                     aliasMap[parentAliasKey + '.:' + alias] = alias; 
                 }
+
+                joinings.push(`${joinType} (${assocInfo.sql}) ${alias} ON ${this._joinCondition(on, params, null, parentAliasKey, aliasMap)}`);
+                assocInfo.params.forEach(p => params.push(p));               
                 
                 return;
             }
 
-            let { entity, anchor, remoteFields, subAssociations, connectedWith } = assocInfo;            
+            let { entity, subAssocs } = assocInfo;            
             let aliasKey = parentAliasKey + '.' + anchor;
             aliasMap[aliasKey] = alias; 
 
-            if (connectedWith) {
-                joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ` + 
-                    this._joinCondition([ 
-                        `${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`,
-                        connectedWith
-                    ], params, 'AND', parentAliasKey, aliasMap)
-                );
-            } else if (remoteFields) {
-                joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ` + 
-                    remoteFields.map(remoteField => `${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`).join(' OR ')
-                );
-            } else {                
-                joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ${alias}.${mysql.escapeId(remoteField)} = ${parentAlias}.${mysql.escapeId(localField)}`);
-            }
+            joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ${this._joinCondition(on, params, null, parentAliasKey, aliasMap)}`);
             
-            if (subAssociations) {                
-                let subJoinings = this._joinAssociations(subAssociations, aliasKey, alias, aliasMap, startId, params);
+            if (subAssocs) {                
+                let subJoinings = this._joinAssociations(subAssocs, aliasKey, alias, aliasMap, startId, params);
                 startId += subJoinings.length;
                 joinings = joinings.concat(subJoinings);
             }
@@ -484,7 +488,7 @@ class MySQLConnector extends Connector {
             if (!joinOperator) {
                 joinOperator = 'OR';
             }
-            return condition.map(c => this._joinCondition(c, params, null, hasJoining, aliasMap)).join(` ${joinOperator} `);
+            return condition.map(c => '(' + this._joinCondition(c, params, null, hasJoining, aliasMap) + ')').join(` ${joinOperator} `);
         }
 
         if (_.isPlainObject(condition)) { 
@@ -542,12 +546,12 @@ class MySQLConnector extends Connector {
                 let msg = `Unknown column reference: ${fieldName}`;
                 this.log('debug', msg, aliasMap);
                 throw new BusinessError(msg);
-            }
+            }            
 
             return alias + '.' + mysql.escapeId(actualFieldName);
         }
 
-        return 'A.' + mysql.escapeId(fieldName);
+        return aliasMap[mainEntity] + '.' + mysql.escapeId(fieldName);
     }
 
     _escapeIdWithAlias(fieldName, mainEntity, aliasMap) {
@@ -569,12 +573,20 @@ class MySQLConnector extends Connector {
      * @param {*} value 
      * @param {array} valuesSeq  
      */
-    _wrapCondition(fieldName, value, valuesSeq, hasJoining, aliasMap) {
+    _wrapCondition(fieldName, value, valuesSeq, hasJoining, aliasMap, inject) {
         if (_.isNil(value)) {
             return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IS NULL';
         }
 
         if (_.isPlainObject(value)) {
+            if (value.oorType) {
+                if (value.oorType === 'ColumnReference') {
+                    return this._wrapCondition(fieldName, this._escapeIdWithAlias(value.name, hasJoining, aliasMap), valuesSeq, hasJoining, aliasMap, true);
+                }
+    
+                throw new Error('todo: add oorType support: ' + value.oorType);
+            }            
+
             let hasOperator = _.find(Object.keys(value), k => k && k[0] === '$');
 
             if (hasOperator) {
@@ -585,126 +597,166 @@ class MySQLConnector extends Connector {
                             case '$eq':
                             case '$equal':
     
-                            return this._wrapCondition(fieldName, v, valuesSeq, hasJoining, aliasMap);
+                                return this._wrapCondition(fieldName, v, valuesSeq, hasJoining, aliasMap, inject);
     
                             case '$ne':
                             case '$neq':
                             case '$notEqual':         
     
-                            if (_.isNil(v)) {
-                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IS NOT NULL';
-                            }          
+                                if (_.isNil(v)) {
+                                    return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IS NOT NULL';
+                                }          
+        
+                                if (isPrimitive(v)) {
+                                    if (inject) {
+                                        return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <> ' + v;
+                                    }
+
+                                    valuesSeq.push(v);
+                                    return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <> ?';
+                                }
     
-                            if (isPrimitive(v)) {
-                                valuesSeq.push(v);
-                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <> ?';
-                            }
-    
-                            return 'NOT (' + this._wrapCondition(fieldName, v, valuesSeq, hasJoining, aliasMap) + ')';
+                                return 'NOT (' + this._wrapCondition(fieldName, v, valuesSeq, hasJoining, aliasMap, true) + ')';
     
                             case '$>':
                             case '$gt':
                             case '$greaterThan':
     
-                            if (!_.isFinite(v)) {
-                                throw new Error('Only finite numbers can use "$gt" or "$>" operator.');
-                            }
-    
-                            valuesSeq.push(v);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' > ?';
-    
+                                if (!_.isFinite(v)) {
+                                    throw new Error('Only finite numbers can use "$gt" or "$>" operator.');
+                                }
+                                
+                                if (inject) {
+                                    return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' > ' + v;
+                                }
+        
+                                valuesSeq.push(v);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' > ?';
+        
                             case '$>=':
                             case '$gte':
                             case '$greaterThanOrEqual':
                             
-                            if (!_.isFinite(v)) {
-                                throw new Error('Only finite numbers can use "$gte" or "$>=" operator.');
-                            }
-    
-                            valuesSeq.push(v);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' >= ?';
+                                if (!_.isFinite(v)) {
+                                    throw new Error('Only finite numbers can use "$gte" or "$>=" operator.');
+                                }
+
+                                if (inject) {
+                                    return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' >= ' + v;
+                                }
+        
+                                valuesSeq.push(v);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' >= ?';
     
                             case '$<':
                             case '$lt':
                             case '$lessThan':
                             
-                            if (!_.isFinite(v)) {
-                                throw new Error('Only finite numbers can use "$gte" or "$<" operator.');
-                            }
-    
-                            valuesSeq.push(v);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' < ?';
+                                if (!_.isFinite(v)) {
+                                    throw new Error('Only finite numbers can use "$gte" or "$<" operator.');
+                                }
+
+                                if (inject) {
+                                    return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' < ' + v;
+                                }
+        
+                                valuesSeq.push(v);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' < ?';
     
                             case '$<=':
                             case '$lte':
                             case '$lessThanOrEqual':
                             
-                            if (!_.isFinite(v)) {
-                                throw new Error('Only finite numbers can use "$lte" or "$<=" operator.');
-                            }
-    
-                            valuesSeq.push(v);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <= ?';
+                                if (!_.isFinite(v)) {
+                                    throw new Error('Only finite numbers can use "$lte" or "$<=" operator.');
+                                }
+
+                                if (inject) {
+                                    return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <= ' + v;
+                                }
+        
+                                valuesSeq.push(v);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <= ?';
     
                             case '$in':
     
-                            if (!Array.isArray(v)) {
-                                throw new Error('The value should be an array when using "$in" operator.');
-                            }
-    
-                            valuesSeq.push(v);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IN (?)';
+                                if (!Array.isArray(v)) {
+                                    throw new Error('The value should be an array when using "$in" operator.');
+                                }
+
+                                if (inject) {
+                                    return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ` IN (${v})`;
+                                }
+        
+                                valuesSeq.push(v);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IN (?)';
     
                             case '$nin':
                             case '$notIn':
     
-                            if (!Array.isArray(v)) {
-                                throw new Error('The value should be an array when using "$in" operator.');
-                            }
-    
-                            valuesSeq.push(v);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' NOT IN (?)';
+                                if (!Array.isArray(v)) {
+                                    throw new Error('The value should be an array when using "$in" operator.');
+                                }
+
+                                if (inject) {
+                                    return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ` NOT IN (${v})`;
+                                }
+        
+                                valuesSeq.push(v);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' NOT IN (?)';
 
                             case '$startWith':
 
-                            if (typeof v !== 'string') {
-                                throw new Error('The value should be a string when using "$startWith" operator.');
-                            }
+                                if (typeof v !== 'string') {
+                                    throw new Error('The value should be a string when using "$startWith" operator.');
+                                }
 
-                            valuesSeq.push(`${v}%`);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
+                                assert: !inject;
+
+                                valuesSeq.push(`${v}%`);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
 
                             case '$endWith':
 
-                            if (typeof v !== 'string') {
-                                throw new Error('The value should be a string when using "$endWith" operator.');
-                            }
+                                if (typeof v !== 'string') {
+                                    throw new Error('The value should be a string when using "$endWith" operator.');
+                                }
 
-                            valuesSeq.push(`%${v}`);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
+                                assert: !inject;
+
+                                valuesSeq.push(`%${v}`);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
 
                             case '$like':
 
-                            if (typeof v !== 'string') {
-                                throw new Error('The value should be a string when using "$like" operator.');
-                            }
+                                if (typeof v !== 'string') {
+                                    throw new Error('The value should be a string when using "$like" operator.');
+                                }
 
-                            valuesSeq.push(`%${v}%`);
-                            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
+                                assert: !inject;
+
+                                valuesSeq.push(`%${v}%`);
+                                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
     
                             default:
-                            throw new Error(`Unsupported condition operator: "${k}"!`);
+                                throw new Error(`Unsupported condition operator: "${k}"!`);
                         }
                     } else {
                         throw new Error('Operator should not be mixed with condition value.');
                     }
                 }).join(' AND ');
-            }  
+            }             
+
+            assert: !inject;
 
             valuesSeq.push(JSON.stringify(value));
             return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ?';
         }
 
+        if (inject) {
+            return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ' + value;
+        }
+        
         valuesSeq.push(value);
         return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ?';
     }

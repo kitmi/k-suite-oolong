@@ -15,10 +15,11 @@
     //top level keywords
     const TOP_LEVEL_KEYWORDS = new Set(['import', 'type', 'const', 'schema', 'entity', 'dataset', 'view']);
 
+    //allowed  keywords of differenty state
     const SUB_KEYWORDS = { 
         // level 1
         'schema': new Set(['entities', 'views']),
-        'entity': new Set(['with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes']),
+        'entity': new Set([ 'extends', 'with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes']),
         'dataset': new Set(['is']),
     
         // level 2
@@ -29,29 +30,43 @@
         'dataset.body': new Set(['with']),
 
         // level 3
-        'entity.associations.item': new Set(['connectedBy', 'when', 'being', 'with', 'as', 'optional']),        
+        'entity.associations.item': new Set(['connectedBy', 'being', 'with', 'as', 'optional']),        
         'entity.interface.find': new Set(['a', 'an', 'the', 'one', 'by', 'cases', 'selected', 'selectedBy', "of", "which", "where", "when", "with", "otherwise", "else"]),           
         'entity.interface.return': new Set(["unless", "when"]),           
 
         // level 4
-        'entity.associations.item.when': new Set(['being']),        
+        'entity.associations.item.block': new Set(['when']),           
         'entity.interface.find.when': new Set(['when', 'else', 'otherwise']),           
         'entity.interface.find.else': new Set(['return', 'throw']),
 
         'entity.interface.return.when': new Set(['exists', 'null', 'throw']),
 
         // level 5
-        'entity.associations.item.when.being': new Set(['with', 'when'])
+        'entity.associations.item.block.when': new Set(['being', 'with']),        
     };
 
+    //next state transition table
     const NEXT_STATE = {
+        'import.*': 'import.item',
+        'type.*': 'type.item',
+        'const.*': 'const.item',
+        'import.$INDENT': 'import.block',
+        'type.$INDENT': 'type.block',
+        'const.$INDENT': 'const.block',
+        'entity.with': 'entity.with', 
+        'entity.has': 'entity.has', 
+        'entity.key': 'entity.key', 
+        'entity.index': 'entity.index', 
+        'entity.data': 'entity.data', 
+        'entity.mixes': 'entity.mixes', 
+        'entity.associations': 'entity.associations',
         'entity.associations.hasOne': 'entity.associations.item',
         'entity.associations.hasMany': 'entity.associations.item',
         'entity.associations.refersTo': 'entity.associations.item',
         'entity.associations.belongsTo': 'entity.associations.item',
-        'entity.associations.item.when': 'entity.associations.item.when',
-        'entity.associations.item.when.being': 'entity.associations.item.when.being',
-
+        'entity.associations.item.$INDENT': 'entity.associations.item.block',
+        'entity.associations.item.block.when': 'entity.associations.item.block.when',
+        'entity.interface': 'entity.interface',
         'entity.interface.accept': 'entity.interface.accept',
         'entity.interface.find': 'entity.interface.find',
         'entity.interface.findOne': 'entity.interface.find',
@@ -64,30 +79,44 @@
         'dataset.is': 'dataset.body'
     };
 
-    const DEDENT_STOPPER = new Set([                
-        'entity.associations.item.when.being'
+    //exit number of states on dedent if exists in below table
+    const DEDENT_STOPPER = new Map([                        
+        [ 'entity.with', 1 ],
+        [ 'entity.has', 1 ],               
+        [ 'entity.data', 1 ], 
+        [ 'entity.index', 1 ], 
+        [ 'entity.associations', 1 ],
+        [ 'entity.associations.item', 2 ],
+        [ 'entity.associations.item.block.when', 2 ]        
     ]);
 
-    const NEWLINE_STOPPER = new Set([                
-        'import', 
-        'type', 
-        'const', 
-        'entity',
-        'entity.key', 
-        'entity.data', 
-        'entity.interface.return.when', 
-        'entity.mixes',
-        'entity.associations.item'
+    //exit number of states on newline if exists in below table
+    const NEWLINE_STOPPER = new Map([                
+        [ 'import.item', 2 ],
+        [ 'type.item', 2 ],
+        [ 'const.item', 2 ],
+        [ 'import.block', 1 ],
+        [ 'type.block', 1 ],
+        [ 'const.block', 1 ],         
+        [ 'entity.mixes', 1 ],
+        [ 'entity.key', 1 ],        
+        [ 'entity.interface.return.when', 1 ],         
+        [ 'entity.associations.item', 1 ],        
+        [ 'entity.associations.item.block.when', 1 ]
     ]);
 
-    const NEWLINE_STOPPER_INDENT_EXCEPTION = new Set([                
-        'entity.associations.item'
+    //exceptions of NEWLINE_STOPPER in the case of indent happens
+    const NEWLINE_STOPPER_INDENT_EXCEPTION = new Set([           
+        'import',
+        'type',     
+        'const'
     ]);
 
+    /**
     const STATE_STOPPER = {                
         'entity.associations.item.when.being': new Set(['when']),
         'entity.interface.find.when': new Set(['else', 'otherwise'])
-    };
+    };*/
 
     const FINAL_STATE = {        
         'entity.interface.find.else': 'entity.interface.find'
@@ -139,6 +168,11 @@
             if (NEWLINE_STOPPER_INDENT_EXCEPTION.has(this.lastState)) {
                 this.markNewlineStop(false);
             }
+
+            let nextState = NEXT_STATE[this.lastState + '.$INDENT'];
+            if (nextState) {
+                state.enterState(nextState);
+            }
         }
 
         doDedent() {
@@ -157,15 +191,34 @@
             if (this.dedented === 0) {
                 throw new Error('Inconsistent indentation!');
             }
+        }
 
-            if (DEDENT_STOPPER.has(state.lastState)) {
-                state.exitState(state.lastState);
+        doDedentExit() {
+            let exitRound = DEDENT_STOPPER.get(state.lastState);
+            if (exitRound > 0) {
+                console.log('dedent');
+
+                for (let i = 0; i < exitRound; i++) {                    
+                    state.exitState(state.lastState);
+                }   
             }
         }
 
         doNewline() {
-            if (state.hasIndent && this.newlineStopFlag[this.newlineStopFlag.length-1]) {
-                state.exitState(state.lastState);
+            if (this.newlineStopFlag[this.newlineStopFlag.length-1]) {
+                if (!NEWLINE_STOPPER.has(state.lastState)) {
+                    throw new Error('Inconsistent newline stop flag.');
+                }
+
+                let exitRound = NEWLINE_STOPPER.get(state.lastState);
+
+                if (exitRound > 0) {
+                    console.log('newline');
+
+                    for (let i = 0; i < exitRound; i++) {                    
+                        state.exitState(state.lastState);
+                    }              
+                }  
             }        
         }
 
@@ -175,10 +228,18 @@
             this.indents = [];
         }
 
+        matchAnyExceptNewline() {
+            let keywordChain = state.lastState + '.*';
+            let nextState = NEXT_STATE[keywordChain];
+            if (nextState) {
+                state.enterState(nextState);                                                                        
+            }
+        }
+
         dump(loc, token) {
             if (1) {
                 token ? console.log(loc, token) : console.log(loc);
-                console.log('indents:', this.indents.join(' -> '), 'current indent:', this.indent, 'current dedented:', this.dedented, 'nl stop', this.newlineStopFlag);                   
+                console.log('indents:', this.indents.join(' -> '), 'current indent:', this.indent, 'current dedented:', this.dedented, 'nl-stop', this.newlineStopFlag);                   
                 console.log('lastState:', this.lastState, 'comment:', this.comment, 'eof:', this.eof, 'brackets:', this.brackets.join(' -> '),'stack:', this.stack.join(' -> '));
                 console.log();
             }
@@ -584,44 +645,44 @@ escapeseq               \\.
                                 state.doDedent();
                                 this.begin('DEDENTED');                                  
 
-                                state.dump('<EMPTY>. dedent');   
+                                state.dump('<EMPTY>. dedent');                                   
                             } else {
+                                state.doNewline();
+
                                 //same indent
-                                this.begin('INLINE');
-
-                                if (!state.hasIndent) {
-                                    if (state.lastState === 'type.info') {
-                                        state.exitState('type.info');
+                                if (state.hasIndent) {
+                                    let nextState = NEXT_STATE[state.lastState + '.$INDENT'];
+                                    if (nextState) {
+                                        state.enterState(nextState);
                                     }
+                                }
 
-                                    if (state.lastState === 'type.name') {
-                                        state.exitState('type.name');
-                                    }
-                                }                                                                                
+                                this.begin('INLINE');                                                                                                               
 
-                                state.dump('<EMPTY>. same');                                       
+                                state.dump('<EMPTY>. same indent');                                       
                             }
                         %}
 <DEDENTED>.|<<EOF>>     %{
-                            if (state.dedented > 0 && state.dedented-- > 0) {
+                            if (state.dedented > 0 && state.dedentFlip) {
+                                this.unput(yytext);
+                                state.dump('<DEDENTED>.|<<EOF>> DEDENT return NEWLINE');          
+                                state.dedentFlip = false;
+                                return 'NEWLINE';
+                            }
+
+                            if (state.dedented > 0) {                                
+                                state.dedented--;
+
                                 this.unput(yytext);                                        
+                                state.doDedentExit();
+                                state.dump('<DEDENTED>.|<<EOF>> DEDENT');        
 
-                                if (state.lastState === 'type.info') {
-                                    state.exitState('type.info');
-                                }  
-
-                                if (state.lastState === 'type.name') {
-                                    state.exitState('type.name');
-                                }  
-                                
-                                if (state.lastState) {
-                                    state.exitState(state.lastState);                      
-                                }
-                                
-                                state.dump('<DEDENTED>.|<<EOF>> DEDENT');
+                                state.dedentFlip = true;                                
                                 return 'DEDENT';
+                            } 
+                            
+                            if (state.eof) {
 
-                            } else if (state.eof) {
                                 this.popState();
                                 state.dump('<DEDENTED>.|<<EOF>> pop');
                                 while (state.lastState) {
@@ -634,6 +695,8 @@ escapeseq               \\.
                                         state.exitState(state.lastState);                      
                                     }
                                 }
+
+                                state.dedentFlip = false;
 
                                 state.dedented = 0;
                                 this.unput(yytext);
@@ -659,19 +722,9 @@ escapeseq               \\.
                                 state.dump('<INLINE><<EOF>>');   
 
                                 if (state.lastState) {
-                                    //stack not empty   
-                                    if (state.lastState === 'type.info') {
-                                        state.exitState('type.info');
-                                    }  
-
-                                    if (state.lastState === 'type.name') {
-                                        state.exitState('type.name');
-                                    }  
+                                 
+                                    state.doNewline();
                                     
-                                    if (state.lastState) {
-                                        state.exitState(state.lastState);                      
-                                    }                      
-
                                     //put back the eof
                                     this.unput(' ');
                                     state.eof = true;
@@ -683,19 +736,27 @@ escapeseq               \\.
                             }
                         %}       
 <INLINE>{javascript}    %{
+                            state.matchAnyExceptNewline();                            
+
                             yytext = state.normalizeScript(yytext.substr(4, yytext.length-9).trim());
                             return 'SCRIPT';
                         %}
 <INLINE>{jststring}     %{
+                            state.matchAnyExceptNewline();
+
                             yytext = state.normalizeStringTemplate(yytext);
                             return 'STRING';
                         %}
 
 <INLINE>{longstring}    %{
+                            state.matchAnyExceptNewline();
+
                             yytext = state.unquoteString(yytext, 3);
                             return 'STRING';
                         %}
 <INLINE>{shortstring}   %{
+                            state.matchAnyExceptNewline();
+
                             yytext = state.unquoteString(yytext, 1);
                             return 'STRING';
                         %}
@@ -709,27 +770,33 @@ escapeseq               \\.
                                 }
 
                                 state.dump('<INLINE>{newline}');                                
-                                state.indent = 0;
-
-                                state.doNewline();                          
+                                state.indent = 0;                     
 
                                 return 'NEWLINE';
                             }
                         %}
 <INLINE>{space}+       /* skip whitespace, separate tokens */
 <INLINE>{regexp}        %{
+                            state.matchAnyExceptNewline();
+
                             yytext = state.normalizeRegExp(yytext);
                             return 'REGEXP';
                         %}   
 <INLINE>{floatnumber}   %{
+                            state.matchAnyExceptNewline();
+
                             yytext = parseFloat(yytext);
                             return 'FLOAT';
                         %}
 <INLINE>{bit_integer}   %{
+                            state.matchAnyExceptNewline();
+
                             yytext = state.parseSize(yytext);
                             return 'INTEGER';
                         %}
-<INLINE>{bytes}         %{                            
+<INLINE>{bytes}         %{
+                            state.matchAnyExceptNewline();
+
                             yytext = parseInt(yytext.substr(0, yytext.length - 1));
                             if (yytext[yytext.length - 1] === 'B') {
                                 yytext *= 8;
@@ -737,24 +804,36 @@ escapeseq               \\.
                             return 'BITS';
                         %}
 <INLINE>{integer}       %{
+                            state.matchAnyExceptNewline();
+
                             yytext = parseInt(yytext);
                             return 'INTEGER';
                         %}
-<INLINE>{element_access}   %{                                
+<INLINE>{element_access}   %{     
+                                state.matchAnyExceptNewline();
+
                                 return 'ELEMENT_ACCESS';
                            %}                        
-<INLINE>{member_access}    %{                                
+<INLINE>{member_access}    %{      
+                                state.matchAnyExceptNewline();
+
                                 return 'DOTNAME';
                            %}
 <INLINE>{symbol_token}     %{
+                                state.matchAnyExceptNewline();
+
                                 yytext = state.normalizeSymbol(yytext);
                                 return 'SYMBOL';
                            %}                      
 <INLINE>{object_reference} %{
+                                state.matchAnyExceptNewline();
+
                                 yytext = state.normalizeReference(yytext);
                                 return 'REFERENCE';
                            %}
 <INLINE>{bracket_operators}     %{
+                                    state.matchAnyExceptNewline();
+
                                     if (yytext == '{' || yytext == '[' || yytext == '(') {
                                         state.brackets.push(yytext);
                                     } else if (yytext == '}' || yytext == ']' || yytext == ')') {
@@ -778,6 +857,8 @@ escapeseq               \\.
                                     return yytext;
                                 %}
 <INLINE>{bool_value}       %{
+                                state.matchAnyExceptNewline();
+
                                 yytext = (yytext === 'true' || yytext === 'on' || yytext === 'yes');
                                 return 'BOOL';
                            %}
@@ -804,52 +885,24 @@ escapeseq               \\.
                                     throw new Error(`Invalid syntax: ${yytext}`);
                                 }       
 
-                                state.dump(this.topState(1) + ' -> <INLINE>{identifier}', yytext);                                     
+                                state.dump(this.topState(1) + ' -> <INLINE>{identifier}', yytext); 
+                                
+                                if (SUB_KEYWORDS[state.lastState] && SUB_KEYWORDS[state.lastState].has(yytext)) {
+                                    /*
+                                    if (STATE_STOPPER[state.lastState] && STATE_STOPPER[state.lastState].has(yytext)) {
+                                        state.exitState(state.lastState);                                                                        
+                                    }*/
 
-                                switch (state.lastState) {
-                                    case 'schema':
-                                        if (state.hasIndent && SUB_KEYWORDS['schema'].has(yytext)) {
-                                            state.enterState('schema.' + yytext);
-                                            return yytext;
-                                        }
-                                        break;
+                                    let keywordChain = state.lastState + '.' + yytext;
+                                    let nextState = NEXT_STATE[keywordChain];
+                                    if (nextState) {
+                                        state.enterState(nextState);                                                                        
+                                    } else {
+                                        state.matchAnyExceptNewline();
+                                    }
 
-                                    case 'type': 
-                                        state.enterState('type.name');
-                                        return 'NAME';
-
-                                    case 'type.name':
-                                        state.enterState('type.info');
-
-                                        if (BUILTIN_TYPES.has(yytext)) {                                        
-                                            return yytext;
-                                        }
-                                        break;
-
-                                    case 'entity':
-                                        if (state.hasIndent && SUB_KEYWORDS['entity'].has(yytext)) {
-                                            state.enterState('entity.' + yytext);                                                                        
-                                            return yytext;
-                                        } else if (!state.hasIndent && yytext === 'extends') {
-                                            return yytext;
-                                        } 
-                                        break;
-
-                                    default:
-                                        if (SUB_KEYWORDS[state.lastState] && SUB_KEYWORDS[state.lastState].has(yytext)) {
-                                            if (STATE_STOPPER[state.lastState] && STATE_STOPPER[state.lastState].has(yytext)) {
-                                                state.exitState(state.lastState);                                                                        
-                                            }
-
-                                            let keywordChain = state.lastState + '.' + yytext;
-                                            let nextState = NEXT_STATE[keywordChain];
-                                            if (nextState) {
-                                                state.enterState(nextState);                                                                        
-                                            }
-                                            return yytext;
-                                        }
-                                        break;                                    
-                                }                                         
+                                    return yytext;
+                                }                                
 
                                 return 'NAME';
                             %}
@@ -905,8 +958,8 @@ statement
     ;
 
 import_statement
-    : "import" STRING NEWLINE -> state.dump('import').import($2) 
-    | "import" NEWLINE INDENT import_statement_block DEDENT 
+    : "import" STRING NEWLINE -> state.import($2) 
+    | "import" NEWLINE INDENT import_statement_block DEDENT NEWLINE?
     ;
 
 import_statement_block
@@ -916,7 +969,7 @@ import_statement_block
 
 const_statement
     : "const" const_statement_item NEWLINE
-    | "const" NEWLINE INDENT const_statement_block DEDENT
+    | "const" NEWLINE INDENT const_statement_block DEDENT NEWLINE?
     ;
 
 const_statement_item
@@ -932,7 +985,7 @@ const_statement_block
     ;
 
 schema_statement
-    : "schema" identifier_or_string NEWLINE INDENT schema_statement_block DEDENT -> state.defineSchema($2, $5, @1.first_line)
+    : "schema" identifier_or_string NEWLINE INDENT schema_statement_block DEDENT NEWLINE? -> state.defineSchema($2, $5, @1.first_line)
     ;
 
 schema_statement_block
@@ -945,7 +998,7 @@ schema_views_or_not
     ;
 
 schema_entities
-    : "entities" NEWLINE INDENT schema_entities_block DEDENT -> { entities: $4 }
+    : "entities" NEWLINE INDENT schema_entities_block DEDENT NEWLINE? -> { entities: $4 }
     ;
 
 schema_entities_block
@@ -954,7 +1007,7 @@ schema_entities_block
     ;
 
 schema_views
-    : "views" NEWLINE INDENT schema_views_block DEDENT -> { views: $4 }
+    : "views" NEWLINE INDENT schema_views_block DEDENT NEWLINE? -> { views: $4 }
     ;
 
 schema_views_block
@@ -964,7 +1017,7 @@ schema_views_block
 
 type_statement
     : "type" type_statement_item NEWLINE
-    | "type" NEWLINE INDENT type_statement_block DEDENT
+    | "type" NEWLINE INDENT type_statement_block DEDENT NEWLINE? 
     ;
 
 type_statement_item
@@ -1074,7 +1127,7 @@ type_modifier
 
 entity_statement
     : entity_statement_header NEWLINE -> state.defineEntity($1[0], $1[1], @1.first_line)
-    | entity_statement_header NEWLINE INDENT entity_statement_block DEDENT -> state.defineEntity($1[0], Object.assign({}, $1[1], $4), @1.first_line)
+    | entity_statement_header NEWLINE INDENT entity_statement_block DEDENT NEWLINE? -> state.defineEntity($1[0], Object.assign({}, $1[1], $4), @1.first_line)
     ;
 
 entity_statement_header
@@ -1116,7 +1169,7 @@ comment_or_not
     ;
 
 with_features
-    : "with" NEWLINE INDENT with_features_block DEDENT -> { features: $4 }
+    : "with" NEWLINE INDENT with_features_block DEDENT NEWLINE? -> { features: $4 }
     ;
 
 with_features_block
@@ -1125,7 +1178,7 @@ with_features_block
     ;
 
 has_fields
-    : "has" NEWLINE INDENT has_fields_block DEDENT -> { fields: $4 }
+    : "has" NEWLINE INDENT has_fields_block DEDENT NEWLINE? -> { fields: $4 }
     ;
 
 has_fields_block
@@ -1152,7 +1205,7 @@ type_base_or_not
     ;    
 
 associations_statement
-    : "associations" NEWLINE INDENT associations_block DEDENT -> { associations: $4 }
+    : "associations" NEWLINE INDENT associations_block DEDENT NEWLINE? -> { associations: $4 }
     ;
 
 associations_block
@@ -1162,7 +1215,7 @@ associations_block
 
 association_item
     : association_type_referee identifier_or_string (association_through)? (association_as)? (association_qualifiers)* -> { type: $1, destEntity: $2, ...$3, ...$4, ...Object.assign({}, ...$5) }    
-    | association_type_referee NEWLINE INDENT identifier_or_string association_cases_block (association_as)? (association_qualifiers)* NEWLINE DEDENT -> { type: $1, destEntity: $3, ...$5, ...$6, ...Object.assign({}, ...$7) }
+    | association_type_referee NEWLINE INDENT identifier_or_string association_cases_block (association_as)? (association_qualifiers)* NEWLINE DEDENT -> { type: $1, destEntity: $4, ...$5, ...$6, ...Object.assign({}, ...$7) }
     | association_type_referer identifier_or_string (association_as)? (association_qualifiers)* -> { type: $1, destEntity: $2, ...$3, ...Object.assign({}, ...$4) }      
     ;
 
@@ -1229,7 +1282,7 @@ key_statement
 
 index_statement
     : "index" index_item NEWLINE -> { indexes: [$2] }
-    | "index" NEWLINE INDENT index_statement_block DEDENT -> { indexes: $4 }
+    | "index" NEWLINE INDENT index_statement_block DEDENT NEWLINE? -> { indexes: $4 }
     ;
 
 index_statement_block
@@ -1253,7 +1306,7 @@ data_statement
     ;
 
 interfaces_statement
-    : "interface" NEWLINE INDENT interfaces_statement_block DEDENT -> { interfaces: $4 }
+    : "interface" NEWLINE INDENT interfaces_statement_block DEDENT NEWLINE? -> { interfaces: $4 }
     ;
 
 interfaces_statement_block
@@ -1262,7 +1315,7 @@ interfaces_statement_block
     ;
 
 interface_definition
-    : identifier_or_string NEWLINE INDENT interface_definition_body DEDENT -> { [$1]: $4 }
+    : identifier_or_string NEWLINE INDENT interface_definition_body DEDENT NEWLINE? -> { [$1]: $4 }
     ;
 
 interface_definition_body
@@ -1276,7 +1329,7 @@ accept_or_not
 
 accept_statement
     : "accept" modifiable_param NEWLINE -> { accept: [ $2 ] }
-    | "accept" NEWLINE INDENT accept_block DEDENT -> { accept: $4 }
+    | "accept" NEWLINE INDENT accept_block DEDENT NEWLINE? -> { accept: $4 }
     ;
 
 accept_block
@@ -1316,8 +1369,8 @@ cases_keywords
     ;   
 
 case_statement
-    : cases_keywords NEWLINE INDENT case_condition_block DEDENT -> { oolType: 'cases', items: $4 }
-    | cases_keywords NEWLINE INDENT case_condition_block otherwise_statement DEDENT -> { oolType: 'cases', items: $4, else: $5 } 
+    : cases_keywords NEWLINE INDENT case_condition_block DEDENT NEWLINE? -> { oolType: 'cases', items: $4 }
+    | cases_keywords NEWLINE INDENT case_condition_block otherwise_statement DEDENT NEWLINE? -> { oolType: 'cases', items: $4, else: $5 } 
     ;
 
 case_condition_item
@@ -1364,7 +1417,7 @@ return_or_not
     :
     | return_expression NEWLINE
         { $$ = { return: $1 }; }
-    | return_expression "unless" NEWLINE INDENT return_condition_block DEDENT
+    | return_expression "unless" NEWLINE INDENT return_condition_block DEDENT NEWLINE? 
         { $$ = { return: Object.assign($1, { exceptions: $5 }) }; }
     ;
 
@@ -1409,7 +1462,7 @@ entity_fields_selections
     ;
 
 dataset_statement
-    : "dataset" identifier_or_string NEWLINE INDENT dataset_statement_block DEDENT -> state.defineDataset($2, $5)
+    : "dataset" identifier_or_string NEWLINE INDENT dataset_statement_block DEDENT NEWLINE? -> state.defineDataset($2, $5)
     ;
 
 dataset_statement_block
@@ -1423,11 +1476,11 @@ dataset_join_with_block
 
 dataset_join_with_item
     : entity_fields_selections NEWLINE -> $1
-    | entity_fields_selections "with" ":" NEWLINE INDENT dataset_join_with_block DEDENT -> { ...$1, with: $6 }
+    | entity_fields_selections "with" ":" NEWLINE INDENT dataset_join_with_block DEDENT NEWLINE? -> { ...$1, with: $6 }
     ;
 
 view_statement
-    : "view" identifier_or_string NEWLINE INDENT view_statement_block DEDENT -> state.defineView($2, $5)
+    : "view" identifier_or_string NEWLINE INDENT view_statement_block DEDENT NEWLINE? -> state.defineView($2, $5)
     ;
 
 view_statement_block
@@ -1481,7 +1534,7 @@ selection_inline_keywords
 group_by_or_not
     :
     | "group" "by" identifier_string_or_dotname_list NEWLINE -> { groupBy: $3 }
-    | "group" "by" NEWLINE INDENT identifier_string_or_dotname_block DEDENT -> { groupBy: $5 }
+    | "group" "by" NEWLINE INDENT identifier_string_or_dotname_block DEDENT NEWLINE? -> { groupBy: $5 }
     ;
 
 having_or_not
@@ -1492,7 +1545,7 @@ having_or_not
 order_by_or_not
     :
     | "order" "by" order_by_list NEWLINE -> { orderBy: $3 }
-    | "order" "by" NEWLINE INDENT order_by_block DEDENT -> { orderBy: $5 }
+    | "order" "by" NEWLINE INDENT order_by_block DEDENT NEWLINE? -> { orderBy: $5 }
     ;
 
 order_by_block

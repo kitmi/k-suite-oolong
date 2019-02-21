@@ -1,7 +1,7 @@
 "use strict";
 
 const Util = require('rk-utils');
-const { _, setValueByPath, eachAsync_ } = Util;
+const { _, setValueByPath, eachAsync_, fs } = Util;
 
 const { DateTime } = require('luxon');
 const EntityModel = require('../../EntityModel');
@@ -129,6 +129,69 @@ class MySQLEntityModel extends EntityModel {
      *      remoteField: <remote field to join>
      *      subAssociations: { ... }  */
     static _prepareAssociations(findOptions) { 
+        let associations = _.uniq(findOptions.$association).sort();        
+        let assocTable = {}, counter = 0;       
+
+        associations.forEach(assoc => {
+            if (_.isPlainObject(assoc)) {
+                let alias = assoc.alias;
+                if (!assoc.alias) {
+                    alias = ':join' + ++counter;
+                }
+
+                assocTable[alias] = { 
+                    entity: assoc.entity, 
+                    joinType: assoc.type, 
+                    output: assoc.output,
+                    alias,
+                    on: assoc.on,
+                    ...(assoc.dataset ? this.db.connector.buildQuery(assoc.entity, 
+                        this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables })) : {})                       
+                };
+            } else {
+                this._loadAssoc(assocTable, assoc);
+            }            
+        });
+
+        return assocTable;
+    }
+
+    static _loadAssoc(cache, assoc) {
+        if (cache[assoc]) return cache[assoc];
+
+        let parts = assoc.split('.');
+        let result;   
+
+        if (parts.length === 1) {                
+             result = cache[assoc] = { ...this.meta.associations[assoc] };
+        } else {
+            let base = parts.slice(0, -1).join('.');  
+            let last = parts.pop();
+                
+            let baseNode = cache[base];
+            if (!cache[base]) {
+                baseNode = this._loadAssoc(cache, base);
+            }
+
+            let entity = this.db.model(baseNode.entity);
+            result = { ...entity.meta.associations[last] };
+
+            if (!baseNode.subAssocs) {
+                baseNode.subAssocs = {};
+            } 
+
+            baseNode.subAssocs[last] = result;
+        }      
+
+        if (result.assoc) {
+            this._loadAssoc(cache, assoc + '.' + result.assoc);
+        }
+
+        return result;
+    }
+
+    /*
+    static _prepareAssociations(findOptions) { 
         let associations = findOptions.$association.concat().sort();        
         
         let cache = {}, hierarchy = [];
@@ -228,8 +291,9 @@ class MySQLEntityModel extends EntityModel {
         });
 
         return hierarchy;
-    }
+    }*/
 
+    /*
     static _getRelatedEntity(assocPath, cache) {        
         let parts = assocPath.split('.');        
         let base = parts.slice(0, -1).join('.');        
@@ -258,43 +322,43 @@ class MySQLEntityModel extends EntityModel {
         }
 
         return [ entity, base, current, currentAssocInfo ];
-    }
+    }*/
 
     static _mapRecordsToObjects([rows, columns, aliasMap], hierarchy) {
-        let mainIndex = {};
+        let mainIndex = {};        
 
         function mergeRecord(existingRow, rowObject, associations) {            
-            _.each(associations, ({ sql, keyField, anchor, isList, subAssociations }) => { 
-                if (sql) return;
+            _.each(associations, ({ sql, key, list, subAssocs }, anchor) => { 
+                if (sql) return;                
 
-                let key = ':' + anchor;                
-                let subObj = rowObject[key]
-                let subIndexes = existingRow.subIndexes[key];
+                let objKey = ':' + anchor;                
+                let subObj = rowObject[objKey]
+                let subIndexes = existingRow.subIndexes[objKey];
                 
-                let rowKey = subObj[keyField];
+                let rowKey = subObj[key];
                 if (_.isNil(rowKey)) return;
 
                 let existingSubRow = subIndexes && subIndexes[rowKey];
                 if (existingSubRow) {
-                    if (subAssociations) {
-                        mergeRecord(existingSubRow, subObj, subAssociations);
+                    if (subAssocs) {
+                        mergeRecord(existingSubRow, subObj, subAssocs);
                     }
                 } else {       
-                    assert: isList;
+                    assert: list;
                                      
-                    if (existingRow.rowObject[key]) {
-                        existingRow.rowObject[key].push(subObj);
+                    if (existingRow.rowObject[objKey]) {
+                        existingRow.rowObject[objKey].push(subObj);
                     } else {
-                        existingRow.rowObject[key] = [ subObj ];
+                        existingRow.rowObject[objKey] = [ subObj ];
                     }
                     
                     let subIndex = { 
                         rowObject: subObj                        
                     };
 
-                    if (subAssociations) {
-                        subIndex.subIndexes = buildSubIndexes(subObj, subAssociations)
-                    } 
+                    if (subAssocs) {
+                        subIndex.subIndexes = buildSubIndexes(subObj, subAssocs)
+                    }    
 
                     subIndexes[rowKey] = subIndex;                
                 }                
@@ -302,55 +366,62 @@ class MySQLEntityModel extends EntityModel {
         }
 
         function buildSubIndexes(rowObject, associations) {
-            return associations.reduce((indexes, { sql, keyField, anchor, isList, subAssociations }) => {
+            let indexes = {};
+
+            _.each(associations, ({ sql, key, list, subAssocs }, anchor) => {
                 if (sql) {
-                    return indexes;
+                    return;
                 }
 
-                let key = ':'+anchor;
-                let subObject = rowObject[key];                                  
+                let objKey = ':' + anchor;
+                let subObject = rowObject[objKey];                                  
                 let subIndex = { 
                     rowObject: subObject 
                 };
 
-                if (isList) {                    
-                    if (_.isNil(subObject[keyField])) {
-                        rowObject[key] = [];
+                if (list) {   
+                    //many to *                 
+                    if (_.isNil(subObject[key])) {
+                        //subObject not exist, just filled with null by joining
+                        rowObject[objKey] = [];
                         subObject = null;
                     } else {
-                        rowObject[key] = [ subObject ];
+                        rowObject[objKey] = [ subObject ];
                     }
-                } else if (_.isNil(subObject[keyField])) {
-                    subObject = rowObject[key] = null;
+                } else if (_.isNil(subObject[key])) {
+                    subObject = rowObject[objKey] = null;
                 }
 
                 if (subObject) {
-                    if (subAssociations) {
-                        subIndex.subIndexes = buildSubIndexes(subObject, subAssociations);
+                    if (subAssocs) {
+                        subIndex.subIndexes = buildSubIndexes(subObject, subAssocs);
                     }
 
-                    indexes[key] = {
-                        [subObject[keyField]]: subIndex
+                    indexes[objKey] = {
+                        [subObject[key]]: subIndex
                     };
                 }
-
-                return indexes;
-            }, {});       
+            });  
+            
+            return indexes;
         }
 
         let arrayOfObjs = [];
 
-        rows.forEach(row => {
+        //process each row
+        rows.forEach((row, i) => {
             let rowObject = {}; // hash-style data row
             let tableCache = {}; // from alias to child prop of rowObject
 
             row.reduce((result, value, i) => {
                 let col = columns[i];
+                
                 if (col.table === 'A') {
                     result[col.name] = value;
                 } else {    
                     let bucket = tableCache[col.table];                    
                     if (bucket) {
+                        //already nested inside 
                         bucket[col.name] = value;                                
                     } else {
                         let nodePath = aliasMap[col.table];
@@ -407,23 +478,17 @@ class MySQLEntityModel extends EntityModel {
             let assocMeta = meta[anchor];
             if (!assocMeta) {
                 throw new BusinessError(`Unknown association "${anchor}" of entity "${this.meta.name}".`);
-            }
+            }            
 
-            let assocModel;
+            let assocModel = this.db.model(assocMeta.entity);
 
-            if (assocMeta.connectedBy) {
-                assocModel = this.db.model(assocMeta.connectedBy);
-            } else {
-                assocModel = this.db.model(assocMeta.entity);
-            }
-
-            if (assocMeta.isList) {
+            if (assocMeta.list) {
                 data = _.castArray(data);
 
-                return eachAsync_(data, item => assocModel.create_({ ...item, [assocMeta.remoteField]: keyValue }, context.createOptions, context.connOptions));
+                return eachAsync_(data, item => assocModel.create_({ ...item, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, context.createOptions, context.connOptions));
             }
 
-            return assocModel.create_({ ...data, [assocMeta.remoteField]: keyValue }, context.createOptions, context.connOptions);  
+            return assocModel.create_({ ...data, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, context.createOptions, context.connOptions);  
         });
     }
 }
