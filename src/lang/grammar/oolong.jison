@@ -30,7 +30,7 @@
         'dataset.body': new Set(['with']),
 
         // level 3
-        'entity.associations.item': new Set(['connectedBy', 'being', 'with', 'as', 'optional']),        
+        'entity.associations.item': new Set(['connectedBy', 'being', 'with', 'as', 'optional', 'default']),        
         'entity.interface.find': new Set(['a', 'an', 'the', 'one', 'by', 'cases', 'selected', 'selectedBy', "of", "which", "where", "when", "with", "otherwise", "else"]),           
         'entity.interface.return': new Set(["unless", "when"]),           
 
