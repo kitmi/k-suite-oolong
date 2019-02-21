@@ -2,6 +2,7 @@
 
 const Rules = require('../../enum/Rules');
 const { mergeCondition } = require('../../utils/lang');
+const Generators = require('../Generators');
 
 /**
  * A rule specifies the entity will not be deleted physically.
