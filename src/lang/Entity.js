@@ -336,7 +336,7 @@ class Entity extends Clonable {
             //return;
         }
 
-        let destFieldInfo = _.omit(destField, ['default', 'auto', 'writeOnce', 'startFrom', 'readOnly', 'forceUpdate', 'freezeAfterNonDefault']);
+        let destFieldInfo = _.omit(destField, ['auto', 'writeOnce', 'startFrom', 'readOnly', 'forceUpdate', 'freezeAfterNonDefault']);
         destFieldInfo.name = name;
 
         this.addField(name, destFieldInfo);    

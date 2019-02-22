@@ -30,11 +30,11 @@ module.exports = {
                 updateTo[timestampField] = Generators.default(entityModel.meta.fields[timestampField], context.i18n);
             }
 
-            context.latest = this._update_(updateTo, { 
+            context.latest = entityModel._update_(updateTo, { 
                 $query: deleteOptions.$query, 
                 $retrieveUpdated: deleteOptions.$retrieveDeleted,
                 $unboxing: deleteOptions.$unboxing,
-                $byPassReadOnly: new Set([field])
+                $byPassReadOnly: new Set([field, timestampField])
             });
 
             return false;

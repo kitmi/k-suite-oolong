@@ -430,6 +430,7 @@ class EntityModel {
                     }
                 }
 
+                /**  todo: fix dependency
                 if (isUpdating && fieldInfo.writeOnce) {     
                     assert: existing, '"writeOnce" qualifier requires existing data.';
                     if (!_.isNil(existing[fieldName])) {
@@ -438,7 +439,7 @@ class EntityModel {
                             fieldInfo: fieldInfo 
                         });
                     }
-                } 
+                } */
                 
                 //sanitize first
                 if (isNothing(raw[fieldName])) {
