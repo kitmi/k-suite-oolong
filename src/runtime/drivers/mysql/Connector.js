@@ -445,7 +445,7 @@ class MySQLConnector extends Connector {
 
             if (assocInfo.sql) {
                 if (assocInfo.output) {                    
-                    aliasMap[parentAliasKey + '.:' + alias] = alias; 
+                    aliasMap[parentAliasKey + '.' + alias] = alias; 
                 }
 
                 joinings.push(`${joinType} (${assocInfo.sql}) ${alias} ON ${this._joinCondition(on, params, null, parentAliasKey, aliasMap)}`);
