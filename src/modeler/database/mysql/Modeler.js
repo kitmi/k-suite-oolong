@@ -381,9 +381,9 @@ class MySQLModeler {
                         }
 
                         let connEntity = schema.entities[connEntityName];
-                        if (!connEntity) {
-                            connEntity = this._addRelationEntity(schema, connEntityName, connectedByField, connectedByField2);
-                        } 
+                        if (!connEntity) {                        
+                            throw new Error(`Interconnection entity "${connEntityName}" not found in schema.`);
+                        }
                             
                         this._updateRelationEntity(connEntity, entity, destEntity, connectedByField, connectedByField2);
 
@@ -475,9 +475,28 @@ class MySQLModeler {
                         tag1 += ' ' + assoc.srcField;
                     }                    
 
-                    assert: !this._processedRef.has(tag1);                    
+                    assert: !this._processedRef.has(tag1);  
+
+                    let connEntity = schema.entities[connEntityName];
+
+                    if (!connEntity) {                        
+                        throw new Error(`Relation entity "${connEntityName}" not found in schema.`);
+                    }
                     
-                    let connectedByField2 = destEntityName;
+                    //todo: get back ref from connection entity
+                    let connBackRef1 = connEntity.getReferenceTo(entity.name, { type: 'refersTo', srcField: (f) => _.isNil(f) || f == connectedByField });
+
+                    if (!connBackRef1) {
+                        throw new Error(`Cannot find back reference to "${entity.name}" from relation entity "${connEntityName}".`);
+                    }
+
+                    let connBackRef2 = connEntity.getReferenceTo(destEntityName, { type: 'refersTo' }, { association: connBackRef1  });
+
+                    if (!connBackRef2) {
+                        throw new Error(`Cannot find back reference to "${destEntityName}" from relation entity "${connEntityName}".`);
+                    }
+                    
+                    let connectedByField2 = connBackRef2.srcField || destEntityName;
 
                     if (connectedByField === connectedByField2) {
                         throw new Error('Cannot use the same "connectedBy" field in a relation entity. Detail: ' + JSON.stringify({
@@ -486,12 +505,7 @@ class MySQLModeler {
                             srcField: assoc.srcField,
                             connectedBy: connectedByField
                         }));
-                    }
-
-                    let connEntity = schema.entities[connEntityName];
-                    if (!connEntity) {
-                        connEntity = this._addRelationEntity(schema, connEntityName, connectedByField, connectedByField2);
-                    } 
+                    }                     
                         
                     this._updateRelationEntity(connEntity, entity, destEntity, connectedByField, connectedByField2);
 
@@ -762,7 +776,7 @@ class MySQLModeler {
         let relationEntityName = relationEntity.name;
 
         if (relationEntity.info.associations) {               
-            let hasRefToEntity1 = false, hasRefToEntity2 = false;            
+            let hasRefToEntity1 = false, hasRefToEntity2 = false;              
 
             _.each(relationEntity.info.associations, assoc => {
                 if (assoc.type === 'refersTo' && assoc.destEntity === entity1.name && (assoc.srcField || entity1.name) === connectedByField) {
