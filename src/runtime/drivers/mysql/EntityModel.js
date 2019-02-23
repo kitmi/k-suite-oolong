@@ -340,6 +340,7 @@ class MySQLEntityModel extends EntityModel {
                 let subObj = rowObject[objKey]
                 let subIndexes = existingRow.subIndexes[objKey];
                 
+                // joined an empty record
                 let rowKey = subObj[key];
                 if (_.isNil(rowKey)) return;
 

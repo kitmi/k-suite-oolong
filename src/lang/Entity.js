@@ -123,7 +123,15 @@ class Entity extends Clonable {
                     featureName = feature.name;
                 }
 
-                let fn = require(path.resolve(__dirname, `./entityFeatures/${featureName}.js`));
+                let fn;
+                
+                try {
+                    fn = require(path.resolve(__dirname, `./entityFeatures/${featureName}.js`));
+                } catch (err) {
+                    if (err.code === 'MODULE_NOT_FOUND') {
+                        throw new Error(`Unknow feature "${featureName}" reference in entity "${this.name}"`);
+                    }
+                }
                 fn(this, this.linker.translateOolValue(this.oolModule, feature.args));
             });
         }
