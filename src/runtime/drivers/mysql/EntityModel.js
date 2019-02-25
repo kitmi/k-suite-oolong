@@ -104,6 +104,17 @@ class MySQLEntityModel extends EntityModel {
         return true;
     }
 
+    static afterFindAll_(context, records) {
+        if (context.findOptions.$toDictionary) return records.reduce((table, v) => {
+            table[v[this.meta.keyField]] = v;
+            return table;
+        }, {});
+
+        if (context.findOptions.$unboxing) return records;
+
+        return records.map(row => this.populate(row));
+    }
+
     /**
      * Before deleting an entity.
      * @param {*} context 

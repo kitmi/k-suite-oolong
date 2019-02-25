@@ -178,9 +178,7 @@ class EntityModel {
                 }    
             }
 
-            if (context.findOptions.$unboxing) return records;
-
-            return records.map(row => this.populate(row));
+            return this.afterFindAll_(context, records);            
         }, context);
 
         if (findOptions.$totalCount) {

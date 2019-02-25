@@ -341,7 +341,7 @@ class Entity extends Clonable {
         }
 
         let destFieldInfo = _.omit(destField.toJSON(), FunctionalQualifiers);
-        Object.assign(destFieldInfo, extraProps);        
+        Object.assign(destFieldInfo, extraProps);       
 
         this.addField(name, destFieldInfo);    
         //this.fields[name].displayName = fieldNaming(prefixNaming(destEntity.name, destField.name));   

@@ -90,7 +90,10 @@ class MySQLModeler {
 
         _.each(existingEntities, (entity) => {
             if (!_.isEmpty(entity.info.associations)) {  
-                let assocs = this._preProcessAssociations(entity);              
+                this.logger.log('debug', `Processing associations of entity "${entity.name}"...`);
+
+                let assocs = this._preProcessAssociations(entity);        
+                
                 let assocNames = assocs.reduce((result, v) => {
                     result[v] = v;
                     return result;
@@ -533,6 +536,8 @@ class MySQLModeler {
             case 'refersTo':
             case 'belongsTo':
                 let localField = assoc.srcField || destEntityName;
+
+                console.log(assoc);
 
                 entity.addAssocField(localField, destEntity, destKeyField, assoc.fieldProps);
                 entity.addAssociation(
