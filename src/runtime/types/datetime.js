@@ -13,7 +13,7 @@ module.exports = {
 
     sanitize: (value, info, i18n) => {
         if (value instanceof Date) {
-            return i18n ? i18n.datetime.fromJSDate(sanitized) : DateTime.fromJSDate(sanitized);
+            return i18n ? i18n.datetime.fromJSDate(value) : DateTime.fromJSDate(value);
         } 
 
         if (value instanceof DateTime) {

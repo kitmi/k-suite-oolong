@@ -32,7 +32,7 @@ const Connector = require('../runtime/Connector');
     let dataListFile = path.join(dataSetPath, 'index.list');
 
     if (!fs.existsSync(dataListFile)) {
-        return;
+        throw new Error(`Entry file of dataset "${folderName}" not found.`);
     }
 
     let dataList = fs.readFileSync(dataListFile).toString().match(/^.+$/gm);
@@ -43,7 +43,7 @@ const Connector = require('../runtime/Connector');
         if (line.length > 0) {
             let dataFile = path.join(dataSetPath, line);
             if (!fs.existsSync(dataFile)) {
-                return Promise.reject(`Data file "${dataFile}" not found.`);
+                throw new Error(`Data file "${dataFile}" not found.`);
             }
 
             await migrator.load_(dataFile);
@@ -131,41 +131,54 @@ exports.migrate_ = async (context, reset = false) => {
 };
 
 /**
+ * @param {object} context
+ * @param {string} schemaName
+ */
+exports.dataset_ = async (context, schemaName) => {
+    let connector = createConnector(context, schemaName);
+    assert: connector;
+    
+    let dataSetPath = path.join(context.scriptSourcePath, connector.driver, connector.database, 'data');
+
+    if (!fs.existsSync(dataSetPath)) {
+        return [];
+    } else {
+        let dataSets = fs.readdirSync(dataSetPath);
+        let validDs = [];
+        dataSets.forEach(ds => {
+            let indexFile = path.join(dataSetPath, ds, 'index.list');
+            if (fs.existsSync(indexFile)) {
+                validDs.push(ds);
+            }
+        });
+
+        return validDs;
+    }
+}
+
+/**
  * Import a data set into database
  * @param {object} context
  * @property {Logger} context.logger - Logger object
- * @property {AppModule} context.currentApp - Current app module
- * @property {bool} context.verbose - Verbose mode
- * @param {string} db
- * @param {string} dataSetDir
+ * @property {string} context.scriptSourcePath  
+ * @param {string} schemaName
+ * @param {string} datasetName
  * @returns {Promise}
  */
-exports.import = async (context, db, dataSetDir) => {
-    let [ dbType, ] = db.split(':');
+exports.import_ = async (context, schemaName, datasetName) => {
+    let connector = createConnector(context, schemaName);
+    assert: connector;
+    
+    try {
+        let Migration = require(`../migration/${connector.driver}`);
+        let migration = new Migration(context, schemaName, connector);
 
-    let dataListFile = path.join(dataSetDir, 'index.list');
-
-    if (!fs.existsSync(dataListFile)) {
-        return Promise.reject(`Data entry list file "${dataListFile}" not found.`);
-    }
-
-    let dataList = fs.readFileSync(dataListFile).toString().match(/^.+$/gm);
-    let Deployer = require(`../deployer/db/${dbType}.js`);
-    let service = context.currentApp.getService(db);
-    let deployer = new Deployer(context, service);
-
-    return Util.eachAsync_(dataList, async line => {
-        line = line.trim();
-
-        if (line.length > 0) {
-            let dataFile = path.join(dataSetDir, line);
-            if (!fs.existsSync(dataFile)) {
-                return Promise.reject(`Data file "${dataFile}" not found.`);
-            }
-
-            await deployer.loadData(dataFile);
-        }
-    });
+        await importDataFiles(migration, datasetName);            
+    } catch (error) {
+        throw error;
+    } finally {
+        await connector.end_();
+    } 
 };
 
 /**
@@ -173,7 +186,7 @@ exports.import = async (context, db, dataSetDir) => {
  * @param {object} context
  * @property {Connector} context.connector
  * @property {Logger} context.logger 
- * @property {string} context.dslReverseOutputDir 
+ * @property {string} context.dslReverseOutputPath 
  * @property {string} context.driver
  * @property {object} context.connOptions 
  * @returns {Promise}
@@ -188,7 +201,7 @@ exports.reverse_ = async (context) => {
     try {
         let modeler = new ReserveEngineering(context, connector);
 
-        await modeler.reverse_(context.dslReverseOutputDir);
+        await modeler.reverse_(context.dslReverseOutputPath);
     } catch (error) {
         throw error;
     } finally {

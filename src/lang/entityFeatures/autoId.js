@@ -29,13 +29,15 @@ function feature(entity, args = []) {
             options = { name: options };
         }
 
-        Object.assign(typeInfo, options);
+        //todo: fix by type
+        //Object.assign(typeInfo, options);
     }
 
     let fieldName = typeInfo.name;
 
     entity.addFeature(FEATURE_NAME, {
-        field: fieldName        
+        field: fieldName,
+        ...(options && options.startFrom ? { startFrom: options.startFrom } : {})        
     }).on('beforeAddingFields', () => {
         entity.addField(fieldName, typeInfo)
             .setKey(fieldName);

@@ -4,10 +4,7 @@ const Util = require('rk-utils');
 const { _, fs } = Util;
 const { extractDriverAndConnectorName } = require('../utils/lang');
 
-exports.commands = {
-    'list': 'List all oolong schemas.',
-    'create': 'Create database schema.',
-    'config': 'Enable oolong feature and add deploy config.',
+exports.commands = {    
     'build': 'Generate database scripts and entity models.',
     'migrate': 'Create database structure.',    
     'dataset': 'List available data set.',
@@ -22,63 +19,14 @@ exports.options = (core) => {
     let cmdOptions = {};
 
     switch (core.command) {
-        case 'list':
-            cmdOptions['app'] = {
-                desc: 'The name of the app to operate',
-                required: true,
+        case 'build':
+            cmdOptions['c'] = {
+                desc: "Oolong config file",
+                alias: [ "conf", "config" ],                
                 inquire: true,
-                promptType: 'list',
-                choicesProvider: () => Promise.resolve(MowaHelper.getAvailableAppNames(core))
-            };
-            break;
-
-        case 'create':
-            cmdOptions['app'] = {
-                desc: 'The name of the app to operate',
-                inquire: true,
-                promptType: 'list',
-                choicesProvider: () => Promise.resolve(MowaHelper.getAvailableAppNames(core))
-            };
-            cmdOptions['schema'] = {
-                desc: 'Specify the schema name of the database',
-                alias: [ 's' ],
-                required: true,
-                inquire: true
-            };
-            break;
-
-        case 'config':
-            cmdOptions['app'] = {
-                desc: 'The name of the app to operate',
-                inquire: true,
-                required: true,
-                promptType: 'list',
-                choicesProvider: () => Promise.resolve(MowaHelper.getAvailableAppNames(core))
-            };
-            cmdOptions['schema'] = {
-                desc: 'The name of the schema',
-                promptMessage: 'Please select the target schema:',
-                alias: [ 's' ],
-                required: true,
-                inquire: true,
-                promptType: 'list',
-                choicesProvider: () => Promise.resolve(MowaHelper.getAppSchemas(core))
-            };
-            cmdOptions['db'] = {
-                desc: 'The name of the db to be deployed',
-                promptMessage: 'Please select the target db:',
-                alias: [ 'database' ],
-                required: true,
-                inquire: true,
-                promptType: 'list',
-                choicesProvider: () => {
-                    let conns = MowaHelper.getAppDbConnections(core);
-                    if (_.isEmpty(conns)) {
-                        throw new Error('Database connections not found. Config database connection first or run "mowa db add" first.');
-                    }
-                    return conns;
-                }
-            };
+                promptMessage: 'Please input the config file path:',
+                promptDefault: "conf/oolong.json"
+            };  
             break;
 
         case 'migrate':
@@ -98,9 +46,9 @@ exports.options = (core) => {
                 alias: [ 'reset' ],
                 isBool: true
             };
-            break;
+            break;        
 
-        case 'build':
+        case 'dataset':            
             cmdOptions['c'] = {
                 desc: "Oolong config file",
                 alias: [ "conf", "config" ],                
@@ -108,47 +56,39 @@ exports.options = (core) => {
                 promptMessage: 'Please input the config file path:',
                 promptDefault: "conf/oolong.json"
             };  
-            break;
-
-        case 'dataset':
-            cmdOptions['app'] = {
-                desc: 'The name of the app to operate',
-                promptMessage: 'Please select the target app:',
+            cmdOptions['schema'] = {
+                desc: 'The schema to list',                
+                promptMessage: 'Please select a schema:',
                 inquire: true,
+                required: true,
                 promptType: 'list',
-                choicesProvider: () => MowaHelper.getAvailableAppNames(core)
-            };
-            cmdOptions['db'] = {
-                desc: 'The name of the db to operate',
-                promptMessage: 'Please select the target db:',
-                inquire: true,
-                promptType: 'list',
-                choicesProvider: () => MowaHelper.getAppDbConnections(core)
+                choicesProvider: () => core.getSchemasInConfig()
             };
             break;
 
         case 'import':
-            cmdOptions['app'] = {
-                desc: 'The name of the app to operate',
-                promptMessage: 'Please select the target app:',
+            cmdOptions['c'] = {
+                desc: "Oolong config file",
+                alias: [ "conf", "config" ],                
                 inquire: true,
-                promptType: 'list',
-                choicesProvider: () => MowaHelper.getAvailableAppNames(core)
-            };
-            cmdOptions['db'] = {
-                desc: 'The name of the db to operate',
-                promptMessage: 'Please select the target db:',
+                promptMessage: 'Please input the config file path:',
+                promptDefault: "conf/oolong.json"
+            };  
+            cmdOptions['schema'] = {
+                desc: 'The schema to list',                
+                promptMessage: 'Please select a schema:',
                 inquire: true,
+                required: true,
                 promptType: 'list',
-                choicesProvider: () => MowaHelper.getAppDbConnections(core)
+                choicesProvider: () => core.getSchemasInConfig()
             };
-            cmdOptions['dataSet'] = {
+            cmdOptions['dataset'] = {
                 desc: 'The name of the data set to import',
-                promptMessage: 'Please select the target data set:',
+                promptMessage: 'Please select the target dataset:',
                 alias: [ 'ds', 'data' ],
                 inquire: true,
                 promptType: 'list',
-                choicesProvider: () => listAvailableDataSet(core, core.getOption('db'))
+                choicesProvider: () => core.getDataset_()
             };
             break;
 
@@ -286,6 +226,43 @@ exports.migrate = async (core) => {
     }, core.option('reset'));
 };
 
+exports.dataset = async (core) => {
+    core.app.log('verbose', 'oolong dataset');
+
+    let dataset = await core.getDataset_();
+    
+    core.app.log('info', 'Available dataset: \n' + dataset.join('\n') + '\n');
+}
+
+exports.import = async (core) => {
+    core.app.log('verbose', 'oolong import');
+
+    let oolongConfig = core.oolongConfig;
+
+    let modelDir  = Util.getValueByPath(oolongConfig, 'oolong.modelDir');
+    if (!modelDir) {
+        throw new Error('"oolong.modelDir" not found in oolong config.');
+    }
+
+    let scriptSourceDir = Util.getValueByPath(oolongConfig, 'oolong.scriptSourceDir');
+    if (!scriptSourceDir) {
+        throw new Error('"oolong.scriptSourceDir" not found in oolong config.');
+    }
+    
+    let modelPath = core.app.toAbsolutePath(modelDir);    
+    let scriptSourcePath = core.app.toAbsolutePath(scriptSourceDir);
+
+    let schema = core.option('schema');    
+    let dataset = core.option('dataset');    
+
+    return core.api.import_({
+        logger: core.app.logger,        
+        modelPath,
+        scriptSourcePath,        
+        schemaDeployment: core.schemaDeployment
+    }, schema, dataset);
+}
+
 exports.reverse = async (core) => {
     core.app.log('verbose', 'oolong reverse');
 
@@ -312,7 +289,7 @@ exports.reverse = async (core) => {
 
     return core.api.reverse_({ 
         logger: core.app.logger,
-        dslReverseOutputDir: outputDir,
+        dslReverseOutputPath: outputDir,
         driver,
         connOptions
     });

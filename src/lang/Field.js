@@ -40,8 +40,7 @@ class Field extends Clonable {
             }       
 
             if (!typeObject.qualifiers.includes(key)) {
-                this[key] = value;                
-                return;
+                throw new Error(`Unsupported field qualifier "${key}" for type "${this.info.type}" of field "${this.name}."`);
             }
 
             this[key] = Array.isArray(value) ? value[0] : value;

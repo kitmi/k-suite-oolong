@@ -2,6 +2,8 @@
 
 /* JS declaration */
 %{
+    const DBG_MODE = !!process.env.OOL_DBG;
+
     //used to calculate the amount by bytes unit
     const UNITS = new Map([['K', 1024], ['M', 1048576], ['G', 1073741824], ['T', 1099511627776]]);
 
@@ -30,7 +32,7 @@
         'dataset.body': new Set(['with']),
 
         // level 3
-        'entity.associations.item': new Set(['connectedBy', 'being', 'with', 'as', 'optional', 'default']),        
+        'entity.associations.item': new Set(['connectedBy', 'being', 'with', 'as']),        
         'entity.interface.find': new Set(['a', 'an', 'the', 'one', 'by', 'cases', 'selected', 'selectedBy', "of", "which", "where", "when", "with", "otherwise", "else"]),           
         'entity.interface.return': new Set(["unless", "when"]),           
 
@@ -112,12 +114,6 @@
         'const'
     ]);
 
-    /**
-    const STATE_STOPPER = {                
-        'entity.associations.item.when.being': new Set(['when']),
-        'entity.interface.find.when': new Set(['else', 'otherwise'])
-    };*/
-
     const FINAL_STATE = {        
         'entity.interface.find.else': 'entity.interface.find'
     };
@@ -197,7 +193,6 @@
         doDedentExit() {
             let exitRound = DEDENT_STOPPER.get(state.lastState);
             if (exitRound > 0) {
-                console.log('dedent');
 
                 for (let i = 0; i < exitRound; i++) {                    
                     state.exitState(state.lastState);
@@ -213,8 +208,7 @@
 
                 let exitRound = NEWLINE_STOPPER.get(state.lastState);
 
-                if (exitRound > 0) {
-                    console.log('newline');
+                if (exitRound > 0) {                    
 
                     for (let i = 0; i < exitRound; i++) {                    
                         state.exitState(state.lastState);
@@ -238,7 +232,7 @@
         }
 
         dump(loc, token) {
-            if (1) {
+            if (DBG_MODE) {
                 token ? console.log(loc, token) : console.log(loc);
                 console.log('indents:', this.indents.join(' -> '), 'current indent:', this.indent, 'current dedented:', this.dedented, 'nl-stop', this.newlineStopFlag);                   
                 console.log('lastState:', this.lastState, 'comment:', this.comment, 'eof:', this.eof, 'brackets:', this.brackets.join(' -> '),'stack:', this.stack.join(' -> '));
@@ -277,14 +271,18 @@
         }
 
         enterState(state) {
-            console.log('> enter state:', state, '\n');
+            if (DBG_MODE) {
+                console.log('> enter state:', state, '\n');
+            }
             this.stack.push(state);
             this.newlineStopFlag.push(NEWLINE_STOPPER.has(state) ? true : false);
             return this;
         }
 
         exitState(state) {
-            console.log('< exit state:', state, '\n');
+            if (DBG_MODE) {
+                console.log('< exit state:', state, '\n');
+            }
             let last = this.stack.pop();
             if (state !== last) {
                 throw new Error(`Unmatched "${state}" state!`);
@@ -295,7 +293,9 @@
             if (finalStateToExit) {
                 do {
                     last = this.stack.pop(); 
-                    console.log('< exit state:', last, '\n');
+                    if (DBG_MODE) {
+                        console.log('< exit state:', last, '\n');
+                    }
                 } while (last !== finalStateToExit);
             }
 
@@ -1216,9 +1216,9 @@ associations_block
     ;
 
 association_item
-    : association_type_referee identifier_or_string (association_through)? (association_as)? (association_qualifiers)* -> { type: $1, destEntity: $2, ...$3, ...$4, ...Object.assign({}, ...$5) }    
-    | association_type_referee NEWLINE INDENT identifier_or_string association_cases_block (association_as)? (association_qualifiers)* NEWLINE DEDENT -> { type: $1, destEntity: $4, ...$5, ...$6, ...Object.assign({}, ...$7) }
-    | association_type_referer identifier_or_string (association_as)? (association_qualifiers)* -> { type: $1, destEntity: $2, ...$3, ...Object.assign({}, ...$4) }      
+    : association_type_referee identifier_or_string (association_through)? (association_as)? type_info_or_not -> { type: $1, destEntity: $2, ...$3, ...$4, fieldProps: $5 }    
+    | association_type_referee NEWLINE INDENT identifier_or_string association_cases_block (association_as)? type_info_or_not NEWLINE DEDENT -> { type: $1, destEntity: $4, ...$5, ...$6, fieldProps: $7 }
+    | association_type_referer identifier_or_string (association_as)? type_info_or_not type_modifiers_or_not -> { type: $1, destEntity: $2, ...$3, fieldProps: { ...$4, ...$5 } }      
     ;
 
 association_type_referee

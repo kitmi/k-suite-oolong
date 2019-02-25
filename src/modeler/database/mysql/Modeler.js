@@ -400,8 +400,7 @@ class MySQLModeler {
                                         with: assoc.connectedWith
                                     } : connectedByField
                                 ),
-                                field: connectedByField,
-                                ...(assoc.optional ? { optional: assoc.optional } : {}),                            
+                                field: connectedByField,                                
                                 ...(assoc.type === 'hasMany' ? { list: true } : {}),
                                 assoc: connectedByField2
                             }
@@ -420,8 +419,7 @@ class MySQLModeler {
                                         with: backRef.connectedWith
                                     } : connectedByField
                                 ),
-                                field: connectedByField2,
-                                ...(backRef.optional ? { optional: backRef.optional } : {}),                            
+                                field: connectedByField2,                                
                                 ...(backRef.type === 'hasMany' ? { list: true } : {}),
                                 assoc: connectedByField
                             }
@@ -448,8 +446,7 @@ class MySQLModeler {
                                         anchor,
                                         remoteField
                                     ), 
-                                    ...(typeof remoteField === 'string' ? { field: remoteField } : {}) ,
-                                    ...(assoc.optional ? { optional: assoc.optional } : {}),                            
+                                    ...(typeof remoteField === 'string' ? { field: remoteField } : {}),                                    
                                     ...(assoc.type === 'hasMany' ? { list: true } : {})
                                 }
                             );
@@ -522,8 +519,7 @@ class MySQLModeler {
                                     with: assoc.connectedWith
                                 } : connectedByField
                             ) ,
-                            field: connectedByField,
-                            ...(assoc.optional ? { optional: assoc.optional } : {}),                            
+                            field: connectedByField,                            
                             ...(assoc.type === 'hasMany' ? { list: true } : {}),
                             assoc: connectedByField2
                         }
@@ -537,9 +533,8 @@ class MySQLModeler {
             case 'refersTo':
             case 'belongsTo':
                 let localField = assoc.srcField || destEntityName;
-                let fieldProps = { ..._.omit(destKeyField, ['optional', 'default']), ..._.pick(assoc, ['optional', 'default']) };
 
-                entity.addAssocField(localField, destEntity, fieldProps);
+                entity.addAssocField(localField, destEntity, destKeyField, assoc.fieldProps);
                 entity.addAssociation(
                     localField,                      
                     { 
@@ -548,34 +543,6 @@ class MySQLModeler {
                         on: { [localField]: this._toColumnReference(localField + '.' + destEntity.key) }
                     }
                 );
-
-                /*
-                if (assoc.type === 'belongsTo') {
-                    let backRef = destEntity.getReferenceTo(
-                        entity.name, 
-                        { 
-                            'remoteField': (remoteField) => {
-                                let remoteFields = this._getAllRelatedFields(remoteField);
-
-                                return _.isNil(remoteFields) || (Array.isArray(remoteFields) ? remoteFields.indexOf(localField) > -1 : remoteFields === localField);
-                            }
-                        },  // includes
-                        { types: [ 'refersTo', 'belongsTo' ], association: assoc } // excludes
-                    );
-
-                    if (!backRef) {
-                        destEntity.addAssociation(
-                            pluralize(entity.name),                              
-                            { 
-                                entity: entity.name, 
-                                key: entity.key,
-                                on: { [destEntity.key]: localField },
-                                list: true, 
-                                optional: true
-                            }
-                        );
-                    } 
-                }*/
 
                 this._addReference(entity.name, localField, destEntityName, destKeyField.name);
             break;
@@ -713,9 +680,9 @@ class MySQLModeler {
 
                 if (field.type === 'integer' && !field.generator) {
                     field.autoIncrementId = true;
-                    if ('startFrom' in field) {
+                    if ('startFrom' in feature) {
                         this._events.on('setTableOptions:' + entity.name, extraOpts => {
-                            extraOpts['AUTO_INCREMENT'] = field.startFrom;
+                            extraOpts['AUTO_INCREMENT'] = feature.startFrom;
                         });
                     }
                 } 
@@ -804,8 +771,8 @@ class MySQLModeler {
             throw new Error(`Combination primary key is not supported. Entity: ${entity2.name}`);
         }
 
-        relationEntity.addAssocField(connectedByField, entity1, _.omit(keyEntity1, ['optional']));
-        relationEntity.addAssocField(connectedByField2, entity2, _.omit(keyEntity2, ['optional']));
+        relationEntity.addAssocField(connectedByField, entity1, keyEntity1);
+        relationEntity.addAssocField(connectedByField2, entity2, keyEntity2);
 
         relationEntity.addAssociation(
             connectedByField, 

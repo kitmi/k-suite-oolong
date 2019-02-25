@@ -315,7 +315,7 @@ class Linker {
             this.log('verbose', `Searching ${elementType} "${elementName}" from "${refererModule.id}" ...`);
 
             let index = _.findLastIndex(refererModule.namespace, modulePath => {
-                this.log('debug', `Looking for ${elementType} "${elementName}" in "${modulePath}" ...`);
+                //this.log('debug', `Looking for ${elementType} "${elementName}" in "${modulePath}" ...`);
 
                 targetModule = this.loadModule(modulePath);
 

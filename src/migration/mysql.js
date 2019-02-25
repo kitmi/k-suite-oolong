@@ -70,37 +70,67 @@ class MySQLMigration {
         if (ext === '.json') {
             let data = fs.readJsonSync(dataFile, {encoding: 'utf8'});
 
-            let className = pascalCase(this.schemaName);
-            let Db = require(path.join(this.modelPath, className));
-            let db = new Db(this.connector.connectionString, this.connector.options);            
-
-            try {
-                await db.connector.execute_('SET FOREIGN_KEY_CHECKS=0;');
-
-                await eachAsync_(data, async (records, entityName) => {
-                    let Model = db.model(entityName);                        
-                    let items = Array.isArray(records) ? records : [ records ];
-
-                    return eachAsync_(items, async item => {
-                        let model = await Model.create_(item);
-                        this.logger.log('verbose', `Created a(n) ${entityName} entity: ${JSON.stringify(model.$pkValues)}`);
-                    });
-                });
-
-                await db.connector.execute_('SET FOREIGN_KEY_CHECKS=1;');
-            } catch (error) {
-                throw error;
-            } finally {
-                await db.close_();
-            }
+            await this._loadData_(data);
         } else if (ext === '.sql') {
             let sql = fs.readFileSync(dataFile, {encoding: 'utf8'});
             let result = await this.connector.execute_(sql, null, { multipleStatements: 1 });
             this.logger.log('verbose', `Executed SQL file: ${dataFile}`, result);
         } else if (ext === '.xlsx') {
-            throw new Error('todo.');
+
+            const Excel = require('exceljs');
+            let workbook = new Excel.Workbook();
+            await workbook.xlsx.readFile(dataFile);     
+            
+            let data = {};
+
+            workbook.eachSheet((worksheet, sheetId) => {
+                let colKeys;
+
+                let entityName = worksheet.name;
+                let entityData = [];
+                data[entityName] = entityData;
+                
+                worksheet.eachRow(function(row, rowNumber) {
+                    console.log('Row ' + rowNumber + ' = ' + JSON.stringify(row.values));
+                    
+                    if (!colKeys) {
+                        colKeys = _.drop(row.values);    
+                    } else {
+                        let record = _.fromPairs(_.zip(colKeys, _.drop(row.values)));
+                        entityData.push(record);
+                    }
+                });
+            });
+
+            await this._loadData_(data);
         } else {
             throw new Error('Unsupported data file format.');
+        }
+    }
+
+    async _loadData_(data) {
+        let className = pascalCase(this.schemaName);
+        let Db = require(path.join(this.modelPath, className));
+        let db = new Db(this.connector.connectionString, this.connector.options);            
+
+        try {
+            await db.connector.execute_('SET FOREIGN_KEY_CHECKS=0;');
+
+            await eachAsync_(data, async (records, entityName) => {
+                let Model = db.model(entityName);                        
+                let items = Array.isArray(records) ? records : [ records ];
+
+                return eachAsync_(items, async item => {
+                    let model = await Model.create_(item);
+                    this.logger.log('verbose', `Created a(n) ${entityName} entity: ${JSON.stringify(model.$pkValues)}`);
+                });
+            });
+
+            await db.connector.execute_('SET FOREIGN_KEY_CHECKS=1;');
+        } catch (error) {
+            throw error;
+        } finally {
+            await db.close_();
         }
     }
 }

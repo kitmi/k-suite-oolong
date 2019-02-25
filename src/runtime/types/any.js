@@ -11,6 +11,8 @@ module.exports = {
         'readOnly',
         'writeOnce',
         'forceUpdate',
-        'freezeAfterNonDefault'
+        'freezeAfterNonDefault',
+        'comment',
+        'displayName'
     ])
 };

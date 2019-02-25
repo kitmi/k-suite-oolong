@@ -174,6 +174,29 @@ class OolongCore {
         return result;
     }
 
+    getSchemasInConfig() {
+        let schemas = Util.getValueByPath(this.oolongConfig, 'oolong.schemaDeployment');
+        return Object.keys(schemas);
+    }
+
+    async getDataset_() {
+        let scriptSourcePath = this.app.toAbsolutePath(Util.getValueByPath(this.oolongConfig, 'oolong.scriptSourceDir'));
+
+        let schema = this.option('schema'); 
+        if (!schema) {
+            throw new Error(`Schema argument is required for listing dataset.`);
+        }  
+
+        return this.api.dataset_(
+            { 
+                logger: this.app.logger,
+                scriptSourcePath, 
+                schemaDeployment: this.schemaDeployment 
+            },
+            schema
+        );
+    }
+
     get oolongConfig() {
         if (this._oolongConfig) return this._oolongConfig;
 

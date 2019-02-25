@@ -7,6 +7,7 @@ const { _ } = require('rk-utils');
 const { generateDisplayName, deepCloneField, Clonable, entityNaming, fieldNaming, prefixNaming } = require('./OolUtils');
 
 const Field = require('./Field');
+const { FunctionalQualifiers } = require('../runtime/types');
 
 /**
  * Entity event listener
@@ -332,23 +333,18 @@ class Entity extends Clonable {
      * @param {OolongEntity} destEntity
      * @param {OolongField} destField
      */
-    addAssocField(name, destEntity, destField) {
+    addAssocField(name, destEntity, destField, extraProps) {
         let localField = this.fields[name];
 
-        if (localField) {
-            /*
-            if (!localField.hasSameType(destField.toJSON())) {
-                throw new Error(`The type of source field "${this.name}.${name}" is different from the referenced field "${destEntity.name}.${destField.name}".`);
-            }*/
+        if (localField) {            
             throw new Error(`Field "${name}" already exists in entity "${this.name}".`);
-            //return;
         }
 
-        let destFieldInfo = _.omit(destField, ['auto', 'writeOnce', 'startFrom', 'readOnly', 'forceUpdate', 'freezeAfterNonDefault']);
-        destFieldInfo.name = name;
+        let destFieldInfo = _.omit(destField.toJSON(), FunctionalQualifiers);
+        Object.assign(destFieldInfo, extraProps);        
 
         this.addField(name, destFieldInfo);    
-        this.fields[name].displayName = fieldNaming(prefixNaming(destEntity.name, destField.name));   
+        //this.fields[name].displayName = fieldNaming(prefixNaming(destEntity.name, destField.name));   
     }
 
     /**

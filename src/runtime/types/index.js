@@ -21,6 +21,16 @@ const Types = {
     
     Builtin: Set(_.map(types, t => t.name)),
 
+    FunctionalQualifiers: Object.freeze([
+        'optional',
+        'default',
+        'auto',
+        'readOnly',
+        'writeOnce',
+        'forceUpdate',
+        'freezeAfterNonDefault',
+    ]),
+
     sanitize: function (value, info, i18n) {
         pre: {
             Types.Builtin.has(info.type), `Unknown primitive type: "${info.type}"."`;
