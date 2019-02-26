@@ -60,6 +60,12 @@ module.exports = _.pick(validator, [
     'isLatLong'
 ]);
 
+const RE_PHONE = /^((\+|00)\d+)?(\(\d+\))?((\ |-)?\d+)*$/;
+
+module.exports.isPhone = function (value) {
+    return RE_PHONE.test(value);
+}
+
 module.exports.min = function (value, minValue) {
     return value >= minValue;
 };

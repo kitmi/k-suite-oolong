@@ -26,7 +26,7 @@ const chainCall = (lastBlock, lastType, currentBlock, currentType) => {
 
             currentBlock = JsLang.astBinExp(lastBlock, '&&', currentBlock);
         } else {
-            assert: currentType === 'ModifierCall', 'Unexpected currentType';
+            assert: currentType === 'ProcessorCall', 'Unexpected currentType: ' + currentType + ' last: ' + lastType;
 
             currentBlock.arguments[0] = lastBlock;
         }
@@ -383,7 +383,10 @@ class DaoModeler {
         //console.dir(compileContext.astMap['mobile~isMobilePhone:arg[1]|>stringDasherize'], { depth: 8 }); 
 
         _.each(deps, (dep, i) => {
+            //get metadata of source code block
             let sourceMap = compileContext.mapOfTokenToMeta.get(dep);
+
+            //get source code block
             let astBlock = compileContext.astMap[dep];
 
             let targetFieldName = getFieldName(sourceMap.target);            

@@ -178,7 +178,33 @@ const _validateCheck = (fieldName, validatingCall) => {
                                         "kind": "init",
                                         "method": false,
                                         "shorthand": false
+                                    },
+                                    {
+                                        "type": "Property",
+                                        "key": {
+                                            "type": "Identifier",
+                                            "name": "value"
+                                        },
+                                        "computed": false,
+                                        "value": {
+                                            "type": "MemberExpression",
+                                            "computed": true,
+                                            "object": {
+                                                "type": "Identifier",
+                                                "name": "latest"
+                                            },
+                                            "property": {
+                                                "type": "Literal",
+                                                "value": fieldName,
+                                                "raw": quote(fieldName, "'")
+                                            }
+                                        },
+                                        "kind": "init",
+                                        "method": false,
+                                        "shorthand": false
                                     }
+
+                                    
                                 ]
                             }
                         ]
