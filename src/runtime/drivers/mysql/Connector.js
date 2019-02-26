@@ -319,7 +319,7 @@ class MySQLConnector extends Connector {
      * @param {*} model 
      * @param {*} condition      
      */
-    buildQuery(model, { $association, $projection, $query, $groupBy, $having, $orderBy, $offset, $limit, $totalCount }) {
+    buildQuery(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit, $totalCount }) {
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false, joiningParams = [];        
 
         // build alias map first
@@ -354,10 +354,6 @@ class MySQLConnector extends Connector {
 
         if ($groupBy) {
             sql += ' ' + this._buildGroupBy($groupBy, params, hasJoining, aliasMap);
-        }
-
-        if ($having) {
-            sql += ' HAVING ' + this._joinCondition($having, params, null, hasJoining, aliasMap);                    
         }
 
         if ($orderBy) {
