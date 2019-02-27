@@ -106,7 +106,7 @@ class EntityModel {
             );
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
 
-            if (findOptions.$association) {  
+            if (findOptions.$association && !findOptions.$skipOrm) {  
                 //rows, coloumns, aliasMap                    
                 if (records[0].length === 0) return undefined;
 
@@ -118,7 +118,7 @@ class EntityModel {
             assert: records.length === 1;
             let result = records[0];
 
-            if (context.findOptions.$unboxing) return result;
+            if (context.findOptions.$unboxing || findOptions.$skipOrm) return result;
 
             return this.populate(result);
         }, context);
@@ -166,7 +166,7 @@ class EntityModel {
 
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
 
-            if (findOptions.$association) {
+            if (findOptions.$association && !findOptions.$skipOrm) {
                 if (findOptions.$totalCount) {
                     totalCount = records[3];
                 }                              

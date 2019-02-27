@@ -154,8 +154,10 @@ class MySQLEntityModel extends EntityModel {
                     output: assoc.output,
                     alias,
                     on: assoc.on,
-                    ...(assoc.dataset ? this.db.connector.buildQuery(assoc.entity, 
-                        this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables })) : {})                       
+                    ...(assoc.dataset ? this.db.connector.buildQuery(
+                            assoc.entity, 
+                            this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables })
+                        ) : {})                       
                 };
             } else {
                 this._loadAssocIntoTable(assocTable, cache, assoc);
@@ -405,7 +407,7 @@ class MySQLEntityModel extends EntityModel {
                     } else {
                         rowObject[objKey] = [ subObject ];
                     }
-                } else if (_.isNil(subObject[key])) {
+                } else if (subObject && _.isNil(subObject[key])) {
                     subObject = rowObject[objKey] = null;
                 }
 

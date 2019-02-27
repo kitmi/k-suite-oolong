@@ -325,9 +325,10 @@ class MySQLConnector extends Connector {
         // build alias map first
         // cache params
         if ($association) {  
-            console.dir($association, { depth: 16, colors: true });                           
+            //console.dir($association, { depth: 16, colors: true });                           
             joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams); 
-            console.log(joinings);                                      
+            console.log(joinings);                                       
+            console.log(joiningParams);                                       
             hasJoining = model;
         }
 
@@ -387,6 +388,8 @@ class MySQLConnector extends Connector {
         }
 
         result.sql = sql;
+
+        console.dir(result, { depth: 10, colors: true });
         
         return result;
     }
@@ -433,6 +436,8 @@ class MySQLConnector extends Connector {
     _joinAssociations(associations, parentAliasKey, parentAlias, aliasMap, startId, params) {
         let joinings = [];
 
+        console.log('associations:', Object.keys(associations));
+
         _.each(associations, (assocInfo, anchor) => { 
             let alias = assocInfo.alias || this._generateAlias(startId++, anchor); 
             let { joinType, on } = assocInfo;
@@ -444,8 +449,8 @@ class MySQLConnector extends Connector {
                     aliasMap[parentAliasKey + '.' + alias] = alias; 
                 }
 
-                joinings.push(`${joinType} (${assocInfo.sql}) ${alias} ON ${this._joinCondition(on, params, null, parentAliasKey, aliasMap)}`);
-                assocInfo.params.forEach(p => params.push(p));               
+                assocInfo.params.forEach(p => params.push(p)); 
+                joinings.push(`${joinType} (${assocInfo.sql}) ${alias} ON ${this._joinCondition(on, params, null, parentAliasKey, aliasMap)}`);                             
                 
                 return;
             }
@@ -453,8 +458,6 @@ class MySQLConnector extends Connector {
             let { entity, subAssocs } = assocInfo;            
             let aliasKey = parentAliasKey + '.' + anchor;
             aliasMap[aliasKey] = alias; 
-
-            console.log(anchor, on);
 
             joinings.push(`${joinType} ${mysql.escapeId(entity)} ${alias} ON ${this._joinCondition(on, params, null, parentAliasKey, aliasMap)}`);
             
