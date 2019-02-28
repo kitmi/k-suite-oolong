@@ -220,6 +220,10 @@ class MySQLConnector extends Connector {
      * @param {*} options 
      */
     async create_(model, data, options) {
+        if (!data || _.isEmpty(data)) {
+            throw new OolongUsageError(`Creating with empty "${model}" data.`);
+        }
+
         let sql = 'INSERT INTO ?? SET ?';
         let params = [ model ];
         params.push(data);
@@ -375,15 +379,20 @@ class MySQLConnector extends Connector {
             result.countSql = `SELECT COUNT(${countSubject}) AS count` + sql;
         }
 
-        sql = 'SELECT ' + selectColomns + sql;
+        sql = 'SELECT ' + selectColomns + sql;        
 
         if (_.isInteger($limit) && $limit > 0) {
-            sql += ' LIMIT ?';
-            params.push($limit);
-        } 
-
-        if (_.isInteger($offset) && $offset > 0) {            
-            sql += ' OFFSET ?';
+            
+            if (_.isInteger($offset) && $offset > 0) {            
+                sql += ' LIMIT ?, ?';
+                params.push($offset);
+                params.push($limit);
+            } else {
+                sql += ' LIMIT ?';
+                params.push($limit);
+            }            
+        } else if (_.isInteger($offset) && $offset > 0) {            
+            sql += ' LIMIT ?, 1000';
             params.push($offset);
         }
 
