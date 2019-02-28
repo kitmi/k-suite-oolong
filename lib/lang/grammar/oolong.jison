@@ -1216,9 +1216,9 @@ associations_block
     ;
 
 association_item
-    : association_type_referee identifier_or_string (association_through)? (association_as)? type_info_or_not -> { type: $1, destEntity: $2, ...$3, ...$4, fieldProps: $5 }    
-    | association_type_referee NEWLINE INDENT identifier_or_string association_cases_block (association_as)? type_info_or_not NEWLINE DEDENT -> { type: $1, destEntity: $4, ...$5, ...$6, fieldProps: $7 }
-    | association_type_referer identifier_or_string (association_as)? type_info_or_not type_modifiers_or_not -> { type: $1, destEntity: $2, ...$3, fieldProps: { ...$4, ...$5 } }      
+    : association_type_referee identifier_or_string (association_through)? (association_as)? type_info_or_not field_comment_or_not -> { type: $1, destEntity: $2, ...$3, ...$4, fieldProps: { ...$5, ...$6} }    
+    | association_type_referee NEWLINE INDENT identifier_or_string association_cases_block (association_as)? type_info_or_not field_comment_or_not NEWLINE DEDENT -> { type: $1, destEntity: $4, ...$5, ...$6, fieldProps: { ...$7, ...$8 } }
+    | association_type_referer identifier_or_string (association_as)? type_info_or_not type_modifiers_or_not field_comment_or_not -> { type: $1, destEntity: $2, ...$3, fieldProps: { ...$4, ...$5, ...$6 } }      
     ;
 
 association_type_referee
