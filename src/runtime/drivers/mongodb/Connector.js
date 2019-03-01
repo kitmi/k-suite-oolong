@@ -1,3 +1,4 @@
+const { _ } = require('rk-utils');
 const { tryRequire } = require('@k-suite/app/lib/utils/Helpers');
 const mongodb = tryRequire('mongodb');
 const MongoClient = mongodb.MongoClient;
@@ -86,6 +87,10 @@ class MongodbConnector extends Connector {
         return this._execute_(model, options, (coll) => coll.findAndReplace(condition, data, { upsert: true, returnOriginal: true }));
     }
 
+    async findOne_(model, condition, options) {
+        return this._execute_(model, options, (coll) => coll.findOne(condition));
+    }
+
     /**
      * Update an existing entity.
      * @param {string} model 
@@ -129,7 +134,7 @@ class MongodbConnector extends Connector {
         try {
             db = await this._getConnection_(options);
 
-            let queryOptions = {  };
+            let queryOptions = {};
 
             if (!_.isEmpty(condition.$projection)) {
                 queryOptions.projection = condition.$projection;                
@@ -147,7 +152,13 @@ class MongodbConnector extends Connector {
                 queryOptions.limit = condition.$limit;                
             }
 
-            return await db.collection(model).find($query, queryOptions).toArray();
+            let query = condition.$query || {};
+
+            console.log('query', query);
+
+            console.log('queryOptions', queryOptions);
+
+            return await db.collection(model).find(query, queryOptions).toArray();
         } catch(err) {
             this.log('error', err.message, { stack: err.stack });
         } finally {
