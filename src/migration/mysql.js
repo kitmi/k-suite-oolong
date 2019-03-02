@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require('path');
-const { _, fs, eachAsync_, pascalCase } = require('rk-utils');
+const { _, fs, eachAsync_, pascalCase, quote } = require('rk-utils');
 
 /**
  * MySQL migration.
@@ -26,10 +26,18 @@ class MySQLMigration {
         return this.connector.execute_(`DROP DATABASE IF EXISTS ??`, [ this.connector.database ], { createDatabase: true });
     }
 
-    async create_() {        
+    async create_(extraOptions) {        
         let sqlFiles = [ 'entities.sql', 'relations.sql', 'procedures.sql' ];
+
+        let sqlCreate = 'CREATE DATABASE IF NOT EXISTS ??';
+
+        if (extraOptions && !_.isEmpty(extraOptions.db)) {
+            sqlCreate += ' ' + _.reduce(extraOptions.db, (r, v, k) => {
+                return r + ' ' + _.upperCase(k) + ' ' + quote(v.toString(), '"');
+            }, '');
+        }
         
-        let result = await this.connector.execute_('CREATE DATABASE IF NOT EXISTS ??', 
+        let result = await this.connector.execute_(sqlCreate, 
             [ this.connector.database ], 
             { createDatabase: true }
         );

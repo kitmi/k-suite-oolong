@@ -76,9 +76,11 @@ exports.build_ = async (context) => {
         let connector = createConnector(context, schemaName);
         assert: connector;
 
+        let deploymentSetting = context.schemaDeployment[schemaName];
+
         try {
             let DbModeler = require(`../modeler/database/${connector.driver}/Modeler`);
-            let dbModeler = new DbModeler(context, connector);
+            let dbModeler = new DbModeler(context, connector, deploymentSetting.extraOptions);
             let refinedSchema = dbModeler.modeling(schema);
 
             const DaoModeler = require('../modeler/Dao');
@@ -119,7 +121,7 @@ exports.migrate_ = async (context, reset = false) => {
                 await migration.reset_();
             }
 
-            await migration.create_();
+            await migration.create_(deployment.extraOptions);
 
             await importDataFiles(migration, '_init');            
         } catch (error) {
