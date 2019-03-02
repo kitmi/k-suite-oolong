@@ -98,8 +98,8 @@ class MongodbConnector extends Connector {
      * @param {*} condition 
      * @param {*} options 
      */
-    async update_(model, data, condition, options) { 
-        return _execute_(model, options, (coll) => coll.updateOne(condition, { $set: data }));
+    async updateOne_(model, data, condition, options) { 
+        return this._execute_(model, options, (coll) => coll.updateOne(condition, { $set: data }));
     }
 
     /**
@@ -108,8 +108,8 @@ class MongodbConnector extends Connector {
      * @param {object} data 
      * @param {*} options 
      */
-    async replace_(model, data, options) {  
-        return _execute_(model, options, (coll) => coll.updateOne(condition, { $set: data }, {upsert: true}));
+    async replaceOne_(model, data, condition, options) {  
+        return this._execute_(model, options, (coll) => coll.replaceOne(condition, data));
     }
 
     /**
@@ -118,8 +118,8 @@ class MongodbConnector extends Connector {
      * @param {*} condition 
      * @param {*} options 
      */
-    async delete_(model, condition, options) {
-        return _execute_(model, options, (coll) => coll.deleteOne(condition));
+    async deleteOne_(model, condition, options) {
+        return this._execute_(model, options, (coll) => coll.deleteOne(condition));
     }
 
     /**
