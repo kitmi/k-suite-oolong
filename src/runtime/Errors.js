@@ -1,21 +1,7 @@
 "use strict";
 
-const { withName, withExtraInfo } = require('@k-suite/app/lib/utils/Helpers');
+const { withStatus, withName, withExtraInfo } = require('@k-suite/app/lib/utils/Helpers');
 const HttpCode = require('http-status-codes');
-
-/**
- * Adds a status property to the class.
- * @mixin
- * @param {*} Base 
- * @param {*} STATUS 
- */
-const withHttpStatus = (Base, STATUS) => class extends Base {
-    /**
-     * Http status code.
-     * @member {number}
-     */
-    status = STATUS;
-};
 
 /**
  * Expected business errors upon wrong request.
@@ -42,7 +28,10 @@ class BusinessError extends withExtraInfo(withName(Error)) {
  * @extends Error
  * @mixes withName
  */
-class DataValidationError extends withExtraInfo(withName(withHttpStatus(Error, HttpCode.BAD_REQUEST))) {
+class DataValidationError extends BusinessError {
+    constructor(message, ...others) {
+        super(message, HttpCode.BAD_REQUEST, ...others);
+    }
 }
 
 /**
@@ -51,7 +40,7 @@ class DataValidationError extends withExtraInfo(withName(withHttpStatus(Error, H
  * @extends Error
  * @mixes withName
  */
-class OolongUsageError extends withName(withHttpStatus(Error, HttpCode.INTERNAL_SERVER_ERROR)) {
+class OolongUsageError extends withStatus(withExtraInfo(withName(Error)), HttpCode.INTERNAL_SERVER_ERROR) {
 }
 
 /**
@@ -61,7 +50,7 @@ class OolongUsageError extends withName(withHttpStatus(Error, HttpCode.INTERNAL_
  * @mixes withName
  * @mixes withExtraInfo
  */
-class DsOperationError extends withExtraInfo(withName(withHttpStatus(Error, HttpCode.INTERNAL_SERVER_ERROR))) {    
+class DsOperationError extends withStatus(withExtraInfo(withName(Error)), HttpCode.INTERNAL_SERVER_ERROR) {    
 }
 
 module.exports = {

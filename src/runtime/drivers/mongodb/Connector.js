@@ -16,9 +16,7 @@ class MongodbConnector extends Connector {
      * @property {boolean} [options.usePreparedStatement] - 
      */
     constructor(connectionString, options) {        
-        super('mongodb', connectionString, options); 
-        
-        this.client = new MongoClient(this.connectionString, {useNewUrlParser: true});
+        super('mongodb', connectionString, options);         
     }
 
     /**
@@ -28,6 +26,7 @@ class MongodbConnector extends Connector {
         if (this.client.isConnected()) {
             this.client.close();
         }
+        
         delete this.client;
     }
 
@@ -39,7 +38,12 @@ class MongodbConnector extends Connector {
      * @returns {Promise.<MySQLConnection>}
      */
     async connect_(options) {
-        await this.client.connect();
+        if (!this.client || !this.client.isConnected()) {
+            this.client = new MongoClient(this.connectionString, {useNewUrlParser: true});
+            await this.client.connect();
+
+            this.log('debug', 'Create connection: ' + this.connectionString);
+        }        
 
         return this.client.db(this.database);
     }
@@ -48,8 +52,7 @@ class MongodbConnector extends Connector {
      * Close a database connection.
      * @param {MySQLConnection} conn - MySQL connection.
      */
-    async disconnect_(conn) {        
-        this.client.close();        
+    async disconnect_(conn) {
     }
   
     async ping_() {  
@@ -100,6 +103,17 @@ class MongodbConnector extends Connector {
      */
     async updateOne_(model, data, condition, options) { 
         return this._execute_(model, options, (coll) => coll.updateOne(condition, { $set: data }));
+    }
+
+    /**
+     * Update an existing entity.
+     * @param {string} model 
+     * @param {object} data 
+     * @param {*} condition 
+     * @param {*} options 
+     */
+    async upsertOne_(model, data, condition, options) { 
+        return this._execute_(model, options, (coll) => coll.updateOne(condition, { $set: data }, {upsert: true}));
     }
 
     /**
