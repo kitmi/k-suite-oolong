@@ -19,6 +19,7 @@ class Connector {
         }
 
         let ConnectorClass = require(`./drivers/${driver}/Connector`);
+        
         return new ConnectorClass(connectionString, options);
     }
 

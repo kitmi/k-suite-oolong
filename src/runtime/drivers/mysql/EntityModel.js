@@ -84,7 +84,7 @@ class MySQLEntityModel extends EntityModel {
 
         if (context.createOptions.$retrieveCreated) {
             let condition = this.getUniqueKeyValuePairsFrom(context.latest);
-            context.latest = await this.findOne_({ $query: condition, $unboxing: true}, context.connOptions);
+            context.latest = await this.findOne_({ $query: condition }, context.connOptions);
         }
 
         return true;
@@ -98,7 +98,7 @@ class MySQLEntityModel extends EntityModel {
      */
     static async afterUpdate_(context) {
         if (context.updateOptions.$retrieveUpdated) {            
-            context.latest = await this.findOne_({ $query: context.updateOptions.$query, $unboxing: true}, context.connOptions);
+            context.latest = await this.findOne_({ $query: context.updateOptions.$query }, context.connOptions);
         }
 
         return true;
@@ -110,9 +110,7 @@ class MySQLEntityModel extends EntityModel {
             return table;
         }, {});
 
-        if (context.findOptions.$unboxing) return records;
-
-        return records.map(row => this.populate(row));
+        return records;
     }
 
     /**
@@ -129,7 +127,7 @@ class MySQLEntityModel extends EntityModel {
                 context.connOptions.connection = await this.db.connector.beginTransaction_();                           
             }
             
-            context.existing = await this.findOne_({ $query: context.deleteOptions.$query, $unboxing: true}, context.connOptions);
+            context.existing = await this.findOne_({ $query: context.deleteOptions.$query }, context.connOptions);
         }
     }
 

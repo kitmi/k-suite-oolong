@@ -24,6 +24,8 @@ const Connector = require('../runtime/Connector');
     let { dataSource, connectionString, options } = deployment;
     let [ driver ] = dataSource.split('.');
 
+    console.log(driver, connectionString);
+
     return Connector.createConnector(driver, connectionString, { logger: context.logger, ...options });       
  }
 

@@ -991,7 +991,7 @@ schema_statement
     ;
 
 schema_statement_block
-    : comment_or_not schema_entities schema_views_or_not -> Object.assign({}, $1, $2, $3)
+    : comment_or_not schema_entities? schema_views_or_not -> Object.assign({}, $1, $2, $3)
     ;
 
 schema_views_or_not

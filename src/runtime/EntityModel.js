@@ -1,8 +1,7 @@
 "use strict";
 
 const HttpCode = require('http-status-codes');
-const Util = require('rk-utils');
-const { _, getValueByPath } = Util._;
+const { _, eachAsync_ } = require('rk-utils');
 const Errors = require('./Errors');
 const Generators = require('./Generators');
 const Types = require('./types');
@@ -75,8 +74,7 @@ class EntityModel {
      * @property {object} [findOptions.$groupBy] - Group by fields
      * @property {object} [findOptions.$orderBy] - Order by fields
      * @property {number} [findOptions.$offset] - Offset
-     * @property {number} [findOptions.$limit] - Limit     
-     * @property {bool} [findOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {number} [findOptions.$limit] - Limit          
      * @property {bool} [findOptions.$includeDeleted=false] - Include those marked as logical deleted.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection]
@@ -118,14 +116,12 @@ class EntityModel {
             assert: records.length === 1;
             let result = records[0];
 
-            if (context.findOptions.$unboxing || findOptions.$skipOrm) return result;
-
-            return this.populate(result);
+            return result;
         }, context);
     }
 
     /**
-     * Find records matching the condition, returns an array of model object or an array of records directly if $unboxing = true.     
+     * Find records matching the condition, returns an array of records.     
      * @param {object} [findOptions] - findOptions     
      * @property {object} [findOptions.$association] - Joinings
      * @property {object} [findOptions.$projection] - Selected fields
@@ -134,8 +130,7 @@ class EntityModel {
      * @property {object} [findOptions.$orderBy] - Order by fields
      * @property {number} [findOptions.$offset] - Offset
      * @property {number} [findOptions.$limit] - Limit 
-     * @property {number} [findOptions.$totalCount] - Return totalCount      
-     * @property {bool} [findOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {number} [findOptions.$totalCount] - Return totalCount           
      * @property {bool} [findOptions.$includeDeleted=false] - Include those marked as logical deleted.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection]
@@ -192,8 +187,7 @@ class EntityModel {
      * Create a new entity with given data.
      * @param {object} data - Entity data 
      * @param {object} [createOptions] - Create options     
-     * @property {bool} [createOptions.$retrieveCreated=false] - Retrieve the newly created record from db.
-     * @property {bool} [createOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [createOptions.$retrieveCreated=false] - Retrieve the newly created record from db.     
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection]
      * @returns {EntityModel}
@@ -240,7 +234,7 @@ class EntityModel {
                 await this._createAssocs_(context, associations);
             }
             
-            return createOptions.$unboxing ? context.latest : this.populate(context.latest);
+            return context.latest;
         }, context);
     }
 
@@ -249,8 +243,7 @@ class EntityModel {
      * @param {object} data - Entity data with at least one unique key (pair) given
      * @param {object} [updateOptions] - Update options
      * @property {object} [updateOptions.$query] - Extra condition
-     * @property {bool} [updateOptions.$retrieveUpdated=false] - Retrieve the updated entity from database
-     * @property {bool} [updateOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [updateOptions.$retrieveUpdated=false] - Retrieve the updated entity from database     
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection]
      * @returns {object}
@@ -317,7 +310,7 @@ class EntityModel {
 
             await this.afterUpdate_(context);
             
-            return updateOptions.$unboxing ? context.latest : this.populate(context.latest);
+            return context.latest;
         }, context);
     }
 
@@ -325,8 +318,7 @@ class EntityModel {
      * Remove an existing entity with given data.     
      * @param {object} [deleteOptions] - Update options
      * @property {object} [deleteOptions.$query] - Extra condition
-     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database
-     * @property {bool} [deleteOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database     
      * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection] 
@@ -339,8 +331,7 @@ class EntityModel {
      * Remove an existing entity with given data.     
      * @param {object} [deleteOptions] - Update options
      * @property {object} [deleteOptions.$query] - Extra condition
-     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database
-     * @property {bool} [deleteOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database     
      * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection] 
@@ -353,8 +344,7 @@ class EntityModel {
      * Remove an existing entity with given data.     
      * @param {object} [deleteOptions] - Update options
      * @property {object} [deleteOptions.$query] - Extra condition
-     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database
-     * @property {bool} [deleteOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database     
      * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection] 
@@ -387,7 +377,7 @@ class EntityModel {
                 context.connOptions
             );
             
-            return deleteOptions.$unboxing ? context.existing : this.populate(context.existing);
+            return context.existing;
         }, context);
     }
 
@@ -445,11 +435,11 @@ class EntityModel {
                 context.connOptions.connection = await this.db.connector.beginTransaction_();                           
             } // else already in a transaction                        
 
-            existing = await this.findOne_({ $query: opOptions.$query, $unboxing: true }, context.connOptions);            
+            existing = await this.findOne_({ $query: opOptions.$query }, context.connOptions);            
             context.existing = existing;                        
         }        
 
-        await Util.eachAsync_(fields, async (fieldInfo, fieldName) => {
+        await eachAsync_(fields, async (fieldInfo, fieldName) => {
             if (fieldName in raw) {
                 //field value given in raw data
                 if (fieldInfo.readOnly) {
@@ -496,7 +486,15 @@ class EntityModel {
 
                     latest[fieldName] = null;
                 } else {
-                    latest[fieldName] = Types.sanitize(raw[fieldName], fieldInfo, i18n);
+                    try {
+                        latest[fieldName] = Types.sanitize(raw[fieldName], fieldInfo, i18n);
+                    } catch (error) {
+                        throw new DataValidationError(`Invalid "${fieldName}" value of "${name}" entity.`, {
+                            entity: name,
+                            fieldInfo: fieldInfo,
+                            error: error.message || error.stack 
+                        });
+                    }    
                 }
                 
                 return;

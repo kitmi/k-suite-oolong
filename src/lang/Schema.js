@@ -82,7 +82,7 @@ class Schema extends Clonable {
         this.displayName = this.comment || generateDisplayName(this.name);
 
         //1st round, get direct output entities
-        assert: !_.isEmpty(this.info.entities);
+        this.info.entities || (this.info.entities = []);
 
         this.info.entities.forEach(entityEntry => {            
             let entity = this.linker.loadEntity(this.oolModule, entityEntry.entity);

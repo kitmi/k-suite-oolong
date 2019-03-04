@@ -128,8 +128,7 @@ class MySQLMigration {
                 let items = Array.isArray(records) ? records : [ records ];
 
                 return eachAsync_(items, async item => {
-                    let model = await Model.create_(item);
-                    this.logger.log('verbose', `Created a(n) ${entityName} entity: ${JSON.stringify(model.$pkValues)}`);
+                    await Model.create_(item);
                 });
             });
 

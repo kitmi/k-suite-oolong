@@ -23,10 +23,10 @@ class MongodbConnector extends Connector {
      * Close all connection initiated by this connector.
      */
     async end_() {
-        if (this.client.isConnected()) {
+        if (this.client && this.client.isConnected()) {
             this.client.close();
         }
-        
+
         delete this.client;
     }
 
@@ -46,6 +46,20 @@ class MongodbConnector extends Connector {
         }        
 
         return this.client.db(this.database);
+    }
+
+    async execute_(dbExecutor, options) {
+        let db;
+    
+        try {
+            db = await this._getConnection_(options);
+
+            return await dbExecutor(db);
+        } catch(err) {            
+            throw err;
+        } finally {
+            db && await this._releaseConnection_(db, options);
+        }
     }
 
     /**
