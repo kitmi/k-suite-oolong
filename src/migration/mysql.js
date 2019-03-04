@@ -98,8 +98,7 @@ class MySQLMigration {
                 let entityData = [];
                 data[entityName] = entityData;
                 
-                worksheet.eachRow(function(row, rowNumber) {
-                    console.log('Row ' + rowNumber + ' = ' + JSON.stringify(row.values));
+                worksheet.eachRow(function(row, rowNumber) {                   
                     
                     if (!colKeys) {
                         colKeys = _.drop(row.values);    

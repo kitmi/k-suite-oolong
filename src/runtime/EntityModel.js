@@ -266,8 +266,26 @@ class EntityModel {
 
         return this._update_(data, updateOptions, connOptions);
     }
+
+    /**
+     * 
+     * @param {*} data 
+     * @param {*} updateOptions 
+     * @param {*} connOptions 
+     */
+    static async updateMany_(data, updateOptions, connOptions) {
+        if (updateOptions && updateOptions.$byPassReadOnly) {
+            throw new OolongUsageError('Unexpected usage.', { 
+                entity: this.meta.name, 
+                reason: '$byPassReadOnly option is not allow to be set from public update_ method.',
+                updateOptions
+            });     
+        }
+
+        return this._update_(data, updateOptions, connOptions, false);
+    }
     
-    static async _update_(data, updateOptions, connOptions) {
+    static async _update_(data, updateOptions, connOptions, forSingleRecord) {
         if (!updateOptions) {
             let conditionFields = this.getUniqueKeyFieldsFrom(data);
             if (_.isEmpty(conditionFields)) {
@@ -277,7 +295,7 @@ class EntityModel {
             data = _.omit(data, conditionFields);
         }
 
-        updateOptions = this._prepareQueries(updateOptions, true /* for single record */);
+        updateOptions = this._prepareQueries(updateOptions, forSingleRecord /* for single record */);
 
         let context = { 
             raw: data, 
@@ -314,9 +332,37 @@ class EntityModel {
      * @property {object} [connOptions.connection] 
      */
     static async delete_(deleteOptions, connOptions) {
+        return this._delete_(deleteOptions, connOptions, true);
+    }
+
+    /**
+     * Remove an existing entity with given data.     
+     * @param {object} [deleteOptions] - Update options
+     * @property {object} [deleteOptions.$query] - Extra condition
+     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database
+     * @property {bool} [deleteOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @param {object} [connOptions]
+     * @property {object} [connOptions.connection] 
+     */
+    static async deleteMany_(deleteOptions, connOptions) {
+        return this._delete_(deleteOptions, connOptions, false);
+    }
+
+    /**
+     * Remove an existing entity with given data.     
+     * @param {object} [deleteOptions] - Update options
+     * @property {object} [deleteOptions.$query] - Extra condition
+     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database
+     * @property {bool} [deleteOptions.$unboxing=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
+     * @param {object} [connOptions]
+     * @property {object} [connOptions.connection] 
+     */
+    static async _delete_(deleteOptions, connOptions, forSingleRecord) {
         pre: deleteOptions;
 
-        deleteOptions = this._prepareQueries(deleteOptions, true /* for single record */);
+        deleteOptions = this._prepareQueries(deleteOptions, forSingleRecord /* for single record */);
 
         if (_.isEmpty(deleteOptions.$query)) {
             throw new OolongUsageError('Empty condition is not allowed for deleting an entity.');
