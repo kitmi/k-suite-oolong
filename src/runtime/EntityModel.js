@@ -547,7 +547,18 @@ class EntityModel {
             } // else default value set by database or by rules
         });
 
-        await Features.applyRules_(Rules.RULE_AFTER_VALIDATION, this, context);    
+        try {
+            await Features.applyRules_(Rules.RULE_AFTER_VALIDATION, this, context);    
+        } catch (error) {
+            if (error.status) {
+                throw error;
+            }
+
+            throw new DsOperationError(
+                `Error occurred during applying features rules to entity "${this.meta.name}". Detail: ` + error.message,
+                { error: error }
+            );
+        }
 
         await this.applyModifiers_(context, isUpdating);
 
