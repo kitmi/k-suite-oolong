@@ -334,7 +334,7 @@ class EntityModel {
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection] 
      */
-    static async delete_(deleteOptions, connOptions) {
+    static async deleteOne_(deleteOptions, connOptions) {
         return this._delete_(deleteOptions, connOptions, true);
     }
 

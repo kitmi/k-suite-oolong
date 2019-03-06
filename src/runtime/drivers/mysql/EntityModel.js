@@ -38,6 +38,8 @@ class MySQLEntityModel extends EntityModel {
         return value;
     }
 
+    
+
     static async create_(...args) {
         try {            
             return await super.create_(...args);

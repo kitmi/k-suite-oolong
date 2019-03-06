@@ -2,6 +2,7 @@
 
 const Util = require('rk-utils');
 const { _ } = Util;
+const { isNothing } = require('../utils/lang');
 
 const validator = require('validator');
 
@@ -84,4 +85,12 @@ module.exports.lt = function (value, maxValue) {
 
 module.exports.maxLength = function (value, maxLength) {
     return value.length <= maxLength;
+};
+
+module.exports.notNull = function (value) {
+    return !isNothing(value);
+};
+
+module.exports.notNullIf = function (value, condition) {
+    return !condition || !isNothing(value);
 };

@@ -9,7 +9,8 @@ exports.commands = {
     'migrate': 'Create database structure.',    
     'dataset': 'List available data set.',
     'import': 'Import data set.',
-    'reverse': 'Reverse engineering from a databse.'
+    'reverse': 'Reverse engineering from a databse.',
+    'listValidators': 'List all builtin validators.'
 };
 
 /**
@@ -115,6 +116,9 @@ exports.options = (core) => {
                 afterInquire: () => { console.log('The conenction string of selected connector:', connectionStrings[core.option('conn')]); }                
             };
             break;
+
+        case 'listValidators':
+            break;    
         
         default:
             //module general options
@@ -294,3 +298,11 @@ exports.reverse = async (core) => {
         connOptions
     });
 };
+
+exports.listValidators = async (core) => {
+    core.app.log('verbose', 'oolong listValidators');
+
+    let list = core.api.getValidatorList();
+
+    core.app.log('info', 'Available validators: \n' + list.join('\n') + '\n');
+}

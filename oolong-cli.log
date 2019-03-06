@@ -1,0 +1,18 @@
+{"level":"verbose","message":"Logger injected.","timestamp":"2019-03-06T07:36:38.702Z"}
+{"level":"verbose","message":"Process-wide error handlers injected.","timestamp":"2019-03-06T07:36:38.704Z"}
+{"level":"verbose","message":"Loading \"Initial\" feature group ...","timestamp":"2019-03-06T07:36:38.709Z"}
+{"level":"verbose","message":"Loading feature \"version\" ...","timestamp":"2019-03-06T07:36:38.710Z"}
+{"level":"verbose","message":"Feature \"version\" loaded. [OK]","timestamp":"2019-03-06T07:36:38.712Z"}
+{"level":"verbose","message":"Loading feature \"commandLineOptions\" ...","timestamp":"2019-03-06T07:36:38.712Z"}
+{"level":"verbose","message":"Feature \"commandLineOptions\" loaded. [OK]","timestamp":"2019-03-06T07:36:38.717Z"}
+{"level":"verbose","message":"Finished loading \"Initial\" feature group. [OK]","timestamp":"2019-03-06T07:36:38.717Z"}
+{"level":"verbose","message":"Loading \"Services\" feature group ...","timestamp":"2019-03-06T07:36:38.717Z"}
+{"level":"verbose","message":"Finished loading \"Services\" feature group. [OK]","timestamp":"2019-03-06T07:36:38.718Z"}
+{"level":"verbose","message":"Loading \"Plugins\" feature group ...","timestamp":"2019-03-06T07:36:38.718Z"}
+{"level":"verbose","message":"Finished loading \"Plugins\" feature group. [OK]","timestamp":"2019-03-06T07:36:38.718Z"}
+{"level":"verbose","message":"Loading \"Final\" feature group ...","timestamp":"2019-03-06T07:36:38.718Z"}
+{"level":"verbose","message":"Finished loading \"Final\" feature group. [OK]","timestamp":"2019-03-06T07:36:38.718Z"}
+{"level":"verbose","message":"oolong listValidators","timestamp":"2019-03-06T07:36:38.722Z"}
+{"level":"info","message":"Available validators: \nequals\ncontains\nmatches\nisEmail\nisURL\nisMACAddress\nisIP\nisFQDN\nisBoolean\nisAlpha\nisAlphanumeric\nisNumeric\nisPort\nisLowercase\nisUppercase\nisAscii\nisFullWidth\nisHalfWidth\nisVariableWidth\nisMultibyte\nisSurrogatePair\nisInt\nisFloat\nisDecimal\nisHexadecimal\nisDivisibleBy\nisHexColor\nisISRC\nisMD5\nisHash\nisJSON\nisEmpty\nisLength\nisByteLength\nisUUID\nisMongoId\nisAfter\nisBefore\nisIn\nisCreditCard\nisISIN\nisISBN\nisISSN\nisMobilePhone\nisPostalCode\nisCurrency\nisISO8601\nisISO31661Alpha2\nisBase64\nisDataURI\nisMimeType\nisLatLong\nisPhone\nmin\nmax\ngt\nlt\nmaxLength\nnotNull\nnotNullIf\n","timestamp":"2019-03-06T07:36:38.723Z"}
+{"level":"verbose","message":"Process-wide error handlers are detaching ...","timestamp":"2019-03-06T07:36:38.726Z"}
+{"level":"verbose","message":"Logger is detaching ...","timestamp":"2019-03-06T07:36:38.726Z"}

@@ -7,6 +7,7 @@ const { _, fs, eachAsync_ } = Util;
 
 const Linker = require('./Linker');
 const Connector = require('../runtime/Connector');
+const Validators = require('../runtime/Validators');
 
 /**
  * Oolong DSL api
@@ -212,3 +213,7 @@ exports.reverse_ = async (context) => {
         await connector.end_();
     } 
 };
+
+exports.getValidatorList = () => {
+    return Object.keys(Validators);    
+}
