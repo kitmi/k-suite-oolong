@@ -63,6 +63,17 @@ class EntityModel {
         let ukFields = this.getUniqueKeyFieldsFrom(data);
         return _.pick(data, ukFields);
     }
+
+    /**
+     * Get a pk-indexed hashtable with all undeleted data
+     */
+    static async cached_() {
+        if (!this._cachedData) {
+            this._cachedData = await this.findAll_({ $toDictionary: true });
+        }
+
+        return this._cachedData;
+    }
     
     /**
      * Find one record, returns a model object containing the record or undefined if nothing found.

@@ -331,8 +331,8 @@ class MySQLConnector extends Connector {
         if ($association) {  
             //console.dir($association, { depth: 16, colors: true });                           
             joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams); 
-            console.log(joinings);                                       
-            console.log(joiningParams);                                       
+            //console.log(joinings);                                       
+            //console.log(joiningParams);                                       
             hasJoining = model;
         }
 
@@ -398,7 +398,7 @@ class MySQLConnector extends Connector {
 
         result.sql = sql;
 
-        console.dir(result, { depth: 10, colors: true });
+        //console.dir(result, { depth: 10, colors: true });
         
         return result;
     }
@@ -445,7 +445,7 @@ class MySQLConnector extends Connector {
     _joinAssociations(associations, parentAliasKey, parentAlias, aliasMap, startId, params) {
         let joinings = [];
 
-        console.log('associations:', Object.keys(associations));
+        //console.log('associations:', Object.keys(associations));
 
         _.each(associations, (assocInfo, anchor) => { 
             let alias = assocInfo.alias || this._generateAlias(startId++, anchor); 
