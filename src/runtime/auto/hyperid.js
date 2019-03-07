@@ -5,7 +5,7 @@ const { tryRequire } = require('@k-suite/app/lib/utils/Helpers');
 let flInstance, instance;
 
 module.exports = function (info, i18n, options) {
-    pre: info.type === 'text', '"uuid" should be a text field.';
+    pre: info.type === 'text', '"hyperid" should be a text field.';
 
     const hyperid = tryRequire('hyperid');
 

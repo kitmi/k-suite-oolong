@@ -13,5 +13,9 @@ module.exports = {
 
     select: function () {
         
+    },
+
+    triggerUpdate: function (value, condition) {
+        return condition ? value : null;
     }
 };

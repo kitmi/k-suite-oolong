@@ -1,5 +1,7 @@
 "use strict";
 
+const { _ } = require('rk-utils');
+
 const FEATURE_NAME = 'autoId';
 
 /**
@@ -24,20 +26,76 @@ function feature(entity, args = []) {
 
     let [ options ] = args;
 
+    let featureExtra = {};
+
     if (options) {
         if (typeof options === 'string') {
             options = { name: options };
         }
 
-        //todo: fix by type
-        //Object.assign(typeInfo, options);
+        if (options.type) {
+            switch (options.type) {
+                case 'integer':
+                    if (options.startFrom) {
+                        featureExtra.startFrom = options.startFrom;
+                    }
+                break;
+
+                case 'uuid':
+                    typeInfo['type'] = 'text';
+                    typeInfo['fixedLength'] = 36;
+                    typeInfo['generator'] = 'uuid';
+                break;
+
+                case 'uniqid':
+                    typeInfo['type'] = 'text';                    
+
+                    if (options.prefix) {
+                        if (typeof options.prefix !== 'string') {
+                            throw new Error(`"prefix" option should be a string. Entity: ${entity.name}, feature: autoId`);
+                        }    
+
+                        typeInfo['fixedLength'] = 17 + options.prefix.length;
+                        typeInfo['generator'] = [ 'uniqid', options.prefix ];
+                    } else {
+                        typeInfo['fixedLength'] = 17;
+                        typeInfo['generator'] = 'uniqid';
+                    }                    
+                break;
+
+                case 'hyperid':
+                    typeInfo['type'] = 'text';                       
+                    typeInfo['fixedLength'] = 33;
+
+                    let args = [ 'hyperid' ];
+                    let opt = {};
+
+                    if (options.fixedLength) {
+                        opt.fixedLength = options.fixedLength;
+                    }
+
+                    if (options.urlSafe) {
+                        opt.urlSafe = options.urlSafe;
+                    }
+
+                    if (!_.isEmpty(opt)) {
+                        args.push(opt);
+                    }
+
+                    typeInfo['generator'] = args.length > 1 ? args : args[0];
+                break;
+
+                default:
+                    throw new Error(`Unsupported autoId type: ${options.type}. Entity: ${entity.name}`);
+            }
+        }        
     }
 
     let fieldName = typeInfo.name;
 
     entity.addFeature(FEATURE_NAME, {
         field: fieldName,
-        ...(options && options.startFrom ? { startFrom: options.startFrom } : {})        
+        ...featureExtra)        
     }).on('beforeAddingFields', () => {
         entity.addField(fieldName, typeInfo)
             .setKey(fieldName);

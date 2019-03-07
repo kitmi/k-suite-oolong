@@ -29,6 +29,13 @@ function auto(info, i18n) {
         //customized generator
         if (typeof info.generator === 'string') {
             name = info.generator;
+        } else if (Array.isArray(info.generator)) {
+            assert: info.generator.length > 0;
+            name = info.generator[0];
+
+            if (info.generator.length > 1) {
+                options = info.generator[1];
+            }
         } else {
             name = info.generator.name;
             options = info.generator.options;

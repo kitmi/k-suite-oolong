@@ -13,6 +13,7 @@ module.exports = {
         'forceUpdate',
         'freezeAfterNonDefault',
         'comment',
-        'displayName'
+        'displayName',
+        'generator'
     ])
 };
