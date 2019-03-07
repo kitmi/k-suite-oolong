@@ -95,7 +95,7 @@ function feature(entity, args = []) {
 
     entity.addFeature(FEATURE_NAME, {
         field: fieldName,
-        ...featureExtra)        
+        ...featureExtra        
     }).on('beforeAddingFields', () => {
         entity.addField(fieldName, typeInfo)
             .setKey(fieldName);
