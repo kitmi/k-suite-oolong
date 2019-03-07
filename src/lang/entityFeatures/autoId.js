@@ -31,7 +31,7 @@ function feature(entity, args = []) {
     if (options) {
         if (typeof options === 'string') {
             options = { name: options };
-        }
+        }        
 
         if (options.type) {
             switch (options.type) {
@@ -88,7 +88,11 @@ function feature(entity, args = []) {
                 default:
                     throw new Error(`Unsupported autoId type: ${options.type}. Entity: ${entity.name}`);
             }
-        }        
+        } else {
+            if (options.startFrom) {
+                featureExtra.startFrom = options.startFrom;
+            }
+        }       
     }
 
     let fieldName = typeInfo.name;
