@@ -259,7 +259,7 @@ class EntityModel {
      * @property {object} [connOptions.connection]
      * @returns {object}
      */
-    static async update_(data, updateOptions, connOptions) {
+    static async updateOne_(data, updateOptions, connOptions) {
         if (updateOptions && updateOptions.$byPassReadOnly) {
             throw new OolongUsageError('Unexpected usage.', { 
                 entity: this.meta.name, 

@@ -2,6 +2,7 @@
 
 const Types = require('./types'); 
 const Errors = require('./Errors');
+const Activators = require('./Activators');
 const Convertors = require('./Convertors');
 const Processors = require('./Processors');
 const Validators = require('./Validators');
@@ -12,6 +13,7 @@ const Lang = require('../utils/lang');
 module.exports = { 
     Types, 
     Errors, 
+    Activators,
     Convertors, 
     Processors, 
     Validators, 

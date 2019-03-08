@@ -56,9 +56,9 @@ class MySQLEntityModel extends EntityModel {
         }
     }
 
-    static async update_(...args) {
+    static async updateOne_(...args) {
         try {            
-            return await super.update_(...args);
+            return await super.updateOne_(...args);
         } catch (error) {
             let errorCode = error.code;
 
