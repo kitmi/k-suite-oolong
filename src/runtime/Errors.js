@@ -1,6 +1,6 @@
 "use strict";
 
-const { withStatus, withName, withExtraInfo } = require('@k-suite/app/lib/utils/Helpers');
+const { withStatus, withExpose, withName, withExtraInfo } = require('@k-suite/app/lib/utils/Helpers');
 const HttpCode = require('http-status-codes');
 
 /**
@@ -10,7 +10,7 @@ const HttpCode = require('http-status-codes');
  * @mixes withName
  * @mixes withExtraInfo
  */
-class BusinessError extends withExtraInfo(withName(Error)) {    
+class BusinessError extends withExpose(withExtraInfo(withName(Error))) {    
     constructor(message, status, ...others) {
         if (arguments.length === 1 && typeof message === 'number') {
             super(HttpCode.getStatusText(message));
