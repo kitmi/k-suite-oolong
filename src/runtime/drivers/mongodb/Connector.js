@@ -164,19 +164,21 @@ class MongodbConnector extends Connector {
 
             let queryOptions = {};
 
-            if (!_.isEmpty(condition.$projection)) {
+            console.log(condition);
+
+            if (condition.$projection) {
                 queryOptions.projection = condition.$projection;                
             }
 
-            if (!_.isEmpty(condition.$orderBy)) {
+            if (condition.$orderBy) {
                 queryOptions.sort = condition.$orderBy;                
             }
 
-            if (!_.isEmpty(condition.$offset)) {
+            if (condition.$offset) {
                 queryOptions.skip = condition.$offset;                
             }
 
-            if (!_.isEmpty(condition.$limit)) {
+            if (condition.$limit) {
                 queryOptions.limit = condition.$limit;                
             }
 
@@ -186,7 +188,14 @@ class MongodbConnector extends Connector {
 
             console.log('queryOptions', queryOptions);
 
-            return await db.collection(model).find(query, queryOptions).toArray();
+            let result = await db.collection(model).find(query, queryOptions).toArray();
+
+            if (condition.$totalCount) {
+                let totalCount = await db.collection(model).find(query).count();
+                return [ result, totalCount ];
+            }
+
+            return result;
         } catch(err) {
             this.log('error', err.message, { stack: err.stack });
         } finally {
