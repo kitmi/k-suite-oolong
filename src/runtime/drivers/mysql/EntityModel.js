@@ -36,9 +36,7 @@ class MySQLEntityModel extends EntityModel {
         }
 
         return value;
-    }
-
-    
+    }    
 
     static async create_(...args) {
         try {            
@@ -99,7 +97,7 @@ class MySQLEntityModel extends EntityModel {
      * @property {bool} [updateOptions.$retrieveUpdated] - Retrieve the newly updated record from db. 
      */
     static async afterUpdate_(context) {
-        if (context.updateOptions.$retrieveUpdated) {            
+        if (context.updateOptions.$retrieveUpdated) {          
             context.latest = await this.findOne_({ $query: context.updateOptions.$query }, context.connOptions);
         }
 
@@ -207,140 +205,6 @@ class MySQLEntityModel extends EntityModel {
 
         return result;
     }
-
-    /*
-    static _prepareAssociations(findOptions) { 
-        let associations = findOptions.$association.concat().sort();        
-        
-        let cache = {}, hierarchy = [];
-        
-        associations.forEach(assoc => {
-            if (_.isPlainObject(assoc)) {
-                hierarchy.push({ 
-                    entity: assoc.entity, 
-                    joinType: assoc.type, 
-                    output: assoc.output,
-                    ...(assoc.alias ? { alias: assoc.alias } : {}),
-                    ...assoc.on,
-                    ...this.db.connector.buildQuery(assoc.entity, 
-                        this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables }))                        
-                });
-                return;
-            }
-
-            let [ remoteEntity, base, anchor, assocInfo ] = this._getRelatedEntity(assoc, cache);
-            assert: assocInfo;            
-
-            let remoteEntityName = remoteEntity.meta.name;
-
-            let detail = {
-                entity: remoteEntityName,
-                keyField: remoteEntity.meta.keyField,
-                joinType: 'LEFT JOIN',
-                anchor
-            };
-
-            let toCache = {
-                entity: remoteEntity,
-                detail
-            };
-
-            if (assocInfo.isList) {
-                detail.isList = true;
-            }
-
-            if (assocInfo.optional) {
-                detail.optional = true;
-            }
-            
-            if (assocInfo.connectedBy) {
-                detail.localField = cache[base] ? cache[base].entity.meta.keyField : this.meta.keyField;
-                detail.remoteField = assocInfo.remoteField || this.meta.name;
-
-                detail.entity = assocInfo.connectedBy;
-                detail.keyField = this.db.model(assocInfo.connectedBy).meta.keyField;
-
-                if (assocInfo.connectedWith) {
-                    detail.connectedWith = assocInfo.connectedWith;
-                }                
-
-                toCache.detail = {
-                    entity: remoteEntityName,
-                    keyField: remoteEntity.meta.keyField,
-                    joinType: 'LEFT JOIN',
-                    anchor: assocInfo.refersToField,
-                    localField: assocInfo.refersToField,
-                    remoteField: remoteEntity.meta.keyField
-                };
-
-                detail.subAssociations = [
-                    toCache.detail
-                ];
-            } else if (assocInfo.isList) {
-                detail.localField = cache[base] ? cache[base].entity.meta.keyField : this.meta.keyField;
-
-                if (assocInfo.remoteFields) {
-                    detail.remoteFields = assocInfo.remoteFields;
-                    detail.joinType = 'RIGHT JOIN';
-                } else {
-                    detail.remoteField = assocInfo.remoteField || this.meta.name;
-                }
-            } else {
-                detail.localField = anchor;
-                if (assocInfo.remoteFields) {
-                    detail.remoteFields = assocInfo.remoteFields;
-                    detail.joinType = 'RIGHT JOIN';
-                } else {
-                    detail.remoteField = remoteEntity.meta.keyField;
-                }
-            }
-
-            if (cache[base]) {
-                if (cache[base].detail.subAssociations) {
-                    cache[base].detail.subAssociations.push(detail);
-                } else {
-                    cache[base].detail.subAssociations = [ detail ];
-                }
-            } else {
-                hierarchy.push(detail);
-            }
-
-            cache[assoc] = toCache;
-        });
-
-        return hierarchy;
-    }*/
-
-    /*
-    static _getRelatedEntity(assocPath, cache) {        
-        let parts = assocPath.split('.');        
-        let base = parts.slice(0, -1).join('.');        
-
-        let cacheNode = cache[base];
-        if (cacheNode) {
-            let last = parts.pop();
-            let assocInfo = cacheNode.entity.meta.associations[last];
-            if (!assocInfo) {
-                throw new BusinessError(`Unknown association of "${this.meta.name}" entity: ${assocPath}`);
-            }
-
-            return [ this.db.model(assocInfo.entity), base, last, assocInfo ];
-        }
-
-        let entity = this, current, currentAssocInfo;
-
-        while (parts.length > 0) {
-            current = parts.shift();
-            currentAssocInfo = entity.meta.associations[current];
-            if (!currentAssocInfo) {
-                throw new BusinessError(`Unknown association of "${this.meta.name}" entity: ${assocPath}`);
-            }
-
-            entity = this.db.model(currentAssocInfo.entity);
-        }
-
-        return [ entity, base, current, currentAssocInfo ];
-    }*/
 
     static _mapRecordsToObjects([rows, columns, aliasMap], hierarchy) {
         let mainIndex = {};        

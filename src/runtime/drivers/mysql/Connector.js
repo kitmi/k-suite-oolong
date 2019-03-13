@@ -235,15 +235,34 @@ class MySQLConnector extends Connector {
      * Update an existing entity.
      * @param {string} model 
      * @param {object} data 
-     * @param {*} condition 
+     * @param {*} query 
+     * @param {*} queryOptions  
      * @param {*} options 
      */
-    async update_(model, data, condition, options) {        
-        let params = [ model, data ]; 
+    async update_(model, data, query, queryOptions, options) {        
+        let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false, joiningParams = []; 
 
-        let whereClause = this._joinCondition(condition, params);        
+        if (queryOptions && queryOptions.$association) {                                        
+            joinings = this._joinAssociations(queryOptions.$association, model, 'A', aliasMap, 1, joiningParams);             
+            hasJoining = model;
+        }
 
-        let sql = 'UPDATE ?? SET ? WHERE ' + whereClause;
+        let sql = 'UPDATE ' + mysql.escapeId(model);
+
+        if (hasJoining) {
+            joiningParams.forEach(p => params.push(p));
+            sql += ' A ' + joinings.join(' ');
+        }
+
+        params.push(data);
+        sql += ' SET ?';
+
+        if (query) {
+            let whereClause = this._joinCondition(query, params, null, hasJoining, aliasMap);   
+            if (whereClause) {
+                sql += ' WHERE ' + whereClause;                
+            }                             
+        }    
 
         return this.execute_(sql, params, options);
     }
@@ -328,25 +347,20 @@ class MySQLConnector extends Connector {
 
         // build alias map first
         // cache params
-        if ($association) {  
-            //console.dir($association, { depth: 16, colors: true });                           
-            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams); 
-            //console.log(joinings);                                       
-            //console.log(joiningParams);                                       
+        if ($association) {                                        
+            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams);             
             hasJoining = model;
         }
 
         let selectColomns = $projection ? this._buildColumns($projection, params, hasJoining, aliasMap) : '*';
 
-        // move cached joining params into params
-        // should according to the place of clause in a sql 
-        if (hasJoining) {
-            joiningParams.forEach(p => params.push(p));
-        }            
-        
         let sql = ' FROM ' + mysql.escapeId(model);
 
+        // move cached joining params into params
+        // should according to the place of clause in a sql        
+
         if (hasJoining) {
+            joiningParams.forEach(p => params.push(p));
             sql += ' A ' + joinings.join(' ');
         }
 

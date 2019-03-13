@@ -17,5 +17,9 @@ module.exports = {
 
     triggerUpdate: function (value, condition) {
         return condition ? value : null;
-    }
+    },
+
+    sum: (...args) => args.reduce((sum, v) => sum += v, 0),
+
+    multiply: (multiplier, multiplicand) => multiplier*multiplicand
 };

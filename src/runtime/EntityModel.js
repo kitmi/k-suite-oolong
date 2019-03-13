@@ -188,7 +188,17 @@ class EntityModel {
         }, context);
 
         if (findOptions.$totalCount) {
-            return { totalItems: totalCount, items: rows };
+            let ret = { totalItems: totalCount, items: rows };
+
+            if (!isNothing(findOptions.$offset)) {
+                ret.offset = findOptions.$offset;
+            }
+
+            if (!isNothing(findOptions.$limit)) {
+                ret.limit = findOptions.$limit;
+            }
+
+            return ret;
         }
 
         return rows;
@@ -250,6 +260,68 @@ class EntityModel {
     }
 
     /**
+     * Create a new entity with given data.
+     * @param {object} data - Entity data 
+     * @param {object} [createOptions] - Create options     
+     * @property {bool} [createOptions.$retrieveCreated=false] - Retrieve the newly created record from db.     
+     * @param {object} [connOptions]
+     * @property {object} [connOptions.connection]
+     * @returns {EntityModel}
+     */
+    /*
+    static async createMany_(records, createOptions, connOptions) {
+        createOptions || (createOptions = {});
+
+        records.forEach(data => {
+            
+
+
+        });
+
+        let [ raw, associations ] = this._extractAssociations(data);
+
+        let context = { 
+            raw, 
+            createOptions,
+            connOptions
+        };       
+        
+        let needCreateAssocs = false;
+
+        if (!_.isEmpty(associations)) {
+            needCreateAssocs = true;
+        }
+
+        return this._safeExecute_(async (context) => {
+            if (needCreateAssocs) {
+                if (!context.connOptions || !context.connOptions.connection) {                
+                    context.connOptions || (context.connOptions = {});
+    
+                    context.connOptions.connection = await this.db.connector.beginTransaction_();                           
+                } // else already in a transaction                        
+            }
+
+            await this._prepareEntityData_(context);          
+
+            await Features.applyRules_(Rules.RULE_BEFORE_CREATE, this, context);    
+
+            context.result = await this.db.connector.create_(
+                this.meta.name, 
+                context.latest, 
+                context.connOptions
+            );
+
+            await this.afterCreate_(context);
+
+            if (needCreateAssocs) {
+                await this._createAssocs_(context, associations);
+            }
+            
+            return context.latest;
+        }, context);
+    }*/
+
+    /**
      * Update an existing entity with given data.
      * @param {object} data - Entity data with at least one unique key (pair) given
      * @param {object} [updateOptions] - Update options
@@ -301,6 +373,10 @@ class EntityModel {
 
         updateOptions = this._prepareQueries(updateOptions, forSingleRecord /* for single record */);
 
+        if (updateOptions.$association) {
+            updateOptions.$association = this._prepareAssociations(updateOptions);
+        }
+
         let context = { 
             raw: data, 
             updateOptions,
@@ -316,8 +392,9 @@ class EntityModel {
                 this.meta.name, 
                 context.latest, 
                 context.updateOptions.$query,
+                context.updateOptions,
                 context.connOptions
-            );
+            );            
 
             await this.afterUpdate_(context);
             
@@ -657,7 +734,7 @@ class EntityModel {
             if (k[0] === '$') {
                 normalizedOptions[k] = v;
             } else {
-                query[k] = v;
+                query[k] = v;                
             }
         });
 
@@ -669,8 +746,12 @@ class EntityModel {
 
         normalizedOptions.$query = this.translateValue(normalizedOptions.$query, normalizedOptions.$variables);
 
-        if (normalizedOptions.$having) {
-            normalizedOptions.$having = this.translateValue(normalizedOptions.$having, normalizedOptions.$variables);
+        if (normalizedOptions.$groupBy) {
+            if (_.isPlainObject(normalizedOptions.$groupBy)) {
+                if (normalizedOptions.$groupBy.having) {
+                    normalizedOptions.$groupBy.having = this.translateValue(normalizedOptions.$groupBy.having, normalizedOptions.$variables);
+                }
+            }
         }
 
         if (normalizedOptions.$projection) {
