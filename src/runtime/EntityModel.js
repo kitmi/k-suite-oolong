@@ -103,8 +103,8 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
-        if (findOptions.$association) {
-            findOptions.$association = this._prepareAssociations(findOptions);
+        if (findOptions.$association && !findOptions.$relationships) {
+            findOptions.$relationships = this._prepareAssociations(findOptions);
         }
 
         return this._safeExecute_(async (context) => {            
@@ -115,11 +115,11 @@ class EntityModel {
             );
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
 
-            if (findOptions.$association && !findOptions.$skipOrm) {  
+            if (findOptions.$relationships && !findOptions.$skipOrm) {  
                 //rows, coloumns, aliasMap                    
                 if (records[0].length === 0) return undefined;
 
-                records = this._mapRecordsToObjects(records, findOptions.$association);
+                records = this._mapRecordsToObjects(records, findOptions.$relationships);
             } else if (records.length === 0) {
                 return undefined;
             }
@@ -157,8 +157,8 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
-        if (findOptions.$association) {
-            findOptions.$association = this._prepareAssociations(findOptions);
+        if (findOptions.$association && !findOptions.$relationships) {
+            findOptions.$relationships = this._prepareAssociations(findOptions);
         }
 
         let totalCount;
@@ -172,11 +172,11 @@ class EntityModel {
 
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
 
-            if (findOptions.$association && !findOptions.$skipOrm) {
+            if (findOptions.$relationships && !findOptions.$skipOrm) {
                 if (findOptions.$totalCount) {
                     totalCount = records[3];
                 }                              
-                records = this._mapRecordsToObjects(records, findOptions.$association);
+                records = this._mapRecordsToObjects(records, findOptions.$relationships);
             } else {
                 if (findOptions.$totalCount) {
                     totalCount = records[1];
@@ -373,8 +373,8 @@ class EntityModel {
 
         updateOptions = this._prepareQueries(updateOptions, forSingleRecord /* for single record */);
 
-        if (updateOptions.$association) {
-            updateOptions.$association = this._prepareAssociations(updateOptions);
+        if (updateOptions.$association && !updateOptions.$relationships) {
+            updateOptions.$relationships = this._prepareAssociations(updateOptions);
         }
 
         let context = { 
@@ -740,7 +740,7 @@ class EntityModel {
 
         normalizedOptions.$query = { ...query, ...normalizedOptions.$query };
 
-        if (forSingleRecord) {
+        if (forSingleRecord && !options.$byPassEnsureUnique) {            
             this._ensureContainsUniqueKey(normalizedOptions.$query);
         }        
 

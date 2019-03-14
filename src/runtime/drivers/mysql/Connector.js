@@ -242,8 +242,8 @@ class MySQLConnector extends Connector {
     async update_(model, data, query, queryOptions, options) {        
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false, joiningParams = []; 
 
-        if (queryOptions && queryOptions.$association) {                                        
-            joinings = this._joinAssociations(queryOptions.$association, model, 'A', aliasMap, 1, joiningParams);             
+        if (queryOptions && queryOptions.$relationships) {                                        
+            joinings = this._joinAssociations(queryOptions.$relationships, model, 'A', aliasMap, 1, joiningParams);             
             hasJoining = model;
         }
 
@@ -342,13 +342,13 @@ class MySQLConnector extends Connector {
      * @param {*} model 
      * @param {*} condition      
      */
-    buildQuery(model, { $association, $projection, $query, $groupBy, $orderBy, $offset, $limit, $totalCount }) {
+    buildQuery(model, { $relationships, $projection, $query, $groupBy, $orderBy, $offset, $limit, $totalCount }) {
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false, joiningParams = [];        
 
         // build alias map first
         // cache params
-        if ($association) {                                        
-            joinings = this._joinAssociations($association, model, 'A', aliasMap, 1, joiningParams);             
+        if ($relationships) {                                        
+            joinings = this._joinAssociations($relationships, model, 'A', aliasMap, 1, joiningParams);             
             hasJoining = model;
         }
 

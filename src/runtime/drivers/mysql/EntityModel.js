@@ -97,8 +97,18 @@ class MySQLEntityModel extends EntityModel {
      * @property {bool} [updateOptions.$retrieveUpdated] - Retrieve the newly updated record from db. 
      */
     static async afterUpdate_(context) {
-        if (context.updateOptions.$retrieveUpdated) {          
-            context.latest = await this.findOne_({ $query: context.updateOptions.$query }, context.connOptions);
+        if (context.updateOptions.$retrieveUpdated) {    
+            let condition = { $query: context.updateOptions.$query };
+
+            if (context.updateOptions.$byPassEnsureUnique) {
+                condition.$byPassEnsureUnique = context.updateOptions.$byPassEnsureUnique;
+            }
+
+            if (context.updateOptions.$relationships) {
+                condition.$relationships = context.updateOptions.$relationships;
+            }
+            
+            context.latest = await this.findOne_(condition, context.connOptions);
         }
 
         return true;
