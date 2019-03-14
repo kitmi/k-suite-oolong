@@ -652,7 +652,10 @@ class MySQLConnector extends Connector {
                             case '$greaterThan':
     
                                 if (!_.isFinite(v)) {
-                                    throw new Error('Only finite numbers can use "$gt" or "$>" operator.');
+                                    v = _.toFinite(v);
+                                    if (isNaN(v)) {
+                                        throw new Error('Only finite numbers can use "$gt" or "$>" operator.');
+                                    }
                                 }
                                 
                                 if (inject) {
@@ -667,7 +670,10 @@ class MySQLConnector extends Connector {
                             case '$greaterThanOrEqual':
                             
                                 if (!_.isFinite(v)) {
-                                    throw new Error('Only finite numbers can use "$gte" or "$>=" operator.');
+                                    v = _.toFinite(v);
+                                    if (isNaN(v)) {
+                                        throw new Error('Only finite numbers can use "$gte" or "$>=" operator.');
+                                    }
                                 }
 
                                 if (inject) {
@@ -682,7 +688,10 @@ class MySQLConnector extends Connector {
                             case '$lessThan':
                             
                                 if (!_.isFinite(v)) {
-                                    throw new Error('Only finite numbers can use "$gte" or "$<" operator.');
+                                    v = _.toFinite(v);
+                                    if (isNaN(v)) {
+                                        throw new Error('Only finite numbers can use "$lt" or "$<" operator.');
+                                    }
                                 }
 
                                 if (inject) {
@@ -697,7 +706,10 @@ class MySQLConnector extends Connector {
                             case '$lessThanOrEqual':
                             
                                 if (!_.isFinite(v)) {
-                                    throw new Error('Only finite numbers can use "$lte" or "$<=" operator.');
+                                    v = _.toFinite(v);
+                                    if (isNaN(v)) {
+                                        throw new Error('Only finite numbers can use "$lte" or "$<=" operator.');
+                                    }
                                 }
 
                                 if (inject) {

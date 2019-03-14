@@ -13,3 +13,11 @@
 ## field query able, update key
 
 ## create or update by related record value
+
+## condition translation, e.g. 
+  query status=In-progress
+  translate to status=Open or status=Pending
+
+## triggers for insert and update
+
+## query operators
