@@ -436,7 +436,7 @@ class MySQLModeler {
                         } else {
                             //leave it to the referenced entity  
                             let anchor = assoc.srcField || (assoc.type === 'hasMany' ? pluralize(destEntityName) : destEntityName);                            
-                            let remoteField = backRef.srcField || entity.name;
+                            let remoteField = assoc.remoteField || backRef.srcField || entity.name;
                             
                             entity.addAssociation(
                                 anchor,                                 
@@ -572,6 +572,33 @@ class MySQLModeler {
                 return {
                     [left]: { '$eq': right }
                 }; 
+            }
+        } else if (oolCon.oolType === 'UnaryExpression') {
+            let arg;
+
+            switch (oolCon.operator) {
+                case 'is-null':
+                    arg = oolCon.argument;
+                    if (arg.oolType && arg.oolType === 'ObjectReference') {
+                        arg = this._translateReference(context, arg.name, true);
+                    }
+
+                    return {
+                        [arg]: { '$eq': null }
+                    }; 
+
+                case 'is-not-null':
+                    arg = oolCon.argument;
+                    if (arg.oolType && arg.oolType === 'ObjectReference') {
+                        arg = this._translateReference(context, arg.name, true);
+                    }
+
+                    return {
+                        [arg]: { '$ne': null }
+                    };     
+
+                default:
+                throw new Error('Unknown UnaryExpression operator: ' + oolCon.operator);
             }
         }
 
