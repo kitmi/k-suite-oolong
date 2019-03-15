@@ -92,7 +92,11 @@ function feature(entity, args = []) {
             if (options.startFrom) {
                 featureExtra.startFrom = options.startFrom;
             }
-        }       
+        } 
+        
+        if (options.name) {
+            typeInfo.name = options.name;
+        }
     }
 
     let fieldName = typeInfo.name;
