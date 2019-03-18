@@ -1777,14 +1777,14 @@ unary_expression
     | modifiable_value "not" "exists" -> { oolType: 'UnaryExpression', operator: 'not-exists', argument: $1 }
     | modifiable_value "is" "null" -> { oolType: 'UnaryExpression', operator: 'is-null', argument: $1 }
     | modifiable_value "is" "not" "null" -> { oolType: 'UnaryExpression', operator: 'is-not-null', argument: $1 }
-    | "not" "(" simple_expression ")" -> { oolType: 'UnaryExpression', operator: 'not', argument: $3, prefix: true }
-    | "any" inline_array
+    | "not" "(" simple_expression ")" -> { oolType: 'UnaryExpression', operator: 'not', argument: $3, prefix: true }    
     ;
 
 boolean_expression
     : modifiable_value "~" identifier -> { oolType: 'ValidateExpression', caller: $1, callee: state.normalizeValidator($3) }
     | modifiable_value "~" REGEXP -> { oolType: 'ValidateExpression', caller: $1, callee: state.normalizeValidator($3) }
     | modifiable_value "~" general_function_call -> { oolType: 'ValidateExpression', caller: $1, callee: state.normalizeValidator($3.name, $3.args) }
+    | "any" inline_array 
     ;    
 
 binary_expression
