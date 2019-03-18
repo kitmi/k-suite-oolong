@@ -123,7 +123,7 @@ class DaoModeler {
                 schemaName: schema.name,
                 name: entityInstanceName,
                 keyField: entity.key,
-                fields: _.mapValues(entity.fields, f => f.toJSON()),
+                fields: _.mapValues(entity.fields, f => _.omit(f.toJSON(), 'modifiers')),
                 features: entity.features || {},
                 uniqueKeys
             };

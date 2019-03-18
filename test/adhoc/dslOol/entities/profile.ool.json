@@ -1,6 +1,6 @@
 {
     "namespace": [
-        "/Users/rockieguo/Documents/GitHub/k-suite/packages/oolong/lib/lang/builtins/types.ool"
+        "/Users/rockieguo/Documents/GitHub/k-suite/packages/oolong/test/adhoc/dslOol/entities/common.ool"
     ],
     "constant": {
         "locale": {
@@ -64,12 +64,14 @@
                 {
                     "type": "refersTo",
                     "destEntity": "gender",
-                    "srcField": "gender"
+                    "srcField": "gender",
+                    "fieldProps": {}
                 },
                 {
                     "type": "belongsTo",
                     "destEntity": "user",
-                    "srcField": "owner"
+                    "srcField": "owner",
+                    "fieldProps": {}
                 }
             ],
             "key": "owner"

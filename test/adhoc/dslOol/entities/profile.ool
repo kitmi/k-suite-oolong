@@ -1,4 +1,4 @@
-import '<oolong>/types'
+import 'common'
 
 const 
   locale = { lang: 'zh_CN',

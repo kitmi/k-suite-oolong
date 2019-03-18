@@ -24,13 +24,6 @@
 
 
 
-  triggers
-    onCreate
-      
-    onUpdate
-      alwaysDo
-        netAmount |=multiply(@latest.quantity, @latest.adjustedUnitPrice |>ifNullSetTo(@latest.unitPrice)
-        subTotal |=sum(@latest.netAmount, @latest.taxAmount)
-      when status changed
-        from 'Quote' to 'Unpaid'
-          expiryDate |=dateAdd(@@now, )
+  
+
+## add aggregator          

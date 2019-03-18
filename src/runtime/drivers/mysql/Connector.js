@@ -309,7 +309,7 @@ class MySQLConnector extends Connector {
         let result, totalCount;
 
         if (sqlInfo.countSql) {            
-            let [ countResult ] = await this.execute_(sqlInfo.countSql, sqlInfo.params, options);  
+            let [ countResult ] = await this.execute_(sqlInfo.countSql, sqlInfo.params, options);              
             totalCount = countResult['count'];
         }
 
@@ -580,7 +580,7 @@ class MySQLConnector extends Connector {
             return alias + '.' + mysql.escapeId(actualFieldName);
         }
 
-        return aliasMap[mainEntity] + '.' + mysql.escapeId(fieldName);
+        return aliasMap[mainEntity] + '.' + (fieldName === '*' ? fieldName : mysql.escapeId(fieldName));
     }
 
     _escapeIdWithAlias(fieldName, mainEntity, aliasMap) {
@@ -809,7 +809,7 @@ class MySQLConnector extends Connector {
     _buildColumn(col, params, hasJoining, aliasMap) {
         if (typeof col === 'string') {  
             //it's a string if it's quoted when passed in          
-            return (isQuoted(col) || col === '*') ? col : this._escapeIdWithAlias(col, hasJoining, aliasMap);
+            return isQuoted(col) ? col : this._escapeIdWithAlias(col, hasJoining, aliasMap);
         }
 
         if (typeof col === 'number') {

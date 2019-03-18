@@ -21,20 +21,23 @@
     const SUB_KEYWORDS = { 
         // level 1
         'schema': new Set(['entities', 'views']),
-        'entity': new Set([ 'extends', 'with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes']),
+        'entity': new Set([ 'extends', 'with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes', 'triggers' ]),
         'dataset': new Set(['is']),
     
         // level 2
         'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo']),
         'entity.index': new Set(['is', 'unique']),
         'entity.interface': new Set(['accept', 'find', 'findOne', 'return']),
+        'entity.triggers': new Set(['onCreate', 'onCreateOrUpdate', 'onUpdate', 'onDelete']),
 
         'dataset.body': new Set(['with']),
 
         // level 3
         'entity.associations.item': new Set(['connectedBy', 'being', 'with', 'as']),        
         'entity.interface.find': new Set(['a', 'an', 'the', 'one', 'by', 'cases', 'selected', 'selectedBy', "of", "which", "where", "when", "with", "otherwise", "else"]),           
-        'entity.interface.return': new Set(["unless", "when"]),           
+        'entity.interface.return': new Set(["unless", "when"]),       
+        'entity.triggers.onChange': new Set(["when"]),         
+        
 
         // level 4
         'entity.associations.item.block': new Set(['when']),           
@@ -77,6 +80,11 @@
         'entity.interface.find.when': 'entity.interface.find.when',
         'entity.interface.find.otherwise': 'entity.interface.find.else',
         'entity.interface.find.else': 'entity.interface.find.else',
+        'entity.triggers': 'entity.triggers',
+        'entity.triggers.onCreate': 'entity.triggers.onChange',
+        'entity.triggers.onCreateOrUpdate': 'entity.triggers.onChange',
+        'entity.triggers.onUpdate': 'entity.triggers.onChange',
+        'entity.triggers.onDelete': 'entity.triggers.onChange',
 
         'dataset.is': 'dataset.body'
     };
@@ -89,7 +97,8 @@
         [ 'entity.index', 1 ], 
         [ 'entity.associations', 1 ],
         [ 'entity.associations.item', 2 ],
-        [ 'entity.associations.item.block.when', 2 ]        
+        [ 'entity.associations.item.block.when', 2 ],        
+        [ 'entity.interface.find.else', 1]
     ]);
 
     //exit number of states on newline if exists in below table
@@ -101,7 +110,11 @@
         [ 'type.block', 1 ],
         [ 'const.block', 1 ],         
         [ 'entity.mixes', 1 ],
-        [ 'entity.key', 1 ],        
+        [ 'entity.key', 1 ],   
+        [ 'entity.data', 1 ],     
+        [ 'entity.interface.accept', 1 ],       
+        [ 'entity.interface.find.when', 1], 
+        [ 'entity.interface.find.else', 1], 
         [ 'entity.interface.return.when', 1 ],         
         [ 'entity.associations.item', 1 ],        
         [ 'entity.associations.item.block.when', 1 ]
@@ -240,14 +253,6 @@
             }
             
             return this;
-        }
-
-        void() {
-            return undefined;
-        }
-
-        val(value) {
-            return value;
         }
 
         enterObject() {            
@@ -555,14 +560,13 @@ regexp_flag             "i"|"g"|"m"|"y"
 
 // reserved
 symbol_operators        {relation_operators}|{syntax_operators}|{math_operators}
-word_operators          {logical_operators}|{math_operators2}|{relation_operators2}|{predicate_operators}
+word_operators          {logical_operators}|{relation_operators2}|{predicate_operators}
 bracket_operators       "("|")"|"["|"]"|"{"|"}"
 syntax_operators        "|~"|","|":"|"|>"|"|="|"--"|"=>"|"~"|"="|"->"
 comment_operators       "//"
 relation_operators      "!="|">="|"<="|">"|"<"|"=="
 logical_operators       "not"|"and"|"or"
-math_operators          "+"|"-"|"*"|"/"
-math_operators2         "mod"|"div"
+math_operators          "+"|"-"|"*"|"/"|"%"
 relation_operators2     "in"|"is"|"like"
 predicate_operators     "exists"|"null"
 
@@ -914,14 +918,14 @@ escapeseq               \\.
 
 %right "="
 %left "=>"
+%right "|>" "|~" "|="
 %left "or"
 %left "and"
 %nonassoc "in" "is" "like" "~"
 %left "not"
 %left "!=" ">=" "<=" ">" "<" "=="
 %left "+" "-"
-%left "*" "/" "mod" "div"
-%left "|>" "|~" "|="
+%left "*" "/" "%"
 
 %ebnf
 
@@ -1119,12 +1123,14 @@ type_modifiers
     ;
 
 type_modifier
-    : "|~" identifier -> state.normalizeValidator($2)
-    | "|~" general_function_call -> state.normalizeValidator($2.name, $2.args)
+    : "|~" "(" logical_expression ")" -> state.normalizeValidator('$eval', [ $3 ])
+    | "|~" identifier -> state.normalizeValidator($2)
+    | "|~" general_function_call -> state.normalizeValidator($2.name, $2.args)    
     | "|>" identifier -> state.normalizeProcessor($2)
-    | "|>" general_function_call -> state.normalizeProcessor($2.name, $2.args)
+    | "|>" general_function_call -> state.normalizeProcessor($2.name, $2.args)    
+    | "|=" "(" literal_and_value_expression ")" -> state.normalizeActivator('$eval', [ $3 ])
     | "|=" identifier -> state.normalizeActivator($2)
-    | "|=" general_function_call -> state.normalizeActivator($2.name, $2.args)
+    | "|=" general_function_call -> state.normalizeActivator($2.name, $2.args)    
     ;
 
 entity_statement
@@ -1159,6 +1165,7 @@ entity_sub_item
     | data_statement
     | interfaces_statement
     | mixin_statement
+    | triggers_statement
     ;
 
 mixin_statement
@@ -1626,6 +1633,12 @@ nfc_param
     | identifier -> state.normalizeConstReference($1)
     ;
 
+literal_and_value_expression
+    : unary_expression
+    | binary_expression
+    | boolean_expression    
+    ;
+
 general_function_call
     : identifier "(" gfc_param_list ")" -> { name: $1, args: $3 }
     ;        
@@ -1772,6 +1785,12 @@ binary_expression
     | modifiable_value "!=" modifiable_value -> { oolType: 'BinaryExpression', operator: '!=', left: $1, right: $3 }
     | modifiable_value "in" modifiable_value -> { oolType: 'BinaryExpression', operator: 'in', left: $1, right: $3 }
     | modifiable_value "not" "in" modifiable_value -> { oolType: 'BinaryExpression', operator: 'notIn', left: $1, right: $3 }
+
+    | modifiable_value "+" modifiable_value -> { oolType: 'BinaryExpression', operator: '+', left: $1, right: $3 }
+    | modifiable_value "-" modifiable_value -> { oolType: 'BinaryExpression', operator: '-', left: $1, right: $3 }
+    | modifiable_value "*" modifiable_value -> { oolType: 'BinaryExpression', operator: '*', left: $1, right: $3 }
+    | modifiable_value "/" modifiable_value -> { oolType: 'BinaryExpression', operator: '/', left: $1, right: $3 }
+
     /*| value "is" value
         { $$ = { oolType: 'BinaryExpression', operator: 'is', left: $1, right: $3 }; }    
     | value "like" value

@@ -174,7 +174,7 @@
                     "type": "datetime",
                     "default": [
                         {
-                            "oolType": "SymbolToken",
+                            "oorType": "SymbolToken",
                             "name": "now"
                         }
                     ]
@@ -184,13 +184,15 @@
                 {
                     "type": "hasMany",
                     "destEntity": "profile",
-                    "srcField": "profiles"
+                    "srcField": "profiles",
+                    "fieldProps": {}
                 },
                 {
                     "type": "hasMany",
                     "destEntity": "group",
                     "connectedBy": "userGroup",
-                    "srcField": "groups"
+                    "srcField": "groups",
+                    "fieldProps": {}
                 }
             ],
             "indexes": [

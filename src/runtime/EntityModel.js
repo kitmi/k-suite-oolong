@@ -172,11 +172,16 @@ class EntityModel {
 
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
 
-            if (findOptions.$relationships && !findOptions.$skipOrm) {
+            if (findOptions.$relationships) {
                 if (findOptions.$totalCount) {
                     totalCount = records[3];
-                }                              
-                records = this._mapRecordsToObjects(records, findOptions.$relationships);
+                }
+
+                if (!findOptions.$skipOrm) {                                                  
+                    records = this._mapRecordsToObjects(records, findOptions.$relationships);
+                } else {
+                    records = records[0];
+                }
             } else {
                 if (findOptions.$totalCount) {
                     totalCount = records[1];
@@ -820,7 +825,7 @@ class EntityModel {
                     return this._translateSymbolToken(value.name);
                 }
 
-                throw new Error('Not impletemented yet. ' + value.oolType);
+                throw new Error('Not impletemented yet. ' + value.oorType);
             }
 
             return _.mapValues(value, (v) => this.translateValue(v, variables));
