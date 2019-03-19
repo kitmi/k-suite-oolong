@@ -588,7 +588,7 @@ class MySQLConnector extends Connector {
             return this._replaceFieldNameWithAlias(fieldName, mainEntity, aliasMap); 
         }
 
-        return mysql.escapeId(fieldName);
+        return fieldName === '*' ? fieldName : mysql.escapeId(fieldName);
     }
 
     /**
@@ -808,7 +808,7 @@ class MySQLConnector extends Connector {
 
     _buildColumn(col, params, hasJoining, aliasMap) {
         if (typeof col === 'string') {  
-            //it's a string if it's quoted when passed in          
+            //it's a string if it's quoted when passed in                  
             return isQuoted(col) ? col : this._escapeIdWithAlias(col, hasJoining, aliasMap);
         }
 
