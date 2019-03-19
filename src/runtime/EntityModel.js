@@ -345,7 +345,7 @@ class EntityModel {
             });     
         }
 
-        return this._update_(data, updateOptions, connOptions);
+        return this._update_(data, updateOptions, connOptions, true);
     }
 
     /**
@@ -479,7 +479,16 @@ class EntityModel {
      * @param {object} data 
      */
     static _containsUniqueKey(data) {
-        return _.find(this.meta.uniqueKeys, fields => _.every(fields, f => !_.isNil(data[f])));
+        let hasKeyNameOnly = false;
+
+        let hasNotNullKey = _.find(this.meta.uniqueKeys, fields => {
+            let hasKeys = _.every(fields, f => f in data);
+            hasKeyNameOnly = hasKeyNameOnly || hasKeys;
+            
+            return _.every(fields, f => !_.isNil(data[f]));
+        });
+
+        return [ hasNotNullKey, hasKeyNameOnly ];
     }
 
     /**
@@ -487,9 +496,13 @@ class EntityModel {
      * @param {*} condition 
      */
     static _ensureContainsUniqueKey(condition) {
-        let containsUniqueKey = this._containsUniqueKey(condition);
+        let [ containsUniqueKeyAndValue, containsUniqueKeyOnly ] = this._containsUniqueKey(condition);        
 
-        if (!containsUniqueKey) {
+        if (!containsUniqueKeyAndValue) {
+            if (containsUniqueKeyOnly) {
+                throw new DataValidationError('One of the unique key field as query condition is null.');
+            }
+
             throw new OolongUsageError('Unexpected usage.', { 
                     entity: this.meta.name, 
                     reason: 'Single record operation requires condition to be containing unique key.',

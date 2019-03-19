@@ -85,6 +85,7 @@
         'entity.triggers.onCreateOrUpdate': 'entity.triggers.onChange',
         'entity.triggers.onUpdate': 'entity.triggers.onChange',
         'entity.triggers.onDelete': 'entity.triggers.onChange',
+        'entity.triggers.onChange.when': 'entity.triggers.onChange.when',
 
         'dataset.is': 'dataset.body'
     };
@@ -135,7 +136,8 @@
         'entity.interface.find.when',
         'entity.interface.return.when',
         'entity.associations.item',
-        'entity.associations.item.block.when'                
+        'entity.associations.item.block.when',
+        'entity.triggers.onChange.when'                
     ]);
 
     //indented child starting state
@@ -568,7 +570,7 @@ relation_operators      "!="|">="|"<="|">"|"<"|"=="
 logical_operators       "not"|"and"|"or"
 math_operators          "+"|"-"|"*"|"/"|"%"
 relation_operators2     "in"|"is"|"like"
-predicate_operators     "exists"|"null"
+predicate_operators     "exists"|"null"|"all"|"any"
 
 // javascript
 javascript              "<js>"{longstringitem}*?"</js>"
@@ -1123,14 +1125,19 @@ type_modifiers
     ;
 
 type_modifier
-    : "|~" "(" logical_expression ")" -> state.normalizeValidator('$eval', [ $3 ])
-    | "|~" identifier -> state.normalizeValidator($2)
-    | "|~" general_function_call -> state.normalizeValidator($2.name, $2.args)    
+    : "|~" type_modifier_validators -> $2
     | "|>" identifier -> state.normalizeProcessor($2)
     | "|>" general_function_call -> state.normalizeProcessor($2.name, $2.args)    
     | "|=" "(" literal_and_value_expression ")" -> state.normalizeActivator('$eval', [ $3 ])
     | "|=" identifier -> state.normalizeActivator($2)
     | "|=" general_function_call -> state.normalizeActivator($2.name, $2.args)    
+    ;
+
+type_modifier_validators
+    : identifier -> state.normalizeValidator($1)
+    | general_function_call -> state.normalizeValidator($1.name, $1.args)    
+    | REGEXP -> state.normalizeValidator('matches', $1)    
+    | "(" logical_expression ")" -> state.normalizeValidator('$eval', [ $2 ])
     ;
 
 entity_statement
@@ -1318,11 +1325,26 @@ triggers_statement
     : "triggers" NEWLINE INDENT triggers_statement_block DEDENT NEWLINE? -> { triggers: $4 }
     ;
 
-triggers_statement_block
-    : "onCreate"     
-    | "onCreateOrUpdate"    
-    | "onDelete"    
+triggers_operation
+    : "onCreate" NEWLINE INDENT triggers_operation_block DEDENT NEWLINE? -> { onCreate: $4 }    
+    | "onCreateOrUpdate" NEWLINE INDENT triggers_operation_block DEDENT NEWLINE? -> { onCreateOrUpdate: $4 }   
+    | "onDelete" NEWLINE INDENT triggers_operation_block DEDENT NEWLINE? -> { onDelete: $4 }   
     ;
+
+triggers_statement_block
+    : triggers_operation -> [ $1 ]
+    | triggers_operation triggers_statement_block -> [ $1 ].concat($2)
+    ;
+
+triggers_operation_block    
+    : triggers_operation_item -> [ $1 ]
+    | triggers_operation_item triggers_operation_block -> [ $1 ].concat($2)
+    ;
+
+triggers_operation_item
+    : "when" conditional_expression NEWLINE INDENT triggers_result_block DEDENT NEWLINE? -> { condition: $2, do: $5 }
+    | "always" NEWLINE INDENT triggers_result_block DEDENT NEWLINE? -> { do: $4 }
+    ;   
 
 interfaces_statement
     : "interface" NEWLINE INDENT interfaces_statement_block DEDENT NEWLINE? -> { interfaces: $4 }
@@ -1781,10 +1803,9 @@ unary_expression
     ;
 
 boolean_expression
-    : modifiable_value "~" identifier -> { oolType: 'ValidateExpression', caller: $1, callee: state.normalizeValidator($3) }
-    | modifiable_value "~" REGEXP -> { oolType: 'ValidateExpression', caller: $1, callee: state.normalizeValidator($3) }
-    | modifiable_value "~" general_function_call -> { oolType: 'ValidateExpression', caller: $1, callee: state.normalizeValidator($3.name, $3.args) }
-    | "any" inline_array 
+    : modifiable_value "~" type_modifier_validators -> { oolType: 'ValidateExpression', caller: $1, callee: $3 }    
+    | "any" inline_array "~" type_modifier_validators -> { oolType: 'AnyOneOfExpression', caller: $2, callee: $3 }
+    | "all" inline_array "~" type_modifier_validators -> { oolType: 'AllOfExpression', caller: $2, callee: $3 }
     ;    
 
 binary_expression

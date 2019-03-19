@@ -19,6 +19,25 @@ entity order
     taxAmount : number optional 
     totalAmount : number optional 
     itemCount : integer default(0)
+
+  associations          
+    hasMany orderLineItem as lineItems 
+
+  interface 
+    recalculateAmount
+      accept
+        orderId : order.id
+
+      find the order by @orderId
+
+      map @order.lineItems as lineItem => {
+        netAmount:  lineItem.netAmount
+        taxAmount: sum lineItem.taxAmount
+        totalAmount: lineItem.subTotal
+        itemCount :
+      } 
+      
+      update
     
 entity orderLineItem
   with
@@ -34,15 +53,24 @@ entity orderLineItem
     subTotal : number
     status : lineItemStatus    
     expiryDate : datetime optional
-    desc          
+    desc     
+
+  associations    
+    belongsTo serviceOrder    
+    refersTo taxCode default('GST')  
+
   triggers
+    onCreate
+      always
+        call @entities.order.
+        
     onCreateOrUpdate
-      when any [ quantity, unitPrice, adjustedUnitPrice ] changed
+      when any [ quantity, unitPrice, adjustedUnitPrice, taxCode ] ~ changed        
         netAmount |=multiply(@latest.quantity, @latest.adjustedUnitPrice |>ifNullSetTo(@latest.unitPrice)
         taxAmount |=multiply(@latest.netAmount, @entities.taxCode.cached[@latest.taxCode].value)
         subTotal |=@latest.netAmount + @latest.taxAmount      
         
     onUpdate      
-      when status changed
+      when status ~ changed
         from 'Quote' to 'Unpaid'
           expiryDate |=datetimeAdd(@@now, { days: @entities.settings.cached['EXPIRY_DAYS'].value })  
