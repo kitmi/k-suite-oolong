@@ -35,53 +35,42 @@ class MongodbConnector extends Connector {
      * @param {Object} [options] - Extra options for the connection, optional.
      * @property {bool} [options.multipleStatements=false] - Allow running multiple statements at a time.
      * @property {bool} [options.createDatabase=false] - Flag to used when creating a database.
-     * @returns {Promise.<MySQLConnection>}
+     * @returns {Promise.<Db>}
      */
-    async connect_(options) {
+    async connect_() {
         if (!this.client || !this.client.isConnected()) {
             this.client = new MongoClient(this.connectionString, {useNewUrlParser: true});
             await this.client.connect();
-
-            this.log('debug', 'Create connection: ' + this.connectionString);
         }        
 
         return this.client.db(this.database);
     }
 
-    async execute_(dbExecutor, options) {
+    async execute_(dbExecutor) {
         let db;
     
         try {
-            db = await this._getConnection_(options);
+            db = await this.connect_();
 
             return await dbExecutor(db);
         } catch(err) {            
             throw err;
         } finally {
-            db && await this._releaseConnection_(db, options);
+            db && await this.disconnect_(db);
         }
     }
 
     /**
      * Close a database connection.
-     * @param {MySQLConnection} conn - MySQL connection.
+     * @param {Db} conn - MySQL connection.
      */
     async disconnect_(conn) {
     }
   
     async ping_() {  
-        let db;
-
-        try {
-            db =  await this.connect_();
-            await db.listCollections(null, { nameOnly: true }).toArray();
-            return true;
-        } catch (err) {
-            this.log('error', err.stack);
-            return false;
-        } finally {
-            db && await this.disconnect_(db);
-        }       
+        return this.execute_(db => {
+            return db.listCollections(null, { nameOnly: true }).toArray();
+        });  
     }
 
     /**
@@ -91,7 +80,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async insertOne_(model, data, options) {
-        return this._execute_(model, options, (coll) => coll.insertOne(data, { forceServerObjectId: true, bypassDocumentValidation: true }));
+        return this.onCollection_(model, (coll) => coll.insertOne(data, { forceServerObjectId: true, bypassDocumentValidation: true, ...options }));
     }
 
     /**
@@ -100,12 +89,26 @@ class MongodbConnector extends Connector {
      * @param {object} data 
      * @param {*} options 
      */
-    async findAndReplace_(model, data, condition, options) {
-        return this._execute_(model, options, (coll) => coll.findAndReplace(condition, data, { upsert: true, returnOriginal: true }));
+    async findOneAndReplace_(model, data, condition, options) {
+        return this.onCollection_(model, (coll) => coll.findOneAndReplace(condition, data, options));
+    }
+
+    /**
+     * Find a document and update it in one atomic operation. Requires a write lock for the duration of the operation.
+     * @param {string} model 
+     * @param {object} data 
+     * @param {*} options 
+     */
+    async findOneAndUpdate_(model, data, condition, options) {     
+        return this.onCollection_(model, (coll) => coll.findOneAndUpdate(condition, { $set: data }, options));
+    }
+
+    async findOneAndDelete_(model, condition, options) {
+        return this.onCollection_(model, (coll) => coll.findOneAndDelete(condition, options));
     }
 
     async findOne_(model, condition, options) {
-        return this._execute_(model, options, (coll) => coll.findOne(condition));
+        return this.onCollection_(model, (coll) => coll.findOne(condition, options));
     }
 
     /**
@@ -116,7 +119,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async updateOne_(model, data, condition, options) { 
-        return this._execute_(model, options, (coll) => coll.updateOne(condition, { $set: data }));
+        return this.onCollection_(model, (coll) => coll.updateOne(condition, { $set: data }, options));
     }
 
     /**
@@ -127,7 +130,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async upsertOne_(model, data, condition, options) { 
-        return this._execute_(model, options, (coll) => coll.updateOne(condition, { $set: data }, {upsert: true}));
+        return this.onCollection_(model, (coll) => coll.updateOne(condition, { $set: data }, { ...options, upsert: true }));
     }
 
     /**
@@ -137,7 +140,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async replaceOne_(model, data, condition, options) {  
-        return this._execute_(model, options, (coll) => coll.replaceOne(condition, data));
+        return this.onCollection_(model, (coll) => coll.replaceOne(condition, data, options));
     }
 
     /**
@@ -147,7 +150,17 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async deleteOne_(model, condition, options) {
-        return this._execute_(model, options, (coll) => coll.deleteOne(condition));
+        return this.onCollection_(model, (coll) => coll.deleteOne(condition, options));
+    }
+
+    /**
+     * Remove an existing entity.
+     * @param {string} model 
+     * @param {*} condition 
+     * @param {*} options 
+     */
+    async deleteMany_(model, condition, options) {
+        return this.onCollection_(model, (coll) => coll.deleteMany(condition, options));
     }
 
     /**
@@ -157,14 +170,8 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async find_(model, condition, options) {
-        let db;
-
-        try {
-            db = await this._getConnection_(options);
-
-            let queryOptions = {};
-
-            console.log(condition);
+        return this.onCollection_(model, async coll => {
+            let queryOptions = {...options};
 
             if (condition.$projection) {
                 queryOptions.projection = condition.$projection;                
@@ -188,43 +195,19 @@ class MongodbConnector extends Connector {
 
             console.log('queryOptions', queryOptions);
 
-            let result = await db.collection(model).find(query, queryOptions).toArray();
+            let result = await coll.find(query, queryOptions).toArray();
 
             if (condition.$totalCount) {
-                let totalCount = await db.collection(model).find(query).count();
+                let totalCount = await coll.find(query).count();
                 return [ result, totalCount ];
             }
 
             return result;
-        } catch(err) {
-            this.log('error', err.message, { stack: err.stack });
-        } finally {
-            db && await this._releaseConnection_(db, options);
-        }
+        });
     }   
 
-    async _execute_(model, options, executor) {
-        let db;
-    
-        try {
-            db = await this._getConnection_(options);
-
-            return await executor(db.collection(model));
-        } catch(err) {            
-            throw err;
-        } finally {
-            db && await this._releaseConnection_(db, options);
-        }
-    }
-
-    async _getConnection_(options) {
-        return (options && options.connection) ? options.connection : this.connect_(options);
-    }
-
-    async _releaseConnection_(conn, options) {
-        if (!options || !options.connection) {
-            return this.disconnect_(conn);
-        }
+    async onCollection_(model, executor) {
+        return this.execute_(db => executor(db.collection(model)));
     }
 }
 
