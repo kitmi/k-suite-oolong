@@ -1,11 +1,12 @@
 "use strict";
 
 const Util = require('rk-utils');
-const { _, getValueByPath, setValueByPath, eachAsync_, fs } = Util;
+const { _, setValueByPath, eachAsync_ } = Util;
 
 const { DateTime } = require('luxon');
 const EntityModel = require('../../EntityModel');
 const { OolongUsageError, BusinessError } = require('../../Errors');
+const Types = require('../../types');
 
 /**
  * MySQL entity model class.
@@ -33,6 +34,26 @@ class MySQLEntityModel extends EntityModel {
 
         if (value instanceof DateTime) {
             return value.toISO({ includeOffset: false });
+        }
+
+        return value;
+    }    
+
+    static _serializeByType(value, info) {
+        if (info.type === 'boolean') {
+            return value ? 1 : 0;
+        }
+
+        if (info.type === 'datetime' && value instanceof DateTime) {
+            return value.toISO({ includeOffset: false });
+        }
+
+        if (info.type === 'array' && Array.isArray(value)) {
+            if (info.csv) {
+                return Types.ARRAY.toCsv(value);
+            } else {
+                return Types.ARRAY.serialize(value);
+            }
         }
 
         return value;
@@ -151,6 +172,8 @@ class MySQLEntityModel extends EntityModel {
 
         associations.forEach(assoc => {
             if (_.isPlainObject(assoc)) {
+                assoc = this._translateSchemaNameToDb(assoc);
+
                 let alias = assoc.alias;
                 if (!assoc.alias) {
                     alias = ':join' + ++counter;
@@ -188,19 +211,18 @@ class MySQLEntityModel extends EntityModel {
         let result;  
 
         if (lastPos === -1) {                
-            result = cache[assoc] = assocTable[assoc] = { ...this.meta.associations[assoc] };
+            result = cache[assoc] = assocTable[assoc] = { ...this._translateSchemaNameToDb(this.meta.associations[assoc]) };
         } else {
             let base = assoc.substr(0, lastPos);
             let last = assoc.substr(lastPos+1);         
                 
             let baseNode = cache[base];
-            if (!baseNode) {
-                console.log(base, last);
+            if (!baseNode) {                
                 baseNode = this._loadAssocIntoTable(assocTable, cache, base);                                                
             }            
 
             let entity = this.db.model(baseNode.entity);
-            result = { ...entity.meta.associations[last] };
+            result = { ...this._translateSchemaNameToDb(entity.meta.associations[last]) };
 
             if (!baseNode.subAssocs) {
                 baseNode.subAssocs = {};
@@ -214,6 +236,26 @@ class MySQLEntityModel extends EntityModel {
         }
 
         return result;
+    }
+
+    static _translateSchemaNameToDb(assoc) {
+        if (assoc.entity.indexOf('.') > 0) {
+            let [ schemaName, entityName ] = assoc.split('.', 2);
+
+            let app = this.db.app;
+            if (!app) {
+                throw new OolongUsageError('Cross db association requires the db object have access to other db object.');
+            }
+
+            let refDb = app.db(schemaName);
+            if (refDb) {
+                throw new OolongUsageError(`The referenced schema "${schemaName}" does not have db model in the same application.`);
+            }
+
+            assoc.entity = refDb.connector.database + '.' + entityName;
+        }
+
+        return assoc;
     }
 
     static _mapRecordsToObjects([rows, columns, aliasMap], hierarchy) {

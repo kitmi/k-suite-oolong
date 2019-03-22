@@ -51,8 +51,7 @@
     };
 
     //next state transition table
-    const NEXT_STATE = {
-        'import.*': 'import.item',
+    const NEXT_STATE = {        
         'type.*': 'type.item',
         'const.*': 'const.item',
         'import.$INDENT': 'import.block',
@@ -104,7 +103,7 @@
 
     //exit number of states on newline if exists in below table
     const NEWLINE_STOPPER = new Map([                
-        [ 'import.item', 2 ],
+        [ 'import', 1 ],
         [ 'type.item', 2 ],
         [ 'const.item', 2 ],
         [ 'import.block', 1 ],
@@ -966,13 +965,13 @@ statement
     ;
 
 import_statement
-    : "import" STRING NEWLINE -> state.import($2) 
+    : "import" identifier_or_string NEWLINE -> state.import($2) 
     | "import" NEWLINE INDENT import_statement_block DEDENT NEWLINE?
     ;
 
 import_statement_block
-    : STRING NEWLINE -> state.import($1)
-    | STRING NEWLINE import_statement_block -> state.import($1)
+    : identifier_or_string NEWLINE -> state.import($1)
+    | identifier_or_string NEWLINE import_statement_block -> state.import($1)
     ;
 
 const_statement
@@ -1147,7 +1146,12 @@ entity_statement
 
 entity_statement_header
     : entity_statement_header0 -> [ $1, {} ]
-    | entity_statement_header0 "extends" identifier_or_string_list -> [ $1, { base: $3 } ]    
+    | entity_statement_header0 entity_base_keywords identifier_or_string_list -> [ $1, { base: $3 } ]    
+    ;
+
+entity_base_keywords
+    : "extends"
+    | "is"    
     ;
 
 entity_statement_header0
@@ -1246,10 +1250,11 @@ association_type_referer
     ;    
 
 association_through
-    : "connectedBy" identifier_string_or_dotname -> { connectedBy: $2 }    
-    | "connectedBy" identifier_string_or_dotname "with" conditional_expression -> { connectedBy: $2, connectedWith: $4 }    
+    : "connectedBy" identifier_string_or_dotname -> { by: $2 }    
+    | "connectedBy" identifier_string_or_dotname "with" conditional_expression -> { by: $2, with: $4 }    
     | association_connection -> { remoteField: $1 }     
     | "being" array_of_identifier_or_string -> { remoteField: $2 }      
+    | association_condition -> { with: $1 }
     ;
 
 association_cases_block
@@ -1676,13 +1681,14 @@ general_function_call
     ;        
 
 gfc_param_list
-    : modifiable_value -> [ $1 ]
-    | modifiable_value gfc_param_list0 -> [ $1 ].concat($2)
+    : modifiable_value -> [ $1 ]    
+    | modifiable_value gfc_param_list0 -> [ $1 ].concat($2)    
     ;
 
 gfc_param_list0
     : "," modifiable_value -> [ $2 ]
     | "," modifiable_value gfc_param_list0 -> [ $2 ].concat($3)
+    | "," -> []
     ;    
 
 gfc_param0
@@ -1841,3 +1847,5 @@ logical_operators
     : "and" -> { operator: 'and' }
     | "or" -> { operator: 'or' }
     ;
+
+%%

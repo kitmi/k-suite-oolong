@@ -190,7 +190,7 @@
                 {
                     "type": "hasMany",
                     "destEntity": "group",
-                    "connectedBy": "userGroup",
+                    "by": "userGroup",
                     "srcField": "groups",
                     "fieldProps": {}
                 }

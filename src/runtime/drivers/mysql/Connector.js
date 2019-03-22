@@ -95,7 +95,7 @@ class MySQLConnector extends Connector {
         let conn = await pool.getConnection();
         this._acitveConnections.set(conn, csKey);
 
-        this.log('debug', 'Create connection: ' + csKey);
+        //this.log('debug', 'Create connection: ' + csKey);
         
         return conn;
     }
@@ -108,7 +108,7 @@ class MySQLConnector extends Connector {
         let cs = this.stringFromConnection(conn);
         this._acitveConnections.delete(conn);
 
-        this.log('debug', 'Close connection: ' + (cs || '*unknown*'));        
+        //this.log('debug', 'Close connection: ' + (cs || '*unknown*'));        
         return conn.release();     
     }
 

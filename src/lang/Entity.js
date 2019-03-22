@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 const path = require('path');
 
 const { _ } = require('rk-utils');
-const { generateDisplayName, deepCloneField, Clonable, entityNaming, fieldNaming, prefixNaming } = require('./OolUtils');
+const { generateDisplayName, deepCloneField, deepClone, Clonable, entityNaming } = require('./OolUtils');
 
 const Field = require('./Field');
 const { FunctionalQualifiers } = require('../runtime/types');
@@ -90,10 +90,15 @@ class Entity extends Clonable {
 
         if (this.info.base) {
             //inherit fields, processed features, key and indexes
-            let baseEntity = this.linker.loadEntity(this.oolModule, this.info.base);
-            assert: baseEntity.linked;
+            let baseClasses = _.castArray(this.info.base);
+            baseClasses.forEach(base => {
+                let baseEntity = this.linker.loadEntity(this.oolModule, base);
+                assert: baseEntity.linked;
 
-            this._inherit(baseEntity);
+                this._inherit(baseEntity);
+            });            
+
+            this.baseClasses = baseClasses;
         }
 
         if (this.info.comment) {
@@ -482,9 +487,10 @@ class Entity extends Clonable {
      */
     toJSON() {
         return {            
-            name: this.name,
+            name: this.name,            
             displayName: this.displayName,
             comment: this.comment,            
+            ...(this.baseClasses ? { baseClasses: this.baseClasses } : {}),
             features: this.features,            
             fields: _.mapValues(this.fields, field => field.toJSON()),
             associations: this.associations,
@@ -493,11 +499,65 @@ class Entity extends Clonable {
         };
     }
 
-    _inherit(baseEntity) {        
-        deepCloneField(baseEntity, this, 'features');
-        deepCloneField(baseEntity, this, 'fields');
-        deepCloneField(baseEntity, this, 'key');        
-        deepCloneField(baseEntity, this, 'indexes');
+    _inherit(baseEntity) {  
+        let overrideInfo = {};
+
+        if (baseEntity.baseClasses) {
+            let baseClasses = baseEntity.baseClasses;
+
+            if (this.baseClasses) {
+                this.baseClasses = _.uniq(baseClasses.concat(this.baseClasses));
+            } else {
+                this.baseClasses = baseClasses.concat();
+            }
+        }
+
+        if (baseEntity.features) {
+            let baseFeatures = deepClone(baseEntity.features);
+            this.features = { ...this.features, ...baseFeatures };
+        }
+
+        if (baseEntity.fields) {
+            let fields = deepClone(baseEntity.fields);
+            this.fields = { ...this.fields, ...fields };
+        }
+        
+        deepCloneField(baseEntity, this, 'key');            
+        
+        if (baseEntity.info.indexes) {
+            let indexes = deepClone(baseEntity.info.indexes);
+
+            if (this.info.indexes) {
+                indexes = indexes.concat(this.info.indexes);
+            }
+
+            overrideInfo.indexes = indexes;
+        }        
+
+        if (baseEntity.info.associations) {
+            let assocs = deepClone(baseEntity.info.associations);
+
+            assocs = assocs.map(assoc => {
+                if (assoc.destEntity === baseEntity.name) {
+                    return {
+                        ...assoc,
+                        destEntity: this.name
+                    };
+                }
+
+                return assoc;
+            });        
+
+            if (this.info.associations) {
+                assocs = assocs.concat(this.info.associations);
+            }       
+            
+            overrideInfo.associations = assocs;
+        }     
+
+        if (!_.isEmpty(overrideInfo)) {        
+            this.info = Object.freeze({ ...this.info, ...overrideInfo });
+        }
     }
 }
 

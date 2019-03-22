@@ -25,7 +25,7 @@ const extractReferenceBaseName = (name) => extractDotSeparateName(name).pop();
 
 const prefixNaming = (prefix, name) => {
     let leftParts = _.kebabCase(prefix).split('-');
-    let rightParts = _.kebabCase(name).split('-');
+    let rightParts = _.kebabCase(extractReferenceBaseName(name)).split('-');
     
     let reservedLeft, reservedRight;
 

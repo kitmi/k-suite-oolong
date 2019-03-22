@@ -18,14 +18,11 @@ const Validators = require('../runtime/Validators');
     let deployment = context.schemaDeployment[schemaName];
 
     if (!deployment) {
-        context.logger.log('warn', `Schema "${schemaName}" has no configured deployment and is ignored in modeling.`);
-        return;
+        throw new Error(`Schema "${schemaName}" has no configured deployment and is ignored in modeling.`);
     }
 
     let { dataSource, connectionString, options } = deployment;
     let [ driver ] = dataSource.split('.');
-
-    console.log(driver, connectionString);
 
     return Connector.createConnector(driver, connectionString, { logger: context.logger, ...options });       
  }
@@ -73,18 +70,27 @@ exports.build_ = async (context) => {
     context.linker = linker;
 
     let schemaFiles = Linker.getOolongFiles(context.dslSourcePath, context.useJsonSource);
-    schemaFiles.forEach(schemaFile => linker.link(schemaFile));    
-
-    return eachAsync_(linker.schemas, async (schema, schemaName) => {        
+    schemaFiles.forEach(schemaFile => linker.link(schemaFile));  
+    
+    let schemaToConnector = _.mapValues(linker.schemas, (_, schemaName) => {
         let connector = createConnector(context, schemaName);
         assert: connector;
 
+        return connector;
+    });
+
+    return eachAsync_(linker.schemas, async (schema, schemaName) => {      
+        context.logger.log('verbose', `Processing schema "${schemaName}" ...`);        
+
         let deploymentSetting = context.schemaDeployment[schemaName];
+        let connector = schemaToConnector[schemaName];
 
         try {
             let DbModeler = require(`../modeler/database/${connector.driver}/Modeler`);
             let dbModeler = new DbModeler(context, connector, deploymentSetting.extraOptions);
-            let refinedSchema = dbModeler.modeling(schema);
+            let refinedSchema = dbModeler.modeling(schema, schemaToConnector);
+
+            schemaToConnector[schemaName] = connector.database;
 
             const DaoModeler = require('../modeler/Dao');
             let daoModeler = new DaoModeler(context, connector);
@@ -112,6 +118,25 @@ exports.build_ = async (context) => {
 exports.migrate_ = async (context, reset = false) => {
     context.logger.log('verbose', 'Start deploying models ...');
 
+    if (reset) {
+        await eachAsync_(Object.keys(context.schemaDeployment).reverse(), async (schemaName) => {
+            let connector = createConnector(context, schemaName);
+            assert: connector;
+    
+            try {
+                let Migration = require(`../migration/${connector.driver}`);
+                let migration = new Migration(context, schemaName, connector);
+    
+                await migration.reset_();    
+            } catch (error) {
+                throw error;
+            } finally {
+                await connector.end_();
+            } 
+        });
+
+    }
+
     return eachAsync_(context.schemaDeployment, async (deployment, schemaName) => {
         let connector = createConnector(context, schemaName);
         assert: connector;
@@ -119,10 +144,6 @@ exports.migrate_ = async (context, reset = false) => {
         try {
             let Migration = require(`../migration/${connector.driver}`);
             let migration = new Migration(context, schemaName, connector);
-
-            if (reset) {
-                await migration.reset_();
-            }
 
             await migration.create_(deployment.extraOptions);
 

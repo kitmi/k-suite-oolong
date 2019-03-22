@@ -1,4 +1,4 @@
-const { pascalCase } = require('rk-utils');
+const { _, pascalCase } = require('rk-utils');
 
 const { Connector, getEntityModelOfDriver, Errors: { BusinessError } } = require('@k-suite/oolong');
 const BaseEntityModel = getEntityModelOfDriver('{{ driver }}');
@@ -46,6 +46,13 @@ class {{ className }} {
         return modelClass;
     }
 
+    entitiesOfType(baseEntityName) {
+        return _.filter(this.constructor.entities, entityName => {
+            let Model = this.model(entityName);
+            return Model.baseClasses && Model.baseClasses.indexOf(baseEntityName) > -1;
+        });
+    }
+
     async close_() {
         if (this._connectorOwner) {
             await this.connector.end_();
@@ -54,10 +61,12 @@ class {{ className }} {
 
         delete this._modelCache;
         delete this.connector;
+        delete this.app;
     }
 }
 
 {{ className }}.driver = '{{ driver }}';
 {{ className }}.schemaName = '{{ schemaName }}';
+{{ className }}.entities = {{ entities|safe }};
 
 module.exports = {{ className }};

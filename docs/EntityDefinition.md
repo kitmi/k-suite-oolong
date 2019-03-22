@@ -54,15 +54,17 @@
 * hasOne - user.profile
 * hasMany - user.groups
 * belongsTo - profile.user
-* refersTo - profile.gender, entity.code
+* refersTo - profile.gender, entity.code     
 
-### associations meta
+ * hasMany/hasOne - belongsTo      
+ * hasMany/hasOne - hasMany/hasOne [connectedBy] [connectedWith]
+ * hasMany - semi connection       
+ * refersTo - semi connection
 
-* isArray=true
-    * has connectedBy 
-
-* isArray=false
-    should use reverse      
+"type": "refersTo",
+"destEntity": "auAddressInfo",
+"srcField": "auAddress",
+"fieldProps": {}
 
 ## key
 

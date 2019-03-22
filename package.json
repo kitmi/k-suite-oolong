@@ -20,7 +20,8 @@
     "build": "npm run bulid:clean && NODE_ENV=development babel src -d lib --copy-files && del lib/**/__test__",
     "build:prod": "npm run bulid:clean && NODE_ENV=production babel src -d lib --copy-files && del lib/**/__test__",
     "build:test": "npm run bulid:clean && NODE_ENV=test babel src -d lib --copy-files && del lib/**/__test__",
-    "build:watch": "NODE_ENV=development babel src -w -d lib --copy-files"
+    "build:watch": "NODE_ENV=development babel src -w -d lib --copy-files",
+    "test:build": "npm run jison && OOL_DBG=1 node test/build.adhoc.js"
   },
   "repository": "https://github.com/kitmi/k-suite/tree/master/packages/oolong",
   "bugs": {

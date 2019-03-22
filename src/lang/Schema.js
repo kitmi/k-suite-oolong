@@ -171,10 +171,29 @@ class Schema extends Clonable {
      * @returns {OolongEntity}
      */
     getReferencedEntity(refererModule, entityName) {
-        let entity = this.liner.loadEntity(refererModule, entityName);
+        let entity = this.linker.loadEntity(refererModule, entityName);
 
         if (!this.hasEntity(entity.name)) {
             throw new Error(`Entity "${entity.name}" not exists in schema "${this.name}".`);
+        }
+
+        return entity;
+    }
+
+    /**
+     * 
+     * @param {*} refererModule 
+     * @param {*} entityName 
+     */
+    ensureGetEntity(refererModule, entityName, newlyAdded) {
+        let entity = this.linker.loadEntity(refererModule, entityName);
+
+        if (!this.hasEntity(entity.name)) {
+            this.addEntity(entity);   
+
+            if (newlyAdded) {
+                newlyAdded.push(entity);
+            }
         }
 
         return entity;

@@ -82,7 +82,8 @@ class DaoModeler {
         let locals = {
             driver: this.connector.driver,
             className: capitalized,
-            schemaName: schema.name
+            schemaName: schema.name,
+            entities: JSON.stringify(Object.keys(schema.entities))
         };
 
         let classTemplate = path.resolve(__dirname, 'database', this.connector.driver, 'Database.js.swig');
@@ -122,11 +123,15 @@ class DaoModeler {
             let modelMeta = {
                 schemaName: schema.name,
                 name: entityInstanceName,
-                keyField: entity.key,
+                keyField: entity.key,                
                 fields: _.mapValues(entity.fields, f => _.omit(f.toJSON(), 'modifiers')),
                 features: entity.features || {},
                 uniqueKeys
             };
+
+            if (entity.baseClasses) {
+                modelMeta.baseClasses = entity.baseClasses;
+            }
 
             if (!_.isEmpty(entity.indexes)) {
                 modelMeta.indexes = entity.indexes;

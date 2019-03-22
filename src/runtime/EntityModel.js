@@ -653,6 +653,8 @@ class EntityModel {
             } // else default value set by database or by rules
         });
 
+        latest = context.latest = this.translateValue(latest, opOptions.$variables, true);
+
         try {
             await Features.applyRules_(Rules.RULE_AFTER_VALIDATION, this, context);    
         } catch (error) {
@@ -668,7 +670,13 @@ class EntityModel {
 
         await this.applyModifiers_(context, isUpdating);
 
-        context.latest = this.translateValue(latest, opOptions.$variables);
+        //final round process before entering database
+        context.latest = _.mapValues(latest, (value, key) => {
+            let fieldInfo = fields[key];
+            assert: fieldInfo;
+
+            return this._serializeByType(value, fieldInfo);
+        });        
 
         return context;
     }
@@ -803,7 +811,7 @@ class EntityModel {
         throw new Error(NEED_OVERRIDE);
     }
 
-    static translateValue(value, variables) {
+    static translateValue(value, variables, skipSerialize) {
         if (_.isPlainObject(value)) {
             if (value.oorType) {
                 if (value.oorType === 'SessionVariable') {
@@ -847,6 +855,8 @@ class EntityModel {
         if (Array.isArray(value)) {
             return value.map(v => this.translateValue(v, variables));
         }
+
+        if (skipSerialize) return value;
 
         return this._serialize(value);
     }

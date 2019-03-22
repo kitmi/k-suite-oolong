@@ -275,7 +275,13 @@ class Linker {
     }
 
     loadEntity(refererModule, elementName) {
-        return this.loadElement(refererModule, OolTypes.Element.ENTITY, elementName);
+        let entity = this.loadElement(refererModule, OolTypes.Element.ENTITY, elementName);
+
+        if (_.isEmpty(entity.fields)) {
+            throw new Error(`Entity "${elementName}" has no any fields defined.`);
+        }
+
+        return entity;
     }
 
     loadType(refererModule, elementName) {

@@ -1,6 +1,6 @@
 "use strict";
 
-const _ = require('rk-utils')._;
+const { _, quote } = require('rk-utils');
 const { isNothing } = require('../../utils/lang');
 const any = require('./any');
 const { DataValidationError } = require('../../runtime/Errors');
@@ -29,9 +29,14 @@ module.exports = {
 
     generate: (info, i18n) => null,
 
-    serialize: (value) => isNothing(value) ? null : JOSN.stringify(value),
+    serialize: (value) => isNothing(value) ? null : JSON.stringify(value),
 
     qualifiers: any.qualifiers.concat([
-        'csv'
-    ])
+        'csv',
+        'of'
+    ]),
+
+    toCsv: (data, separator = ',') => data.map(
+        elem => { elem = elem.toString(); return elem.indexOf(separator) != -1 ? quote(elem, '"') : elem; }
+        ).join(separator)
 };

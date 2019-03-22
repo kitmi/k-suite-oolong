@@ -27,3 +27,5 @@
   
 
 ## add aggregator          
+
+## multiple extension, extend with association (need to replace with the subclass name)
