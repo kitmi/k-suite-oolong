@@ -50,7 +50,7 @@ class Field extends Clonable {
          * The default name of the field
          * @member {string}
          */
-        this.displayName = this.comment || generateDisplayName(this.name);        
+        this.displayName = generateDisplayName(this.name);        
 
         deepCloneField(this.info, this, 'modifiers');
 

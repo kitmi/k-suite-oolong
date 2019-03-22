@@ -186,14 +186,15 @@ class Schema extends Clonable {
      * @param {*} entityName 
      */
     ensureGetEntity(refererModule, entityName, newlyAdded) {
+        if (this.hasEntity(entityName)) return this.entities[entityName];
+
         let entity = this.linker.loadEntity(refererModule, entityName);
 
-        if (!this.hasEntity(entity.name)) {
-            this.addEntity(entity);   
+        this.addEntity(entity);   
 
-            if (newlyAdded) {
-                newlyAdded.push(entity);
-            }
+        if (newlyAdded) {
+            newlyAdded.push(entity.name);
+            this.linker.log('debug', `New entity "${entity.name}" added by association.`);
         }
 
         return entity;

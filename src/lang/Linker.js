@@ -318,7 +318,7 @@ class Linker {
             targetModule = refererModule;
         } else {
             // search reversely by the namespaces
-            this.log('verbose', `Searching ${elementType} "${elementName}" from "${refererModule.id}" ...`);
+            //this.log('verbose', `Searching ${elementType} "${elementName}" from "${refererModule.id}" ...`);
 
             let index = _.findLastIndex(refererModule.namespace, modulePath => {
                 //this.log('debug', `Looking for ${elementType} "${elementName}" in "${modulePath}" ...`);
@@ -333,7 +333,7 @@ class Linker {
             }
         }
 
-        this.log('verbose', `Found ${elementType} "${elementName}" in "${targetModule.id}". [OK]`);
+        //this.log('verbose', `Found ${elementType} "${elementName}" in "${targetModule.id}". [OK]`);
 
         let elementSelfId = elementType + ':' + elementName + '@' + targetModule.id;
         if (elementSelfId in this._elementsCache) {
@@ -386,7 +386,7 @@ class Linker {
             searchExt = OOLONG_SOURCE_EXT + '.json';
         } else {
 
-            this.log('debug', 'Compiling ' + oolFile + ' ...');        
+            //this.log('debug', 'Compiling ' + oolFile + ' ...');        
             
             try {
                 ool = OolongParser.parse(fs.readFileSync(oolFile, 'utf8'));

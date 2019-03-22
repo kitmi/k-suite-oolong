@@ -72,3 +72,13 @@
 
 Index does not include foreign keys which are covered by associations.
 
+## interface
+
+### accept parameters
+
+  * defined as a modifiable variable
+  * defined by the type of an entity field
+
+### do something
+
+### return result

@@ -67,7 +67,7 @@ exports.build_ = async (context) => {
     context.logger.log('verbose', 'Start building models ...');
 
     let linker = new Linker(context);
-    context.linker = linker;
+    context.linker = linker;    
 
     let schemaFiles = Linker.getOolongFiles(context.dslSourcePath, context.useJsonSource);
     schemaFiles.forEach(schemaFile => linker.link(schemaFile));  
@@ -77,12 +77,17 @@ exports.build_ = async (context) => {
         assert: connector;
 
         return connector;
-    });
+    });    
 
-    return eachAsync_(linker.schemas, async (schema, schemaName) => {      
-        context.logger.log('verbose', `Processing schema "${schemaName}" ...`);        
+    return eachAsync_(context.schemaDeployment, async (deploymentSetting, schemaName) => {      
+        context.logger.log('verbose', `Processing schema "${schemaName}" ...`);   
+        
+        let schema = linker.schemas[schemaName];
 
-        let deploymentSetting = context.schemaDeployment[schemaName];
+        if (!schema) {
+            throw new Error(`Schema "${schemaName}" not found in model source."`);
+        }
+
         let connector = schemaToConnector[schemaName];
 
         try {

@@ -85,14 +85,14 @@ class MySQLModeler {
 
         this.logger.log('debug', 'Building relations...');
 
-        let pendingEntities = Object.values(modelingSchema.entities);
+        let pendingEntities = Object.keys(modelingSchema.entities);
 
         while (pendingEntities.length > 0) {
-            let entity = pendingEntities.shift();
+            let entityName = pendingEntities.shift();
+            let entity = modelingSchema.entities[entityName];
 
             if (!_.isEmpty(entity.info.associations)) {  
-                this.logger.log('debug', `Processing associations of entity "${entity.name}"...`);
-                console.log(`Processing associations of entity "${entity.name}"...`);
+                this.logger.log('debug', `Processing associations of entity "${entityName}"...`);                
 
                 let assocs = this._preProcessAssociations(entity);        
                 
@@ -305,7 +305,7 @@ class MySQLModeler {
         let entityKeyField = entity.getKeyField();
         assert: !Array.isArray(entityKeyField);
 
-        let destEntityName = assoc.destEntity, destEntity;
+        let destEntityName = assoc.destEntity, destEntity, destEntityNameAsFieldName;
         
         if (isDotSeparateName(destEntityName)) {
             //cross db reference
@@ -317,8 +317,10 @@ class MySQLModeler {
             }
 
             destEntity = destSchema.entities[actualDestEntityName]; 
+            destEntityNameAsFieldName = actualDestEntityName;
         } else {
             destEntity = schema.ensureGetEntity(entity.oolModule, destEntityName, pendingEntities);
+            destEntityNameAsFieldName = destEntityName;
         }   
          
         if (!destEntity) {
@@ -408,7 +410,7 @@ class MySQLModeler {
                             
                         this._updateRelationEntity(connEntity, entity, destEntity, entity.name, destEntityName, connectedByField, connectedByField2);
 
-                        let localFieldName = assoc.srcField || pluralize(destEntityName);     
+                        let localFieldName = assoc.srcField || pluralize(destEntityNameAsFieldName);     
 
                         entity.addAssociation(
                             localFieldName,
@@ -427,7 +429,7 @@ class MySQLModeler {
                             }
                         );
 
-                        let remoteFieldName = backRef.srcField || pluralize(entity.name);    
+                        let remoteFieldName = backRef.srcField || pluralize(entity.name);  
 
                         destEntity.addAssociation(
                             remoteFieldName, 
@@ -447,19 +449,17 @@ class MySQLModeler {
                         );
 
                         this._processedRef.add(tag1);
-                        this.logger.log('verbose', `Processed reference: ${tag1}`);
-                        console.log(`Processed reference: ${tag1}`);
+                        this.logger.log('verbose', `Processed 2-way reference: ${tag1}`);                        
 
                         this._processedRef.add(tag2);                        
-                        this.logger.log('verbose', `Processed reference: ${tag2}`);
-                        console.log(`Processed reference: ${tag2}`);
+                        this.logger.log('verbose', `Processed 2-way reference: ${tag2}`);                        
 
                     } else if (backRef.type === 'belongsTo') {
                         if (assoc.by) {
                             throw new Error('todo: belongsTo by. entity: ' + entity.name);
                         } else {
                             //leave it to the referenced entity  
-                            let anchor = assoc.srcField || (assoc.type === 'hasMany' ? pluralize(destEntityName) : destEntityName);                            
+                            let anchor = assoc.srcField || (assoc.type === 'hasMany' ? pluralize(destEntityNameAsFieldName) : destEntityNameAsFieldName);                            
                             let remoteField = assoc.remoteField || backRef.srcField || entity.name;
                             
                             entity.addAssociation(
@@ -520,7 +520,7 @@ class MySQLModeler {
                         throw new Error(`Cannot find back reference to "${destEntityName}" from relation entity "${connEntityName}".`);
                     }
                     
-                    let connectedByField2 = connBackRef2.srcField || destEntityName;
+                    let connectedByField2 = connBackRef2.srcField || destEntityNameAsFieldName;
 
                     if (connectedByField === connectedByField2) {
                         throw new Error('Cannot use the same "by" field in a relation entity. Detail: ' + JSON.stringify({
@@ -533,7 +533,7 @@ class MySQLModeler {
                         
                     this._updateRelationEntity(connEntity, entity, destEntity, entity.name, destEntityName, connectedByField, connectedByField2);
 
-                    let localFieldName = assoc.srcField || pluralize(destEntityName);
+                    let localFieldName = assoc.srcField || pluralize(destEntityNameAsFieldName);
 
                     entity.addAssociation(
                         localFieldName,
@@ -553,15 +553,14 @@ class MySQLModeler {
                     );
 
                     this._processedRef.add(tag1);      
-                    this.logger.log('verbose', `Processed reference: ${tag1}`); 
-                    console.log(`Processed reference: ${tag1}`);    
+                    this.logger.log('verbose', `Processed 1-way reference: ${tag1}`); 
                 }
 
             break;
 
             case 'refersTo':
             case 'belongsTo':
-                let localField = assoc.srcField || destEntityName;
+                let localField = assoc.srcField || destEntityNameAsFieldName;
 
                 if (assoc.type === 'refersTo') {
                     let tag = `${entity.name}:1-${destEntityName}:* ${localField}`;
@@ -572,8 +571,7 @@ class MySQLModeler {
                     }
 
                     this._processedRef.add(tag);   
-                    this.logger.log('verbose', `Processed reference: ${tag}`);
-                    console.log(`Processed reference: ${tag}`);
+                    this.logger.log('verbose', `Processed week reference: ${tag}`);
                 }
 
                 entity.addAssocField(localField, destEntity, destKeyField, assoc.fieldProps);
@@ -820,7 +818,10 @@ class MySQLModeler {
     _updateRelationEntity(relationEntity, entity1, entity2, entity1Name/* for cross db */, entity2Name/* for cross db */, connectedByField, connectedByField2) {
         let relationEntityName = relationEntity.name;
 
-        if (relationEntity.info.associations) {               
+        this._relationEntities[relationEntityName] = true;
+
+        if (relationEntity.info.associations) {      
+            // check if the relation entity has the refersTo both side of associations        
             let hasRefToEntity1 = false, hasRefToEntity2 = false;              
 
             _.each(relationEntity.info.associations, assoc => {
@@ -834,7 +835,7 @@ class MySQLModeler {
             });
 
             if (hasRefToEntity1 && hasRefToEntity2) {
-                this._relationEntities[relationEntityName] = true;                
+                //yes, don't need to add refersTo to the relation entity
                 return;
             }
         }
@@ -850,12 +851,10 @@ class MySQLModeler {
         }         
         
         this._processedRef.add(tag1);   
-        this.logger.log('verbose', `Processed reference: ${tag1}`);
-        console.log(`Processed reference: ${tag1}`);
+        this.logger.log('verbose', `Processed bridging reference: ${tag1}`);
 
         this._processedRef.add(tag2);   
-        this.logger.log('verbose', `Processed reference: ${tag2}`);
-        console.log(`Processed reference: ${tag2}`);
+        this.logger.log('verbose', `Processed bridging reference: ${tag2}`);
 
         let keyEntity1 = entity1.getKeyField();
         if (Array.isArray(keyEntity1)) {
@@ -880,8 +879,7 @@ class MySQLModeler {
         );
 
         this._addReference(relationEntityName, connectedByField, entity1Name, keyEntity1.name);
-        this._addReference(relationEntityName, connectedByField2, entity2Name, keyEntity2.name);
-        this._relationEntities[relationEntityName] = true;
+        this._addReference(relationEntityName, connectedByField2, entity2Name, keyEntity2.name);        
     }
     
     static oolOpToSql(op) {

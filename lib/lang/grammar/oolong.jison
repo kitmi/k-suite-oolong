@@ -72,6 +72,7 @@
         'entity.associations.item.block.when': 'entity.associations.item.block.when',
         'entity.interface': 'entity.interface',
         'entity.interface.accept': 'entity.interface.accept',
+        'entity.interface.accept.$INDENT': 'entity.interface.accept.block',
         'entity.interface.find': 'entity.interface.find',
         'entity.interface.findOne': 'entity.interface.find',
         'entity.interface.return': 'entity.interface.return',
@@ -98,6 +99,7 @@
         [ 'entity.associations', 1 ],
         [ 'entity.associations.item', 2 ],
         [ 'entity.associations.item.block.when', 2 ],        
+        [ 'entity.interface.accept.block', 2 ],
         [ 'entity.interface.find.else', 1]
     ]);
 
@@ -1374,13 +1376,18 @@ accept_or_not
     ;
 
 accept_statement
-    : "accept" modifiable_param NEWLINE -> { accept: [ $2 ] }
+    : "accept" accept_param NEWLINE -> { accept: [ $2 ] }
     | "accept" NEWLINE INDENT accept_block DEDENT NEWLINE? -> { accept: $4 }
     ;
 
 accept_block
-    : modifiable_param NEWLINE -> [ $1 ]
-    | modifiable_param NEWLINE accept_block -> [ $1 ].concat($3)
+    : accept_param NEWLINE -> [ $1 ]
+    | accept_param NEWLINE accept_block -> [ $1 ].concat($3)
+    ;
+
+accept_param
+    : modifiable_param
+    | identifier_or_string ":" DOTNAME type_info_or_not type_modifiers_or_not -> Object.assign({ name: $1, type: $3 }, $4, $5)   
     ;
 
 implementation
