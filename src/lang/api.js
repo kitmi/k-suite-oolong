@@ -95,8 +95,6 @@ exports.build_ = async (context) => {
             let dbModeler = new DbModeler(context, connector, deploymentSetting.extraOptions);
             let refinedSchema = dbModeler.modeling(schema, schemaToConnector);
 
-            schemaToConnector[schemaName] = connector.database;
-
             const DaoModeler = require('../modeler/Dao');
             let daoModeler = new DaoModeler(context, connector);
 

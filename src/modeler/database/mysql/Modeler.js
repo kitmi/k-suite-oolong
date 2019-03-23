@@ -1052,7 +1052,7 @@ class MySQLModeler {
         let refTable = relation.right;
 
         if (refTable.indexOf('.') > 0) {
-            let [ schemaName, entityName ] = refTable.split('.');
+            let [ schemaName, entityName ] = refTable.split('.');         
 
             let targetConnector = schemaToConnector[schemaName];
             assert: targetConnector;
