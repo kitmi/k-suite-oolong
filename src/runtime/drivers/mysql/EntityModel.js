@@ -223,6 +223,11 @@ class MySQLEntityModel extends EntityModel {
             }            
 
             let entity = this.db.model(baseNode.entity);
+            let assocInfo = entity.meta.associations[last];
+            if (!assocInfo) {
+                throw new BusinessError(`Entity "${entity.meta.name}" does not have the association "${assoc}".`);
+            }
+
             result = { ...this._translateSchemaNameToDb(entity.meta.associations[last]) };
 
             if (!baseNode.subAssocs) {
