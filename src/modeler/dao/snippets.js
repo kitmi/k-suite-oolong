@@ -448,7 +448,36 @@ const _fieldRequirementCheck = (fieldName, references, content, requireTargetFie
             "body": checks.concat(content)
         },
         "alternate": null
-    } : checks.concat(content);
+    } : {
+        "type": "IfStatement",
+        "test": {
+            "type": "CallExpression",
+            "callee": {
+                "type": "Identifier",
+                "name": "isNothing"
+            },
+            "arguments": [
+                {
+                    "type": "MemberExpression",
+                    "computed": true,
+                    "object": {
+                        "type": "Identifier",
+                        "name": "latest"
+                    },
+                    "property": {
+                        "type": "Literal",
+                        "value": fieldName,
+                        "raw": quote(fieldName, "'")
+                    }
+                }
+            ]
+        },
+        "consequent": {
+            "type": "BlockStatement",
+            "body": checks.concat(content)
+        },
+        "alternate": null
+    };
 };
 
 const restMethods = (serviceId, entityName, className) => ({

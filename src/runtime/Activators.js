@@ -3,12 +3,8 @@
 const { _ } = require('rk-utils');
 
 module.exports = {
-    datetimeBetween: function (startTime, endTime) {
-        
-    },
-
     datetimeAdd: function (startTime, duration) {
-        
+        return startTime.plus(duration);
     },
 
     isEqual: function (value1, value2) {

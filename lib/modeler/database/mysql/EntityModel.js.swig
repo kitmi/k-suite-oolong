@@ -15,7 +15,6 @@ module.exports = (db, BaseEntityModel) => {
     let Base = BaseEntityModel;
     {% for m in mixins %}Base = {{m}}(Base);
     {% endfor %}
-
     const {{ className }}Spec = class extends Base {    
         {{ classBody|safe }}
     };
