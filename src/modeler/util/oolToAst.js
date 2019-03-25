@@ -985,7 +985,7 @@ function compileDbOperation(index, operation, compileContext, dependency) {
     let lastTopoId;
 
     switch (operation.oolType) {
-        case 'findOne':
+        case 'FindOneStatement':
             lastTopoId = compileFindOne(index, operation, compileContext, dependency);
             break;
 
@@ -1009,8 +1009,9 @@ function compileDbOperation(index, operation, compileContext, dependency) {
             //prepareDbConnection(compileContext);
             break;
 
-        case 'javascript':
-            throw new Error('tbi');
+        case 'DoStatement':
+            let doBlock = operation.do;
+            lastTopoId = compileDoStatement(index, doBlock, compileContext, dependency);
             break;
 
         case 'assignment':
@@ -1026,6 +1027,10 @@ function compileDbOperation(index, operation, compileContext, dependency) {
     });
 
     return lastTopoId;
+}
+
+function compileDoStatement(index, operation, compileContext, dependency) {
+        
 }
 
 /**

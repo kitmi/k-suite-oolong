@@ -1396,12 +1396,12 @@ implementation
     ;
 
 operation
-    : find_one_operation /*
+    : find_one_operation
+    | coding_block /*
     | find_list_operation
     | update_operation
     | create_operation
-    | delete_operation
-    | coding_block
+    | delete_operation    
     | assign_operation   */
     ;
 
@@ -1411,8 +1411,8 @@ find_one_keywords
     ;
 
 find_one_operation
-    : find_one_keywords identifier_or_string selection_inline_keywords conditional_expression -> { oolType: 'findOne', model: $2, condition: $4 }
-    | find_one_keywords identifier_or_string case_statement -> { oolType: 'findOne', model: $2, condition: $3 }
+    : find_one_keywords identifier_or_string selection_inline_keywords conditional_expression -> { oolType: 'FindOneStatement', model: $2, condition: $4 }
+    | find_one_keywords identifier_or_string case_statement -> { oolType: 'FindOneStatement', model: $2, condition: $3 }
     ;    
 
 cases_keywords
@@ -1500,8 +1500,7 @@ delete_operation
     ;
 
 coding_block
-    : "do" "{" javascript "}" NEWLINE
-        { $$ = { oolType: 'javascript', script: $3 }; }
+    : "do" javascript NEWLINE -> { oolType: 'DoStatement', do: $2 }
     ;
 
 assign_operation
@@ -1575,7 +1574,8 @@ selection_attributive_keywords
     ;
 
 selection_keywords
-    : "selectedBy"
+    : "by"
+    | "selectedBy"
     | "selected" "by"    
     ;    
 

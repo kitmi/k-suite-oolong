@@ -53,6 +53,7 @@ There are predefined context properties which can be accessed in an entity opera
 
     * Data Operations
         * findOne
+        * DoStatement
 
     * Statements & Expressions
         * cases

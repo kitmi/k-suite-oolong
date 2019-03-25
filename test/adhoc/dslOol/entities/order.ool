@@ -21,23 +21,7 @@ entity order
     itemCount : integer default(0)
 
   associations          
-    hasMany orderLineItem as lineItems 
-
-  interface 
-    recalculateAmount
-      accept
-        orderId : order.id
-
-      find the order by @orderId
-
-      map @order.lineItems as lineItem => {
-        netAmount:  lineItem.netAmount
-        taxAmount: sum lineItem.taxAmount
-        totalAmount: lineItem.subTotal
-        itemCount :
-      } 
-      
-      update
+    hasMany orderLineItem as lineItems       
     
 entity orderLineItem
   with

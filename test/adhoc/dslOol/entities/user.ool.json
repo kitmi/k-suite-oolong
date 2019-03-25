@@ -232,7 +232,7 @@
                     ],
                     "implementation": [
                         {
-                            "oolType": "findOne",
+                            "oolType": "FindOneStatement",
                             "model": "user",
                             "condition": {
                                 "oolType": "cases",

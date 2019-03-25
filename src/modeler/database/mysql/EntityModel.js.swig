@@ -12,12 +12,15 @@ const {
 {{ imports|safe }} 
 
 module.exports = (db, BaseEntityModel) => {
-    const {{ className }}Spec = class extends BaseEntityModel {    
+    let Base = BaseEntityModel;
+    {% for m in mixins %}Base = {{m}}(Base);
+    {% endfor %}
+    const {{ className }}Spec = class extends Base {    
         {{ classBody|safe }}
     };
 
     {{ className }}Spec.db = db;
     {{ className }}Spec.meta = {{ entityMeta|safe }};
 
-    return Object.assign({{ className }}Spec, {{ functors|safe }}{% for m in mixins %}{% if loop.first %}, {% endif %}{{m}}{% if not loop.last %}, {% endif %}{% endfor %});
+    return Object.assign({{ className }}Spec, {{ functors|safe }});
 };

@@ -105,7 +105,8 @@ class MySQLEntityModel extends EntityModel {
 
         if (context.createOptions.$retrieveCreated) {
             let condition = this.getUniqueKeyValuePairsFrom(context.latest);
-            context.latest = await this.findOne_({ $query: condition }, context.connOptions);
+            let retrieveOptions = _.isPlainObject(context.createOptions.$retrieveCreated) ? context.createOptions.$retrieveCreated : {};
+            context.latest = await this.findOne_({ ...retrieveOptions, $query: condition }, context.connOptions);
         }
 
         return true;
