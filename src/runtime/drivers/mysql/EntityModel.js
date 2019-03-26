@@ -291,7 +291,7 @@ class MySQLEntityModel extends EntityModel {
 
     static _translateSchemaNameToDb(assoc) {
         if (assoc.entity.indexOf('.') > 0) {
-            let [ schemaName, entityName ] = assoc.split('.', 2);
+            let [ schemaName, entityName ] = assoc.entity.split('.', 2);
 
             let app = this.db.app;
             if (!app) {
@@ -299,7 +299,7 @@ class MySQLEntityModel extends EntityModel {
             }
 
             let refDb = app.db(schemaName);
-            if (refDb) {
+            if (!refDb) {                
                 throw new OolongUsageError(`The referenced schema "${schemaName}" does not have db model in the same application.`);
             }
 
