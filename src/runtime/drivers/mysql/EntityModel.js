@@ -229,6 +229,7 @@ class MySQLEntityModel extends EntityModel {
                     entity: assoc.entity, 
                     joinType: assoc.type, 
                     output: assoc.output,
+                    key: assoc.key,
                     alias,
                     on: assoc.on,
                     ...(assoc.dataset ? this.db.connector.buildQuery(
@@ -304,6 +305,15 @@ class MySQLEntityModel extends EntityModel {
             }
 
             assoc.entity = refDb.connector.database + '.' + entityName;
+
+            if (!assoc.key) {
+                let model = refDb.model(entityName);
+                if (!model) {
+                    throw new OolongUsageError(`Failed load the entity model "${schemaName}.${entityName}".`);
+                }
+
+                assoc.key = model.meta.keyField;
+            }
         }
 
         return assoc;
@@ -314,7 +324,7 @@ class MySQLEntityModel extends EntityModel {
 
         function mergeRecord(existingRow, rowObject, associations) {            
             _.each(associations, ({ sql, key, list, subAssocs }, anchor) => { 
-                if (sql) return;                
+                if (sql) return;                                 
 
                 let objKey = ':' + anchor;                
                 let subObj = rowObject[objKey]
@@ -358,6 +368,8 @@ class MySQLEntityModel extends EntityModel {
                 if (sql) {
                     return;
                 }
+
+                assert: key;
 
                 let objKey = ':' + anchor;
                 let subObject = rowObject[objKey];                                  
