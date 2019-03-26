@@ -226,47 +226,6 @@ const _validateCheck = (fieldName, validatingCall) => {
     };
 };
 
-function buildTest(conditions) {
-    if (conditions.length === 0) return null;
-
-    let c = conditions.pop();
-
-    if (conditions.length === 0) {
-        return {
-            "type": "BinaryExpression",
-            "operator": "in",
-            "left": {
-                "type": "Literal",
-                "value": c,
-                "raw": quote(c, "'")
-            },
-            "right": {
-                "type": "Identifier",
-                "name": "latest"
-            }
-        }
-    } 
-
-    return {
-        "type": "LogicalExpression",
-        "operator": "||",
-        "left": buildTest(conditions),
-        "right": {
-            "type": "BinaryExpression",
-            "operator": "in",
-            "left": {
-                "type": "Literal",
-                "value": c,
-                "raw": quote(c, "'")
-            },
-            "right": {
-                "type": "Identifier",
-                "name": "latest"
-            }
-        }
-    };
-}
-
 /**
  * Check existence of all required fields
  * @param {string} fieldName - Target field name
@@ -278,9 +237,6 @@ const _fieldRequirementCheck = (fieldName, references, content, requireTargetFie
     if (!references) references = [];
 
     references = references.map(ref => extractDotSeparateName(ref).pop());
-
-    //let test = buildTest(_.reverse((requireTargetField ? [fieldName] : []).concat(references)));
-    //let test = requireTargetField && buildTest([fieldName]);
 
     let throwMessage = `"${fieldName}" is required due to change of its dependencies. (e.g: ${references.join(' or ')})`;
 

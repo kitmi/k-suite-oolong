@@ -366,7 +366,7 @@ class DaoModeler {
             lastBlock, lastAstType;//, hasValidator = false;
 
         const _mergeDoValidateAndFillCode = function (fieldName, references, astCache, requireTargetField) { 
-            let fields = (requireTargetField ? [ fieldName ] : []).concat(references);
+            let fields = [ fieldName ].concat(references);
             let checker = fields.join(',');
 
             if (lastFieldsGroup && lastFieldsGroup.checker !== checker) {
