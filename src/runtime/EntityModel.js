@@ -401,7 +401,11 @@ class EntityModel {
                 context.connOptions
             );            
 
-            await this.afterUpdate_(context);
+            if (forSingleRecord) {
+                await this.afterUpdate_(context);
+            } else {
+                await this.afterUpdateMany_(context);
+            }            
             
             return context.latest;
         }, context);
@@ -411,12 +415,16 @@ class EntityModel {
      * Remove an existing entity with given data.     
      * @param {object} [deleteOptions] - Update options
      * @property {object} [deleteOptions.$query] - Extra condition
-     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database     
+     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the deleted entity from database     
      * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection] 
      */
     static async deleteOne_(deleteOptions, connOptions) {
+        if (!('$retrieveDeleted' in deleteOptions)) {
+            deleteOptions.$retrieveDeleted = true;
+        }
+
         return this._delete_(deleteOptions, connOptions, true);
     }
 
@@ -424,7 +432,7 @@ class EntityModel {
      * Remove an existing entity with given data.     
      * @param {object} [deleteOptions] - Update options
      * @property {object} [deleteOptions.$query] - Extra condition
-     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database     
+     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the deleted entity from database     
      * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection] 
@@ -437,7 +445,7 @@ class EntityModel {
      * Remove an existing entity with given data.     
      * @param {object} [deleteOptions] - Update options
      * @property {object} [deleteOptions.$query] - Extra condition
-     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the updated entity from database     
+     * @property {bool} [deleteOptions.$retrieveDeleted=false] - Retrieve the deleted entity from database     
      * @property {bool} [deleteOptions.$physicalDeletion=false] - When fetchArray = true, the result will be returned directly without creating model objects.
      * @param {object} [connOptions]
      * @property {object} [connOptions.connection] 
@@ -469,6 +477,12 @@ class EntityModel {
                 context.deleteOptions.$query,
                 context.connOptions
             );
+
+            if (forSingleRecord) {
+                await this.afterDelete_(context);
+            } else {
+                await this.afterDeleteMany_(context);
+            }     
             
             return context.existing;
         }, context);

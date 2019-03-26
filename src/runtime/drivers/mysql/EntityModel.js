@@ -121,18 +121,59 @@ class MySQLEntityModel extends EntityModel {
     static async afterUpdate_(context) {
         if (context.updateOptions.$retrieveUpdated) {    
             let condition = { $query: context.updateOptions.$query };
-
             if (context.updateOptions.$byPassEnsureUnique) {
                 condition.$byPassEnsureUnique = context.updateOptions.$byPassEnsureUnique;
             }
 
-            if (context.updateOptions.$relationships) {
-                condition.$relationships = context.updateOptions.$relationships;
+            let retrieveOptions = {};
+            
+            if (_.isPlainObject(context.updateOptions.$retrieveUpdated)) {
+                retrieveOptions = context.updateOptions.$retrieveUpdated;
+            } else if (context.updateOptions.$relationships) {
+                retrieveOptions.$relationships = context.updateOptions.$relationships;
             }
             
-            context.latest = await this.findOne_(condition, context.connOptions);
+            context.latest = await this.findOne_({ ...retrieveOptions, ...condition }, context.connOptions);
         }
 
+        return true;
+    }
+
+    /**
+     * Post update processing.
+     * @param {*} context 
+     * @param {object} [updateOptions] - Update options     
+     * @property {bool} [updateOptions.$retrieveUpdated] - Retrieve the newly updated record from db. 
+     */
+    static async afterUpdateMany_(context) {
+        if (context.updateOptions.$retrieveUpdated) {    
+            let retrieveOptions = {};
+
+            if (_.isPlainObject(context.updateOptions.$retrieveUpdated)) {
+                retrieveOptions = context.updateOptions.$retrieveUpdated;
+            } else if (context.updateOptions.$relationships) {
+                retrieveOptions.$relationships = context.updateOptions.$relationships;
+            }
+            
+            context.latest = await this.findAll_({ ...retrieveOptions, $query: context.updateOptions.$query }, context.connOptions);
+        }
+
+        return true;
+    }
+
+    /**
+     * Post delete processing.
+     * @param {*} context      
+     */
+    static async afterDelete_(context) {
+        return true;
+    }
+
+    /**
+     * Post delete processing.
+     * @param {*} context      
+     */
+    static async afterDeleteMany_(context) {
         return true;
     }
 
@@ -158,8 +199,12 @@ class MySQLEntityModel extends EntityModel {
 
                 context.connOptions.connection = await this.db.connector.beginTransaction_();                           
             }
+
+            let retrieveOptions = _.isPlainObject(context.deleteOptions.$retrieveDeleted) ? 
+                context.deleteOptions.$retrieveDeleted :
+                {};
             
-            context.existing = await this.findOne_({ $query: context.deleteOptions.$query }, context.connOptions);
+            context.existing = await this.findOne_({ ...retrieveOptions, $query: context.deleteOptions.$query }, context.connOptions);
         }
     }
 
