@@ -237,9 +237,9 @@ class MySQLConnector extends Connector {
      * @param {object} data 
      * @param {*} query 
      * @param {*} queryOptions  
-     * @param {*} options 
+     * @param {*} connOptions 
      */
-    async update_(model, data, query, queryOptions, options) {        
+    async update_(model, data, query, queryOptions, connOptions) {        
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false, joiningParams = []; 
 
         if (queryOptions && queryOptions.$relationships) {                                        
@@ -264,7 +264,7 @@ class MySQLConnector extends Connector {
             }                             
         }    
 
-        return this.execute_(sql, params, options);
+        return this.execute_(sql, params, connOptions);
     }
 
     /**
@@ -301,21 +301,21 @@ class MySQLConnector extends Connector {
      * Perform select operation.
      * @param {*} model 
      * @param {*} condition 
-     * @param {*} options 
+     * @param {*} connOptions 
      */
-    async find_(model, condition, options) {
+    async find_(model, condition, connOptions) {
         let sqlInfo = this.buildQuery(model, condition);
 
         let result, totalCount;
 
         if (sqlInfo.countSql) {            
-            let [ countResult ] = await this.execute_(sqlInfo.countSql, sqlInfo.params, options);              
+            let [ countResult ] = await this.execute_(sqlInfo.countSql, sqlInfo.params, connOptions);              
             totalCount = countResult['count'];
         }
 
         if (sqlInfo.hasJoining) {
-            options = { ...options, rowsAsArray: true };
-            result = await this.execute_(sqlInfo.sql, sqlInfo.params, options);  
+            connOptions = { ...connOptions, rowsAsArray: true };
+            result = await this.execute_(sqlInfo.sql, sqlInfo.params, connOptions);  
             let reverseAliasMap = _.reduce(sqlInfo.aliasMap, (result, alias, nodePath) => {
                 result[alias] = nodePath.split('.').slice(1).map(n => ':' + n);
                 return result;
@@ -328,7 +328,7 @@ class MySQLConnector extends Connector {
             return result.concat(reverseAliasMap);
         } 
 
-        result = await this.execute_(sqlInfo.sql, sqlInfo.params, options);
+        result = await this.execute_(sqlInfo.sql, sqlInfo.params, connOptions);
 
         if (sqlInfo.countSql) {
             return [ result, totalCount ];
