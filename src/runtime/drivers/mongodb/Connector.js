@@ -172,32 +172,33 @@ class MongodbConnector extends Connector {
     async find_(model, condition, options) {
         return this.onCollection_(model, async coll => {
             let queryOptions = {...options};
+            let query = {};
 
-            if (condition.$projection) {
-                queryOptions.projection = condition.$projection;                
+            if (condition) {
+                if (condition.$projection) {
+                    queryOptions.projection = condition.$projection;                
+                }
+
+                if (condition.$orderBy) {
+                    queryOptions.sort = condition.$orderBy;                
+                }
+
+                if (condition.$offset) {
+                    queryOptions.skip = condition.$offset;                
+                }
+
+                if (condition.$limit) {
+                    queryOptions.limit = condition.$limit;                
+                }
+
+                if (condition.$query) {
+                    query = condition.$query;
+                }
             }
-
-            if (condition.$orderBy) {
-                queryOptions.sort = condition.$orderBy;                
-            }
-
-            if (condition.$offset) {
-                queryOptions.skip = condition.$offset;                
-            }
-
-            if (condition.$limit) {
-                queryOptions.limit = condition.$limit;                
-            }
-
-            let query = condition.$query || {};
-
-            console.log('query', query);
-
-            console.log('queryOptions', queryOptions);
 
             let result = await coll.find(query, queryOptions).toArray();
 
-            if (condition.$totalCount) {
+            if (condition && condition.$totalCount) {
                 let totalCount = await coll.find(query).count();
                 return [ result, totalCount ];
             }
