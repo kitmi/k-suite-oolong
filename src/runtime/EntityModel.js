@@ -1,7 +1,7 @@
 "use strict";
 
 const HttpCode = require('http-status-codes');
-const { _, eachAsync_ } = require('rk-utils');
+const { _, eachAsync_, getValueByPath } = require('rk-utils');
 const Errors = require('./Errors');
 const Generators = require('./Generators');
 const Types = require('./types');
@@ -62,6 +62,10 @@ class EntityModel {
         
         let ukFields = this.getUniqueKeyFieldsFrom(data);
         return _.pick(data, ukFields);
+    }
+
+    static getNestedObject(entityObj, keyPath) {
+        return getValueByPath(entityObj, keyPath.split('.').map(p => ':'+p).join('.'));
     }
 
     /**

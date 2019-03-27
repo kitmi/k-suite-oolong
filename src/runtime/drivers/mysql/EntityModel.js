@@ -257,8 +257,12 @@ class MySQLEntityModel extends EntityModel {
         let lastPos = assoc.lastIndexOf('.');        
         let result;  
 
-        if (lastPos === -1) {                
-            result = cache[assoc] = assocTable[assoc] = { ...this._translateSchemaNameToDb(this.meta.associations[assoc]) };
+        if (lastPos === -1) {             
+            let assocInfo = this.meta.associations[assoc];   
+            if (!assocInfo) {
+                throw new BusinessError(`Entity "${this.meta.name}" does not have the association "${assoc}".`)
+            }
+            result = cache[assoc] = assocTable[assoc] = { ...this._translateSchemaNameToDb(assocInfo) };
         } else {
             let base = assoc.substr(0, lastPos);
             let last = assoc.substr(lastPos+1);         
@@ -274,7 +278,7 @@ class MySQLEntityModel extends EntityModel {
                 throw new BusinessError(`Entity "${entity.meta.name}" does not have the association "${assoc}".`);
             }
 
-            result = { ...this._translateSchemaNameToDb(entity.meta.associations[last]) };
+            result = { ...this._translateSchemaNameToDb(assocInfo) };
 
             if (!baseNode.subAssocs) {
                 baseNode.subAssocs = {};
@@ -314,6 +318,8 @@ class MySQLEntityModel extends EntityModel {
 
                 assoc.key = model.meta.keyField;
             }
+        } else if (!assoc.key) {
+            assoc.key = this.db.model(assoc.entity).meta.keyField;    
         }
 
         return assoc;

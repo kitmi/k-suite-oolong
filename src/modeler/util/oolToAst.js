@@ -586,6 +586,11 @@ function compileConcreteValueExpression(startTopoId, value, compileContext) {
             compileContext.astMap[startTopoId] = JsLang.astValue(value);            
             return startTopoId;
         }
+
+        if (value.oorType === 'SymbolToken') {
+            compileContext.astMap[startTopoId] = JsLang.astValue(translateSymbolToken(value.name));            
+            return startTopoId;
+        }
         
         value = _.mapValues(value, (valueOfElement, key) => { 
             let sid = createTopoId(compileContext, startTopoId + '.' + key);
@@ -608,6 +613,45 @@ function compileConcreteValueExpression(startTopoId, value, compileContext) {
 
     compileContext.astMap[startTopoId] = JsLang.astValue(value);
     return startTopoId;
+}
+
+function translateSymbolToken(name) {
+    if (name === 'now') {
+        return {
+            "type": "CallExpression",
+            "callee": {
+                "type": "MemberExpression",
+                "computed": false,
+                "object": {
+                    "type": "MemberExpression",
+                    "computed": false,
+                    "object": {
+                        "type": "MemberExpression",
+                        "computed": false,
+                        "object": {
+                            "type": "Identifier",
+                            "name": "Types"
+                        },
+                        "property": {
+                            "type": "Identifier",
+                            "name": "DATETIME"
+                        }
+                    },
+                    "property": {
+                        "type": "Identifier",
+                        "name": "typeObject"
+                    }
+                },
+                "property": {
+                    "type": "Identifier",
+                    "name": "local"
+                }
+            },
+            "arguments": []
+        };
+    } 
+    
+    throw new Error('not support');
 }
 
 /**

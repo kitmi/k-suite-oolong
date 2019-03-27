@@ -382,7 +382,7 @@ class DaoModeler {
                 references,
                 requireTargetField,                
                 checker,
-            }
+            };
         };
 
         //console.dir(compileContext.astMap['mobile~isMobilePhone:arg[1]|>stringDasherize'], { depth: 8 }); 
