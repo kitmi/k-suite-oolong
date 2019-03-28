@@ -161,7 +161,7 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
-        if (findOptions.$association && !findOptions.$relationships) {
+        if (findOptions.$association && !findOptions.$relationships) {            
             findOptions.$relationships = this._prepareAssociations(findOptions);
         }
 

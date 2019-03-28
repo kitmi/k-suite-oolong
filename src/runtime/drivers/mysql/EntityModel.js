@@ -258,10 +258,11 @@ class MySQLEntityModel extends EntityModel {
         let result;  
 
         if (lastPos === -1) {             
-            let assocInfo = this.meta.associations[assoc];   
+            let assocInfo = { ...this.meta.associations[assoc] };   
             if (!assocInfo) {
                 throw new BusinessError(`Entity "${this.meta.name}" does not have the association "${assoc}".`)
             }
+            
             result = cache[assoc] = assocTable[assoc] = { ...this._translateSchemaNameToDb(assocInfo) };
         } else {
             let base = assoc.substr(0, lastPos);
@@ -273,7 +274,7 @@ class MySQLEntityModel extends EntityModel {
             }            
 
             let entity = this.db.model(baseNode.entity);
-            let assocInfo = entity.meta.associations[last];
+            let assocInfo ={ ...entity.meta.associations[last] };
             if (!assocInfo) {
                 throw new BusinessError(`Entity "${entity.meta.name}" does not have the association "${assoc}".`);
             }
