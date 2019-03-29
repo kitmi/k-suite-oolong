@@ -32,20 +32,19 @@ class MongoDbMigration {
 
     async load_(dataFile) {
         let ext = path.extname(dataFile);
+        let collection = path.basename(dataFile, ext);
 
         if (ext === '.json') {
-            let data = fs.readJsonSync(dataFile, {encoding: 'utf8'});
+            let docs = fs.readJsonSync(dataFile, {encoding: 'utf8'});
 
-            await this._loadData_(data);
+            await this._loadData_(collection, docs);
         } else {
             throw new Error('Unsupported data file format.');
         }
     }
 
-    async _loadData_(data) { 
-        await eachAsync_(data, (records, entityName) => {
-            return eachAsync_(records, record => this.connector.insertOne_(entityName, record));            
-        });
+    async _loadData_(collection, docs) { 
+        await eachAsync_(docs, doc => this.connector.insertOne_(collection, doc));
     }
 }
 
