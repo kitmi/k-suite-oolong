@@ -305,6 +305,8 @@ class MySQLModeler {
         let entityKeyField = entity.getKeyField();
         assert: !Array.isArray(entityKeyField);
 
+        this.logger.log('debug', `Processing "${entity.name}" ${JSON.stringify(assoc)}`); 
+
         let destEntityName = assoc.destEntity, destEntity, destEntityNameAsFieldName;
         
         if (isDotSeparateName(destEntityName)) {
@@ -471,7 +473,10 @@ class MySQLModeler {
                                         { ...assocNames, [destEntityName]: anchor }, 
                                         entity.key, 
                                         anchor,
-                                        remoteField
+                                        assoc.with ? {
+                                            by: remoteField,
+                                            with: assoc.with
+                                        } : remoteField
                                     ), 
                                     ...(typeof remoteField === 'string' ? { field: remoteField } : {}),                                    
                                     ...(assoc.type === 'hasMany' ? { list: true } : {})
