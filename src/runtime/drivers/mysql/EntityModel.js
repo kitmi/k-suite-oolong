@@ -90,6 +90,10 @@ class MySQLEntityModel extends EntityModel {
             throw error;
         }
     }
+
+    static async beforeCreate_(context) {
+        return true;
+    }
     
     /**
      * Post create processing.

@@ -2,7 +2,7 @@
 
 const { _ } = require('rk-utils');
 
-const SupportedDrivers = [ 'mysql', 'mongodb' ];
+const SupportedDrivers = [ 'mysql', 'mongodb', 'rabbitmq' ];
 const JsPrimitiveTypes = new Set([ 'number', 'boolean', 'string', 'symbol', 'undefined' ]);
 
 /**

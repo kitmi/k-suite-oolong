@@ -240,6 +240,8 @@ class EntityModel {
         }
 
         return this._safeExecute_(async (context) => {
+            await this.beforeCreate_(context);
+
             if (needCreateAssocs) {
                 if (!context.connOptions || !context.connOptions.connection) {                
                     context.connOptions || (context.connOptions = {});

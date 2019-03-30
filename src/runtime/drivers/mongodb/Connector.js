@@ -80,7 +80,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async insertOne_(model, data, options) {
-        return this.onCollection_(model, (coll) => coll.insertOne(data, { forceServerObjectId: true, bypassDocumentValidation: true, ...options }));
+        return this.onCollection_(model, (coll) => coll.insertOne(data, { bypassDocumentValidation: true, ...options }));
     }
 
     /**
