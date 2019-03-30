@@ -30,7 +30,7 @@ class {{ className }} {
             entitySpecMixin = require(`./{{ schemaName }}/${modelClassName}`);        
         } catch (error) {
             if (error.code === 'MODULE_NOT_FOUND') {
-                throw new BusinessError(`Entity "${modelClassName}" not found.`);
+                throw new BusinessError(`Failed to load "${modelClassName}" entity. ${error.message}`);
             }
 
             throw error;

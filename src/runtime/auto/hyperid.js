@@ -9,7 +9,7 @@ module.exports = function (info, i18n, options) {
 
     if (info && info.fixedLength) {
         if (!flInstance) {
-            flInstance = hyperid({fixedLength: true});
+            flInstance = hyperid({ urlSafe: true, fixedLength: true });
         }
         
         return flInstance();
