@@ -36,7 +36,7 @@
         'entity.associations.item': new Set(['connectedBy', 'being', 'with', 'as']),        
         'entity.interface.find': new Set(['a', 'an', 'the', 'one', 'by', 'cases', 'selected', 'selectedBy', "of", "which", "where", "when", "with", "otherwise", "else"]),           
         'entity.interface.return': new Set(["unless", "when"]),       
-        'entity.triggers.onChange': new Set(["when"]),         
+        'entity.triggers.onChange': new Set(["always" "when"]),         
         
 
         // level 4
@@ -1379,6 +1379,7 @@ accept_statement
     : "accept" accept_param NEWLINE -> { accept: [ $2 ] }
     | "accept" NEWLINE INDENT accept_block DEDENT NEWLINE? -> { accept: $4 }
     ;
+
 
 accept_block
     : accept_param NEWLINE -> [ $1 ]
