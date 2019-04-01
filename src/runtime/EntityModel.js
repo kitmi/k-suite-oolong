@@ -427,10 +427,6 @@ class EntityModel {
      * @property {object} [connOptions.connection] 
      */
     static async deleteOne_(deleteOptions, connOptions) {
-        if (!('$retrieveDeleted' in deleteOptions)) {
-            deleteOptions.$retrieveDeleted = true;
-        }
-
         return this._delete_(deleteOptions, connOptions, true);
     }
 
@@ -476,7 +472,11 @@ class EntityModel {
         }        
         
         return this._safeExecute_(async (context) => {
-            await this.beforeDelete_(context);
+            if (forSingleRecord) {
+                await this.beforeDelete_(context);
+            } else {
+                await this.beforeDeleteMany_(context);
+            }
 
             context.result = await this.db.connector.delete_(
                 this.meta.name,                 

@@ -181,7 +181,7 @@ class MySQLEntityModel extends EntityModel {
         return true;
     }
 
-    static afterFindAll_(context, records) {
+    static async afterFindAll_(context, records) {
         if (context.findOptions.$toDictionary) return records.reduce((table, v) => {
             table[v[this.meta.keyField]] = v;
             return table;
@@ -209,6 +209,22 @@ class MySQLEntityModel extends EntityModel {
                 {};
             
             context.existing = await this.findOne_({ ...retrieveOptions, $query: context.deleteOptions.$query }, context.connOptions);
+        }
+    }
+
+    static async beforeDeleteMany_(context) {
+        if (context.deleteOptions.$retrieveDeleted) {            
+            if (!context.connOptions || !context.connOptions.connection) {
+                context.connOptions || (context.connOptions = {});
+
+                context.connOptions.connection = await this.db.connector.beginTransaction_();                           
+            }
+
+            let retrieveOptions = _.isPlainObject(context.deleteOptions.$retrieveDeleted) ? 
+                context.deleteOptions.$retrieveDeleted :
+                {};
+            
+            context.existing = await this.findAll_({ ...retrieveOptions, $query: context.deleteOptions.$query }, context.connOptions);
         }
     }
 
