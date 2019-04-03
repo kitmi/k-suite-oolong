@@ -3,12 +3,8 @@
 const CliApp = require('@k-suite/app');
 const winston = require('winston');
 const { combine, timestamp, colorize, json, simple } = winston.format;
-const path = require('path');
 const OolongCore = require('./OolongCore');
 const pkg = require('../../package.json');
-
-const CWD = process.cwd();
-const logPath = path.resolve(CWD, 'oolong-cli.log');
 
 let cliApp = new CliApp('oolong', { 
     logger: {        
@@ -18,14 +14,6 @@ let cliApp = new CliApp('oolong', {
                 "options": {                            
                     "level": "debug",
                     "format": combine(colorize(), simple())
-                }
-            },
-            {
-                "type": "file",
-                "options": {
-                    "level": "verbose",
-                    "format": combine(timestamp(), json()),
-                    "filename": logPath //`${logPath}`
                 }
             }
         ]

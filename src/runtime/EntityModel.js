@@ -71,7 +71,23 @@ class EntityModel {
     /**
      * Get a pk-indexed hashtable with all undeleted data
      */
-    static async cached_() {
+    static async cached_(key) {
+        if (key) {
+            let cachedData;
+
+            if (!this._cachedDataAltKey) {
+                this._cachedDataAltKey = {};
+            } else if (this._cachedDataAltKey[key]) {
+                cachedData = this._cachedDataAltKey[key];
+            }
+
+            if (!cachedData) {
+                cachedData = this._cachedDataAltKey[key] = await this.findAll_({ $toDictionary: key });
+            }
+    
+            return cachedData;
+        }
+
         if (!this._cachedData) {
             this._cachedData = await this.findAll_({ $toDictionary: true });
         }
@@ -683,7 +699,7 @@ class EntityModel {
             }
 
             throw new DsOperationError(
-                `Error occurred during applying features rules to entity "${this.meta.name}". Detail: ` + error.message,
+                `Error occurred during applying feature rules to entity "${this.meta.name}". Detail: ` + error.message,
                 { error: error }
             );
         }

@@ -182,10 +182,22 @@ class MySQLEntityModel extends EntityModel {
     }
 
     static async afterFindAll_(context, records) {
-        if (context.findOptions.$toDictionary) return records.reduce((table, v) => {
-            table[v[this.meta.keyField]] = v;
-            return table;
-        }, {});
+        if (context.findOptions.$toDictionary) {
+            let keyField = this.meta.keyField;
+            
+            if (typeof context.findOptions.$toDictionary === 'string') { 
+                keyField = context.findOptions.$toDictionary; 
+
+                if (!(keyField in this.meta.fields)) {
+                    throw new OolongUsageError(`The key field "${keyField}" provided to index the cached dictionary is not a field of entity "${this.meta.name}".`);
+                }
+            }
+
+            return records.reduce((table, v) => {
+                table[v[keyField]] = v;
+                return table;
+            }, {});
+        } 
 
         return records;
     }

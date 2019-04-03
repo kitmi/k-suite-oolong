@@ -612,6 +612,20 @@ class MySQLModeler {
                 return {
                     [left]: { '$eq': right }
                 }; 
+            } else if (oolCon.operator === '!=') {
+                let left = oolCon.left;
+                if (left.oolType && left.oolType === 'ObjectReference') {
+                    left = this._translateReference(context, left.name, true);
+                }
+
+                let right = oolCon.right;
+                if (right.oolType && right.oolType === 'ObjectReference') {
+                    right = this._translateReference(context, right.name);
+                }
+
+                return {
+                    [left]: { '$ne': right }
+                }; 
             }
         } else if (oolCon.oolType === 'UnaryExpression') {
             let arg;
