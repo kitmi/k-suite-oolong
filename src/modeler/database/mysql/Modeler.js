@@ -442,7 +442,7 @@ class MySQLModeler {
                                     backRef.with ? {
                                         by: connectedByField2,
                                         with: backRef.with
-                                    } : connectedByField
+                                    } : connectedByField2
                                 ),
                                 field: connectedByField2,                                
                                 ...(backRef.type === 'hasMany' ? { list: true } : {}),
