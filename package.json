@@ -80,7 +80,7 @@
     "number-to-letter": "^1.0.1",
     "pluralize": "^7.0.0",
     "randomstring": "^1.1.5",
-    "rk-utils": "^2.2.0",
+    "rk-utils": "^2.2.1",
     "validator": "^10.8.0"
   }
 }
