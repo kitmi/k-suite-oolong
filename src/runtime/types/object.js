@@ -28,7 +28,7 @@ module.exports = {
 
     generate: (info, i18n) => null,
 
-    serialize: (value) => isNothing(value) ? null : JOSN.stringify(value),
+    serialize: (value) => isNothing(value) ? null : JSON.stringify(value),
 
     qualifiers: any.qualifiers.concat([
     ])

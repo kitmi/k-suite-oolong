@@ -56,6 +56,10 @@ class MySQLEntityModel extends EntityModel {
             }
         }
 
+        if (info.type === 'object') {
+            return Types.OBJECT.serialize(value);
+        }
+
         return value;
     }    
 
