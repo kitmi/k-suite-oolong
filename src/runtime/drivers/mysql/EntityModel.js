@@ -295,7 +295,7 @@ class MySQLEntityModel extends EntityModel {
 
         if (lastPos === -1) {             
             let assocInfo = { ...this.meta.associations[assoc] };   
-            if (!assocInfo) {
+            if (_.isEmpty(assocInfo)) {
                 throw new BusinessError(`Entity "${this.meta.name}" does not have the association "${assoc}".`)
             }
             
@@ -311,7 +311,7 @@ class MySQLEntityModel extends EntityModel {
 
             let entity = this.db.model(baseNode.entity);
             let assocInfo ={ ...entity.meta.associations[last] };
-            if (!assocInfo) {
+            if (_.isEmpty(assocInfo)) {
                 throw new BusinessError(`Entity "${entity.meta.name}" does not have the association "${assoc}".`);
             }
 

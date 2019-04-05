@@ -38,6 +38,9 @@ class MongoDbMigration {
             let docs = fs.readJsonSync(dataFile, {encoding: 'utf8'});
 
             await this._loadData_(collection, docs);
+        } else if (ext === '.js') {           
+            let executor = require(dataFile);
+            await executor( this.connector);
         } else {
             throw new Error('Unsupported data file format.');
         }
