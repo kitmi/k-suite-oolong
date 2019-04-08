@@ -28,11 +28,8 @@ class EntityModel {
         } 
     }    
 
-    /**
-     * Get an object of the primary key values.
-     */
-    get $pkValues() {
-        return _.pick(this, _.castArray(this.constructor.meta.keyField));
+    static valueOfKey(data) {
+        return Array.isArray(this.meta.keyField) ? _.pick(data, this.meta.keyField) : data[this.meta.keyField];
     }
 
     /**
@@ -430,6 +427,29 @@ class EntityModel {
             }            
             
             return context.latest;
+        }, context);
+    }
+
+    static async replaceOne_(data, updateOptions, connOptions) {
+        if (!updateOptions) {
+            let conditionFields = this.getUniqueKeyFieldsFrom(data);
+            if (_.isEmpty(conditionFields)) {
+                throw new OolongUsageError('Primary key value(s) or at least one group of unique key value(s) is required for replacing an entity.');
+            }
+            
+            updateOptions = { ...updateOptions, $query: _.pick(data, conditionFields) };
+        } else {
+            updateOptions = this._prepareQueries(updateOptions, true);
+        }
+
+        let context = { 
+            raw: data, 
+            updateOptions,
+            connOptions
+        };
+
+        return this._safeExecute_(async (context) => {
+            return this._doReplaceOne_(context); // different dbms has different replacing strategy
         }, context);
     }
 

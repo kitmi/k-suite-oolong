@@ -86,12 +86,28 @@ class MySQLEntityModel extends EntityModel {
             let errorCode = error.code;
 
             if (errorCode === 'ER_NO_REFERENCED_ROW_2') {
-                throw new BusinessError('The new entity is referencing to an unexisting entity.');
+                throw new BusinessError('The new entity is referencing to an unexisting entity. Detail: ' + error.message);
             } else if (errorCode === 'ER_DUP_ENTRY') {
-                throw new BusinessError(error.message);
+                throw new BusinessError(error.message + ` while updating an existing "${this.meta.name}".`);
             }
 
             throw error;
+        }
+    }
+
+    static async _doReplaceOne_(context) {
+        if (!context.connOptions || !context.connOptions.connection) {
+            context.connOptions || (context.connOptions = {});
+
+            context.connOptions.connection = await this.db.connector.beginTransaction_();                           
+        }
+        
+        let entity = await this.findOne_({ $query: context.updateOptions.$query }, context.connOptions);
+
+        if (entity) {
+            return this.updateOne_(context.raw, { ...context.updateOptions, $query: { [this.meta.keyField]: this.valueOfKey(entity) } }, context.connOptions);
+        } else {
+            return this.create_(context.raw, { $retrieveCreated: context.updateOptions.$retrieveUpdated }, context.connOptions);
         }
     }
 

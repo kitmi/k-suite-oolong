@@ -7,4 +7,11 @@ entity group
     name : text maxLength(255) optional -- "Group Name"
 
   associations
-    hasMany user connected by userGroup
+    hasMany user connectedBy userGroup
+
+entity userGroup
+  with
+    autoId
+  associations
+    refersTo user
+    refersTo group

@@ -6,7 +6,7 @@ const winston = require('winston');
 const WORKING_FOLDER = path.resolve(__dirname, 'dao');
 const OOLONG_CLI = 'node ../../lib/cli/oolong.js';
 
-describe('e2e:oolong:dao:useOol', function () {
+describe.only('e2e:oolong:dao:useOol', function () {
     let logger = winston.createLogger({
         "level": "debug",
         "transports": [
@@ -102,7 +102,7 @@ describe('e2e:oolong:dao:useOol', function () {
         savedUser.mobile.should.be.equal(saved.mobile);
         should.not.exist(savedUser.updatedAt);
 
-        await User.delete_({ $query: savedUser.id, $physicalDeletion: true });
+        await User.deleteOne_({ $query: { id: savedUser.id }, $physicalDeletion: true });
 
         await db.close_();
     });
@@ -118,22 +118,57 @@ describe('e2e:oolong:dao:useOol', function () {
             password: '123456'
         });        
 
-        let user = await User.update_({ mobile: '0423456000' }, { email: 'abc@gefg.hij' });
+        let user = await User.updateOne_({ mobile: '0423456000' }, { email: 'abc@gefg.hij' });
 
         Object.keys(user).length.should.be.exactly(1);
         user.mobile.should.be.equal('0423456000');
 
-        user = await User.update_({ password: '123457' }, { $query: { email: 'abc@gefg.hij' }, $retrieveUpdated: true });
+        user = await User.updateOne_({ password: '123457' }, { $query: { email: 'abc@gefg.hij' }, $retrieveUpdated: true });
         user.password.should.be.equal('123457');
         user.should.have.keys('email', 'mobile');
         user.mobile.should.be.equal('0423456000');
 
-        user = await User.update_({ status: 'active' }, { email: 'abc@gefg.hij' });        
+        user = await User.updateOne_({ status: 'active' }, { email: 'abc@gefg.hij' });        
         Object.keys(user).length.should.be.exactly(2);
         
         user.status.should.be.equal('active');
 
-        await User.delete_({ $query: created.id, $physicalDeletion: true });
+        await User.deleteOne_({ $query: { id: created.id }, $physicalDeletion: true });
+
+        await db.close_();
+    });
+
+    it('replaces', async function () {
+        const Db = require(path.resolve('./models/Test'));        
+        let db = new Db(cfg.dataSource.mysql.fooBar.connection, { logger, logSQLStatement: true });
+
+        let User = db.model('user');  
+        let created = await User.create_({
+            email: 'abc@gefg.hij',
+            mobile: '0423456789',
+            password: '123456'
+        });                
+
+        await User.replaceOne_({ email: 'def@gefg.hij', mobile: '0423456000', password: '123456' }, { id: created.id });
+
+        let deletedUser = await User.findOne_({ email: 'abc@gefg.hij' });
+        should.not.exist(deletedUser);
+
+        let exisingUser = await User.findOne_({ email: 'def@gefg.hij' });
+        exisingUser.should.have.keys('id', 'email', 'mobile');
+
+        exisingUser.id.should.be.equal(created.id);        
+
+        await User.deleteOne_({ $query: { id: created.id }, $physicalDeletion: true });
+
+        await User.replaceOne_({ email: 'def@gefg.hij', mobile: '0423456000', password: '123456' }, { email: 'def@gefg.hij' });
+
+        let newUser = await User.findOne_({ email: 'def@gefg.hij' });
+        newUser.should.have.keys('id', 'email', 'mobile');
+
+        newUser.id.should.not.be.equal(created.id);   
+        
+        await User.deleteOne_({ $query: { id: newUser.id }, $physicalDeletion: true });
 
         await db.close_();
     });
@@ -161,7 +196,7 @@ describe('e2e:oolong:dao:useOol', function () {
 
         let User = db.model('user');  
 
-        await User.delete_({ $query: { mobile: '0423456001' }, $physicalDeletion: true });
+        await User.deleteOne_({ $query: { mobile: '0423456001' }, $physicalDeletion: true });
 
         let user = await User.create_({                        
             mobile: '0423456001',
@@ -170,7 +205,7 @@ describe('e2e:oolong:dao:useOol', function () {
 
 
         try {
-            await User.update_({ mobile: null }, user.id); 
+            await User.updateOne_({ mobile: null }, user.id); 
         } catch (error) {  
             error.message.should.be.equal('At least one of these fields "email", "mobile" should not be null.');
         }

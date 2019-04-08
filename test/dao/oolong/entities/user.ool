@@ -26,7 +26,7 @@ entity user
 
   associations
     hasMany profile
-    hasMany group connected by userGroup
+    hasMany group connectedBy userGroup
 
   index
     email is unique
