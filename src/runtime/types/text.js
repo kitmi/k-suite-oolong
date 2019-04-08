@@ -12,13 +12,30 @@ module.exports = {
 
     defaultValue: '',
 
-    generate: (info, i18n) => info.fixedLength ? randomstring.generate(info.fixedLength) : randomstring.generate(info.maxLength < 32 ? info.maxLength : 32),
+    generate: (info, i18n) => {
+        let randOpt = {};
+
+        if (info.fixedLength) {
+            randOpt.length = info.fixedLength;
+        }
+
+        if (info.maxLength) {
+            randOpt.length = info.maxLength > 32 ? 32 : info.maxLength;
+        }
+
+        if (info.allowedChars) {
+            randOpt.charset = info.allowedChars;
+        }
+
+        return randomstring.generate(randOpt);
+    },  
 
     serialize: value => value,
 
     qualifiers: any.qualifiers.concat([
         'fixedLength',
         'maxLength',
-        'encoding'
+        'encoding',
+        'allowedChars'
     ])
 };
