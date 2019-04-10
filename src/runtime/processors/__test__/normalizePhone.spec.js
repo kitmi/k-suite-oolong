@@ -18,10 +18,11 @@ let cases = [
     ['+61415699121', '+61', '+61415699121'],        
     ['0061(04)15699121', '+61', '+61415699121'],        
     ['+61 (04) 1569 9121', '+61', '+61415699121'],        
-    ['+61(4)15699121', '+61', '+61415699121']
+    ['+61(4)15699121', '+61', '+61415699121'],
+    ['+61 (02) 9666 1488', '+61', '+61296661488']
 ];
 
-describe('unit:processors:normalizePhone', function () {      
+describe.only('unit:processors:normalizePhone', function () {      
     cases.forEach(item => {
         it(item[0], function () {
             let r = normalizePhone(item[0], item[1]);
