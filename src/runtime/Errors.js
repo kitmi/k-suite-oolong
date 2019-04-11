@@ -1,7 +1,21 @@
 "use strict";
 
-const { withStatus, withExpose, withName, withExtraInfo } = require('@k-suite/app/lib/utils/Helpers');
+const { Helpers: { withExpose, withName, withExtraInfo } } = require('@k-suite/app');
 const HttpCode = require('http-status-codes');
+
+/**
+ * Adds a status property to the class.
+ * @mixin
+ * @param {*} Base 
+ * @param {*} STATUS 
+ */
+const withStatus = (Base, STATUS) => class extends Base {
+    /**
+     * Status code.
+     * @member {number}
+     */
+    status = STATUS;
+};
 
 /**
  * Expected business errors upon wrong request.

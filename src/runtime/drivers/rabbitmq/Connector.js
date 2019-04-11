@@ -1,4 +1,4 @@
-const { _ } = require('rk-utils');
+const { Promise } = require('rk-utils');
 const { tryRequire } = require('@k-suite/app/lib/utils/Helpers');
 const AmqpNode = tryRequire('amqplib');
 const Connector = require('../../Connector');
@@ -62,15 +62,22 @@ class RabbitmqConnector extends Connector {
 
     }
   
-    async sendToQueue_(queueName, obj) {
+    async sendToQueue_(queueName, obj, options) {
         if (typeof obj !== 'string') {
             obj = JSON.stringify(obj);
         }
 
         let ch = await this.connect_();
         await ch.assertQueue(queueName);
-        return ch.sendToQueue(queueName, Buffer.from(obj));
+        return ch.sendToQueue(queueName, Buffer.from(obj), options);
     }   
+
+    async consume_(queueName, consumerMethod, options) {        
+        let ch = await this.connect_();
+        await ch.assertQueue(queueName);
+
+        return ch.consume(queueName, (msg) => consumerMethod(ch, msg), options);
+    }
 }
 
 module.exports = RabbitmqConnector;
