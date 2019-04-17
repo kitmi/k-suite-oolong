@@ -22,7 +22,8 @@ const
 
 entity profile
   -- "Profile"
-
+  with
+    autoId
   has
     firstName : name optional
     middleName : name optional
@@ -33,5 +34,3 @@ entity profile
   associations
     refersTo 'gender' as 'gender'
     belongsTo 'user' as 'owner'
-
-  key owner

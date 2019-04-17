@@ -79,7 +79,7 @@ class Schema extends Clonable {
         /**
          * @member {string}
          */
-        this.displayName = this.comment || generateDisplayName(this.name);
+        this.displayName = generateDisplayName(this.name);
 
         //1st round, get direct output entities
         this.info.entities || (this.info.entities = []);
@@ -188,13 +188,15 @@ class Schema extends Clonable {
     ensureGetEntity(refererModule, entityName, newlyAdded) {
         if (this.hasEntity(entityName)) return this.entities[entityName];
 
-        let entity = this.linker.loadEntity(refererModule, entityName);
+        let entity = this.linker.loadEntity(refererModule, entityName, false);
 
-        this.addEntity(entity);   
+        if (entity) {
+            this.addEntity(entity);   
 
-        if (newlyAdded) {
-            newlyAdded.push(entity.name);
-            this.linker.log('debug', `New entity "${entity.name}" added by association.`);
+            if (newlyAdded) {
+                newlyAdded.push(entity.name);
+                this.linker.log('debug', `New entity "${entity.name}" added by association.`);
+            }
         }
 
         return entity;

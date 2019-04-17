@@ -23,6 +23,7 @@
         "modelOutputDir": "models",
         "scriptSourceDir": "scripts",
         "scriptOutputDir": "scripts",
+        "manifestOutputDir": "conf",    
         "dslReverseOutputDir": "oolong",
         "useJsonSource": false,
         "saveIntermediate": true,

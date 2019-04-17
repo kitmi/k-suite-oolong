@@ -20,14 +20,15 @@ CREATE TABLE IF NOT EXISTS `user` (
 ) AUTO_INCREMENT=100000;
 
 CREATE TABLE IF NOT EXISTS `profile` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `firstName` VARCHAR(40) NULL,
   `middleName` VARCHAR(40) NULL,
   `surName` VARCHAR(40) NULL,
   `dob` DATETIME NULL,
-  `avatar` VARCHAR(2000) NULL,
+  `avatar` VARCHAR(200) NULL,
   `gender` VARCHAR(1) NOT NULL DEFAULT "",
   `owner` INT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`owner`)
+  PRIMARY KEY (`id`)
 );
 
 CREATE TABLE IF NOT EXISTS `gender` (
@@ -43,9 +44,11 @@ CREATE TABLE IF NOT EXISTS `group` (
 );
 
 CREATE TABLE IF NOT EXISTS `userGroup` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `user` INT NOT NULL DEFAULT 0,
   `group` INT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`user`, `group`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY (`group`, `user`)
 );
 

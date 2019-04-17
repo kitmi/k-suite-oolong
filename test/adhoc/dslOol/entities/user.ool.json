@@ -1,4 +1,7 @@
 {
+    "namespace": [
+        "/Users/rockieguo/Documents/GitHub/k-suite/packages/oolong/test/adhoc/dslOol/entities/group.ool"
+    ],
     "type": {
         "password": {
             "type": "text",
@@ -52,6 +55,10 @@
                 20
             ]
         }
+    },
+    "constant": {
+        "ABC": 1,
+        "CDE": "fjeifj"
     },
     "entity": {
         "user": {
@@ -215,6 +222,73 @@
                     "status": "active"
                 }
             ],
+            "restful": {
+                "/user": {
+                    "create": {
+                        "allowedRoles": [
+                            "admin"
+                        ]
+                    },
+                    "findOne": {
+                        "allowAnonymous": true,
+                        "nested": {
+                            "/profiles": {
+                                "association": [
+                                    "profiles"
+                                ]
+                            },
+                            "/profile/:id": {
+                                "association": [
+                                    "profiles"
+                                ],
+                                "query": {
+                                    "profiles.id": {
+                                        "oolType": "ObjectReference",
+                                        "name": "params.id"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "findAll": {
+                        "allowedRoles": [
+                            "admin"
+                        ],
+                        "presetOfOrder": {
+                            "default": {
+                                "id": true
+                            }
+                        }
+                    },
+                    "updateOne": {
+                        "allowedRoles": [
+                            "admin"
+                        ],
+                        "allowUserSelf": true,
+                        "presetOptions": {
+                            "retrieveUpdated": true
+                        }
+                    },
+                    "updateMany": {
+                        "allowedRoles": [
+                            "admin"
+                        ],
+                        "presetOptions": {
+                            "retrieveUpdated": true
+                        }
+                    },
+                    "deleteOne": {
+                        "allowedRoles": [
+                            "admin"
+                        ]
+                    },
+                    "deleteMany": {
+                        "allowedRoles": [
+                            "admin"
+                        ]
+                    }
+                }
+            },
             "interfaces": {
                 "validateUserCredential": {
                     "accept": [
@@ -374,7 +448,6 @@
             }
         }
     },
-    "namespace": [],
     "id": "./entities/user.ool",
     "name": "user"
 }

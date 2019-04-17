@@ -2,6 +2,7 @@ const { _ } = require('rk-utils');
 
 const { 
     Types,
+    Activators,
     Validators, 
     Processors, 
     Generators, 
@@ -11,7 +12,9 @@ const {
  
 
 module.exports = (db, BaseEntityModel) => {
-    const ProfileSpec = class extends BaseEntityModel {    
+    let Base = BaseEntityModel;
+    
+    const ProfileSpec = class extends Base {    
         /**
          * Applying predefined modifiers to entity fields.
          * @param context
@@ -21,15 +24,6 @@ module.exports = (db, BaseEntityModel) => {
         static async applyModifiers_(context, isUpdating) {
             let {raw, latest, existing, i18n} = context;
             existing || (existing = {});
-            if (!isNothing(latest['avatar'])) {
-                //Validating "avatar"
-                if (!Validators.isURL(latest['avatar'])) {
-                    throw new DataValidationError('Invalid "avatar".', {
-                        entity: this.meta.name,
-                        field: 'avatar'
-                    });
-                }
-            }
             return context;
         }
     };
@@ -38,8 +32,16 @@ module.exports = (db, BaseEntityModel) => {
     ProfileSpec.meta = {
         "schemaName": "test",
         "name": "profile",
-        "keyField": "owner",
+        "keyField": "id",
         "fields": {
+            "id": {
+                "type": "integer",
+                "auto": true,
+                "writeOnce": true,
+                "displayName": "Id",
+                "autoIncrementId": true,
+                "createByDb": true
+            },
             "firstName": {
                 "type": "text",
                 "maxLength": 40,
@@ -71,18 +73,12 @@ module.exports = (db, BaseEntityModel) => {
                 "type": "datetime",
                 "optional": true,
                 "comment": "Date of birth",
-                "displayName": "Date of birth"
+                "displayName": "Dob"
             },
             "avatar": {
                 "type": "text",
-                "maxLength": 2000,
+                "maxLength": 200,
                 "optional": true,
-                "modifiers": [
-                    {
-                        "oolType": "Validator",
-                        "name": "isURL"
-                    }
-                ],
                 "subClass": [
                     "url"
                 ],
@@ -92,30 +88,51 @@ module.exports = (db, BaseEntityModel) => {
                 "type": "text",
                 "maxLength": 1,
                 "comment": "Gender Code",
-                "displayName": "genderCode",
+                "displayName": "Gender",
                 "createByDb": true
             },
             "owner": {
                 "type": "integer",
-                "displayName": "userId",
+                "displayName": "Owner",
                 "createByDb": true
             }
         },
-        "features": {},
+        "features": {
+            "autoId": {
+                "field": "id"
+            }
+        },
         "uniqueKeys": [
             [
-                "owner"
+                "id"
             ]
         ],
         "associations": {
             "gender": {
                 "entity": "gender",
-                "isArray": false
+                "key": "code",
+                "on": {
+                    "gender": {
+                        "oorType": "ColumnReference",
+                        "name": "gender.code"
+                    }
+                }
             },
             "owner": {
                 "entity": "user",
-                "isArray": false
+                "key": "id",
+                "on": {
+                    "owner": {
+                        "oorType": "ColumnReference",
+                        "name": "owner.id"
+                    }
+                }
             }
+        },
+        "fieldDependencies": {
+            "id": [
+                "id"
+            ]
         }
     };
 

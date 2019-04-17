@@ -20,7 +20,8 @@
                 {
                     "type": "hasMany",
                     "destEntity": "user",
-                    "connectedBy": "userGroup"
+                    "by": "userGroup",
+                    "fieldProps": {}
                 }
             ]
         }

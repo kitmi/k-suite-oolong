@@ -2,6 +2,7 @@ const { _ } = require('rk-utils');
 
 const { 
     Types,
+    Activators,
     Validators, 
     Processors, 
     Generators, 
@@ -11,7 +12,9 @@ const {
  
 
 module.exports = (db, BaseEntityModel) => {
-    const UserGroupSpec = class extends BaseEntityModel {    
+    let Base = BaseEntityModel;
+    
+    const UserGroupSpec = class extends Base {    
         /**
          * Applying predefined modifiers to entity fields.
          * @param context
@@ -29,11 +32,16 @@ module.exports = (db, BaseEntityModel) => {
     UserGroupSpec.meta = {
         "schemaName": "test",
         "name": "userGroup",
-        "keyField": [
-            "user",
-            "group"
-        ],
+        "keyField": "id",
         "fields": {
+            "id": {
+                "type": "integer",
+                "auto": true,
+                "writeOnce": true,
+                "displayName": "Id",
+                "autoIncrementId": true,
+                "createByDb": true
+            },
             "createdAt": {
                 "type": "datetime",
                 "auto": true,
@@ -45,25 +53,40 @@ module.exports = (db, BaseEntityModel) => {
             },
             "user": {
                 "type": "integer",
-                "displayName": "userId",
+                "displayName": "User",
                 "createByDb": true
             },
             "group": {
                 "type": "integer",
-                "displayName": "groupId",
+                "displayName": "Group",
                 "createByDb": true
             }
         },
         "features": {
+            "autoId": {
+                "field": "id"
+            },
             "createTimestamp": {
                 "field": "createdAt"
             }
         },
         "uniqueKeys": [
             [
-                "user",
-                "group"
+                "id"
+            ],
+            [
+                "group",
+                "user"
             ]
+        ],
+        "indexes": [
+            {
+                "fields": [
+                    "group",
+                    "user"
+                ],
+                "unique": true
+            }
         ],
         "associations": {
             "user": {
@@ -74,6 +97,9 @@ module.exports = (db, BaseEntityModel) => {
             }
         },
         "fieldDependencies": {
+            "id": [
+                "id"
+            ],
             "createdAt": [
                 "createdAt"
             ]

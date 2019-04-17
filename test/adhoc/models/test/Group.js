@@ -2,6 +2,7 @@ const { _ } = require('rk-utils');
 
 const { 
     Types,
+    Activators,
     Validators, 
     Processors, 
     Generators, 
@@ -11,7 +12,9 @@ const {
  
 
 module.exports = (db, BaseEntityModel) => {
-    const GroupSpec = class extends BaseEntityModel {    
+    let Base = BaseEntityModel;
+    
+    const GroupSpec = class extends Base {    
         /**
          * Applying predefined modifiers to entity fields.
          * @param context
@@ -44,7 +47,7 @@ module.exports = (db, BaseEntityModel) => {
                 "maxLength": 255,
                 "optional": true,
                 "comment": "Group Name",
-                "displayName": "Group Name"
+                "displayName": "Name"
             }
         },
         "features": {
@@ -59,9 +62,17 @@ module.exports = (db, BaseEntityModel) => {
         ],
         "associations": {
             "users": {
-                "entity": "user",
-                "isArray": true,
-                "connectedBy": "userGroup"
+                "entity": "userGroup",
+                "key": "id",
+                "on": {
+                    "id": {
+                        "oorType": "ColumnReference",
+                        "name": "users.group"
+                    }
+                },
+                "field": "group",
+                "list": true,
+                "assoc": "user"
             }
         },
         "fieldDependencies": {

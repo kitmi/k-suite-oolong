@@ -42,7 +42,9 @@ entity orderLineItem
   associations    
     belongsTo serviceOrder    
     refersTo taxCode default('GST')  
+  
 
+/*
   triggers
     onCreate
       always
@@ -58,3 +60,4 @@ entity orderLineItem
       when status ~ changed
         from 'Quote' to 'Unpaid'
           expiryDate |=datetimeAdd(@@now, { days: @entities.settings.cached['EXPIRY_DAYS'].value })  
+*/

@@ -42,6 +42,8 @@ module.exports = {
     serialize: value => value.toISO({ includeOffset: false }),
 
     qualifiers: any.qualifiers.concat([
-        'timezone'
+        'timezone',
+        'dateOnly',
+        'timeOnly'
     ])
 };

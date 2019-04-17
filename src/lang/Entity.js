@@ -111,7 +111,7 @@ class Entity extends Clonable {
         /**
          * @member {string}
          */
-        this.displayName = this.comment || generateDisplayName(this.name);
+        this.displayName = generateDisplayName(this.name);
 
         /**
          * @fires OolongEntity#featuresMixingIn

@@ -18,7 +18,7 @@ class {{ className }} {
         this._modelCache = {};
     }
 
-    model(entityName) {
+    model(entityName) {        
         if (this._modelCache[entityName]) return this._modelCache[entityName];
 
         let modelClassName = pascalCase(entityName);
@@ -30,7 +30,7 @@ class {{ className }} {
             entitySpecMixin = require(`./{{ schemaName }}/${modelClassName}`);        
         } catch (error) {
             if (error.code === 'MODULE_NOT_FOUND') {
-                throw new BusinessError(`Failed to load "${modelClassName}" entity. ${error.message}`);
+                throw new BusinessError(`Failed to load "${modelClassName}" entity. Reason: ${error.message}`);
             }
 
             throw error;
@@ -62,6 +62,27 @@ class {{ className }} {
         delete this._modelCache;
         delete this.connector;
         delete this.app;
+    }
+
+    async doTransaction_(transaction_, errorHandler) {
+        let connection;
+
+        try {
+            connection = await this.connector.beginTransaction_();
+            let ret = await transaction_(connection);
+            await this.connector.commit_(connection);
+            return ret;
+        } catch(error) {
+            if (connection) {
+                await this.connector.rollback_(connection);
+            }
+
+            if (errorHandler) {
+                return errorHandler(error);
+            }
+
+            throw error;
+        }
     }
 }
 

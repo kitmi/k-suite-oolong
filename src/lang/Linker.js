@@ -201,7 +201,7 @@ class Linker {
             return info;
         }
 
-        let baseInfo = this.loadElement(oolModule, OolTypes.Element.TYPE, info.type);
+        let baseInfo = this.loadElement(oolModule, OolTypes.Element.TYPE, info.type, true);
 
         if (!Types.Builtin.has(baseInfo.type)) {
             //the base type is not a builtin type
@@ -233,7 +233,7 @@ class Linker {
     translateOolValue(oolModule, value) {
         if (_.isPlainObject(value)) {
             if (value.oolType === OolTypes.Lang.CONST_REF) {                
-                let refedValue = this.loadElement(oolModule, OolTypes.Element.CONST, value.name);
+                let refedValue = this.loadElement(oolModule, OolTypes.Element.CONST, value.name, true);
                 let uniqueId = this.getElementUniqueId(oolModule, OolTypes.Element.CONST, value.name);
                 let ownerModule = this.getModuleById(this._mapOfReferenceToModuleId.get(uniqueId));
                 return this.translateOolValue(ownerModule, refedValue);
@@ -274,26 +274,26 @@ class Linker {
         return elementType + ':' + elementName + '<-' + refererModule.id;
     }
 
-    loadEntity(refererModule, elementName) {
-        let entity = this.loadElement(refererModule, OolTypes.Element.ENTITY, elementName);
+    loadEntity(refererModule, elementName, throwOnMissing = true) {
+        let entity = this.loadElement(refererModule, OolTypes.Element.ENTITY, elementName, throwOnMissing);
 
-        if (_.isEmpty(entity.fields)) {
+        if (entity && _.isEmpty(entity.fields)) {
             throw new Error(`Entity "${elementName}" has no any fields defined.`);
         }
 
         return entity;
     }
 
-    loadType(refererModule, elementName) {
-        return this.loadElement(refererModule, OolTypes.Element.TYPE, elementName);
+    loadType(refererModule, elementName, throwOnMissing = true) {
+        return this.loadElement(refererModule, OolTypes.Element.TYPE, elementName, throwOnMissing);
     }
 
-    loadDataset(refererModule, elementName) {
-        return this.loadElement(refererModule, OolTypes.Element.DATASET, elementName);
+    loadDataset(refererModule, elementName, throwOnMissing = true) {
+        return this.loadElement(refererModule, OolTypes.Element.DATASET, elementName, throwOnMissing);
     }
 
-    loadView(refererModule, elementName) {
-        return this.loadElement(refererModule, OolTypes.Element.VIEW, elementName);
+    loadView(refererModule, elementName, throwOnMissing = true) {
+        return this.loadElement(refererModule, OolTypes.Element.VIEW, elementName, throwOnMissing);
     }
 
     /**
@@ -302,7 +302,7 @@ class Linker {
      * @param {string} elementType 
      * @param {string} elementName 
      */
-    loadElement(refererModule, elementType, elementName) {
+    loadElement(refererModule, elementType, elementName, throwOnMissing) {
         // the element id with type, should be unique among the whole schema
         let uniqueId = this.getElementUniqueId(refererModule, elementType, elementName);
 
@@ -328,12 +328,14 @@ class Linker {
                 return targetModule && targetModule[elementType] && (elementName in targetModule[elementType]);
             });
 
-            if (index === -1) {                
-                throw new Error(`${elementType} "${elementName}" not found in imported namespaces. Referer: ${refererModule.id}`);
+            if (index === -1) {   
+                if (throwOnMissing) {             
+                    throw new Error(`${elementType} "${elementName}" not found in imported namespaces. Referer: ${refererModule.id}`);
+                }
+
+                return undefined;
             }
         }
-
-        //this.log('verbose', `Found ${elementType} "${elementName}" in "${targetModule.id}". [OK]`);
 
         let elementSelfId = elementType + ':' + elementName + '@' + targetModule.id;
         if (elementSelfId in this._elementsCache) {

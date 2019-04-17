@@ -2,6 +2,7 @@ const { _ } = require('rk-utils');
 
 const { 
     Types,
+    Activators,
     Validators, 
     Processors, 
     Generators, 
@@ -11,7 +12,9 @@ const {
  
 
 module.exports = (db, BaseEntityModel) => {
-    const GenderSpec = class extends BaseEntityModel {    
+    let Base = BaseEntityModel;
+    
+    const GenderSpec = class extends Base {    
         /**
          * Applying predefined modifiers to entity fields.
          * @param context
@@ -35,7 +38,7 @@ module.exports = (db, BaseEntityModel) => {
                 "type": "text",
                 "maxLength": 1,
                 "comment": "Gender Code",
-                "displayName": "Gender Code",
+                "displayName": "Code",
                 "createByDb": true
             },
             "name": {
@@ -43,7 +46,7 @@ module.exports = (db, BaseEntityModel) => {
                 "maxLength": 20,
                 "optional": true,
                 "comment": "Gender Name",
-                "displayName": "Gender Name"
+                "displayName": "Name"
             }
         },
         "features": {},

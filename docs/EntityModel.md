@@ -22,14 +22,16 @@ There are predefined context properties which can be accessed in an entity opera
 * result - Operation result
 * entities - Access other entity models in the same schema
 * schemas - Access other schema models in the same application
+* state - Current request state
 
 ## operation options
 
 * connector - Transaction connector.
 
-## symbol
+## semantic symbols
 
-@@
+* supported symbols 
+    * @@now - Current datetime value
 
 ## special tokens
 

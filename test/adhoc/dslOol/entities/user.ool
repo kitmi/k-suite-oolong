@@ -1,9 +1,16 @@
+import 'group'
+
 type
   password : text maxLength(200)
   email : text maxLength(200) |~isEmail
   phone : text maxLength(20) |~matches(/^((\+|00)\d+)?\d+(-\d+)?$/)
   userStatus : enum values("inactive", "active", "disabled", "forbidden", "deleted")
   name : text maxLength(20)
+
+const
+  ABC = 1
+  CDE = 'fjeifj'
+   
 
 entity user
   -- "User Credential"
@@ -42,6 +49,43 @@ entity user
       status: 'active'
     }
   ]  
+
+  restful 
+    /user
+      create
+        allow [ 'admin' ]
+      findOne
+        allow anonymous
+        nested
+          /profiles [ 'profiles' ]
+          /profile/:profileId [ 'profiles' ] { 'profiles.id': @params.profileId }
+      findAll
+        allow [ 'admin' ]
+        presetOfOrder
+          default {
+            id: true
+          }
+      updateOne
+        allow [ 'admin' ]      
+        allow self  
+        presetOptions {   
+          retrieveUpdated: true
+        }  
+      updateMany
+        allow [ 'admin' ]    
+        presetOptions {   
+          retrieveUpdated: true
+        }
+      deleteOne
+        allow [ 'admin' ]       
+      deleteMany
+        allow [ 'admin' ] 
+
+    /my-user-data -> /user
+      findOne
+        id @state.user.id
+      updateOne
+        id @state.user.id     
 
   interface
     validateUserCredential

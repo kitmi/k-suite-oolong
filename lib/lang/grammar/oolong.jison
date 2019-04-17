@@ -21,14 +21,15 @@
     const SUB_KEYWORDS = { 
         // level 1
         'schema': new Set(['entities', 'views']),
-        'entity': new Set([ 'extends', 'with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes', 'triggers' ]),
+        'entity': new Set([ 'extends', 'with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes', 'triggers', 'restful' ]),
         'dataset': new Set(['is']),
     
         // level 2
         'entity.associations': new Set(['hasOne', 'hasMany', 'refersTo', 'belongsTo']),
         'entity.index': new Set(['is', 'unique']),
         'entity.interface': new Set(['accept', 'find', 'findOne', 'return']),
-        'entity.triggers': new Set(['onCreate', 'onCreateOrUpdate', 'onUpdate', 'onDelete']),
+        'entity.triggers': new Set(['onCreate', 'onCreateOrUpdate', 'onUpdate', 'onDelete']),  
+        'entity.restful': new Set(['create', 'findOne', 'findAll', 'updateOne', 'updateMany', 'deleteOne', 'deleteMany']),              
 
         'dataset.body': new Set(['with']),
 
@@ -36,22 +37,23 @@
         'entity.associations.item': new Set(['connectedBy', 'being', 'with', 'as']),        
         'entity.interface.find': new Set(['a', 'an', 'the', 'one', 'by', 'cases', 'selected', 'selectedBy', "of", "which", "where", "when", "with", "otherwise", "else"]),           
         'entity.interface.return': new Set(["unless", "when"]),       
-        'entity.triggers.onChange': new Set(["when"]),         
-        
+        'entity.triggers.onChange': new Set(["when"]), 
+        'entity.restful.method': new Set(['allow', 'disallow', 'presetOfOrder', 'presetOptions', 'nested', 'id']),                          
 
         // level 4
         'entity.associations.item.block': new Set(['when']),           
         'entity.interface.find.when': new Set(['when', 'else', 'otherwise']),           
         'entity.interface.find.else': new Set(['return', 'throw']),
-
         'entity.interface.return.when': new Set(['exists', 'null', 'throw']),
+        'entity.restful.method.allow': new Set(['anonymous', 'self']),        
 
         // level 5
-        'entity.associations.item.block.when': new Set(['being', 'with' ]),        
+        'entity.associations.item.block.when': new Set(['being', 'with' ])               
     };
 
     //next state transition table
     const NEXT_STATE = {        
+        'import.*': 'import.item',
         'type.*': 'type.item',
         'const.*': 'const.item',
         'import.$INDENT': 'import.block',
@@ -63,6 +65,7 @@
         'entity.index': 'entity.index', 
         'entity.data': 'entity.data', 
         'entity.mixes': 'entity.mixes', 
+
         'entity.associations': 'entity.associations',
         'entity.associations.hasOne': 'entity.associations.item',
         'entity.associations.hasMany': 'entity.associations.item',
@@ -70,6 +73,7 @@
         'entity.associations.belongsTo': 'entity.associations.item',
         'entity.associations.item.$INDENT': 'entity.associations.item.block',
         'entity.associations.item.block.when': 'entity.associations.item.block.when',
+
         'entity.interface': 'entity.interface',
         'entity.interface.accept': 'entity.interface.accept',
         'entity.interface.accept.$INDENT': 'entity.interface.accept.block',
@@ -80,12 +84,21 @@
         'entity.interface.find.when': 'entity.interface.find.when',
         'entity.interface.find.otherwise': 'entity.interface.find.else',
         'entity.interface.find.else': 'entity.interface.find.else',
+
         'entity.triggers': 'entity.triggers',
         'entity.triggers.onCreate': 'entity.triggers.onChange',
         'entity.triggers.onCreateOrUpdate': 'entity.triggers.onChange',
         'entity.triggers.onUpdate': 'entity.triggers.onChange',
         'entity.triggers.onDelete': 'entity.triggers.onChange',
         'entity.triggers.onChange.when': 'entity.triggers.onChange.when',
+
+        'entity.restful': 'entity.restful',
+        'entity.restful.*': 'entity.restful.method',         
+        'entity.restful.method.allow': 'entity.restful.method.allow',
+        'entity.restful.method.nested': 'entity.restful.method.nested',
+        'entity.restful.method.nested.*': 'entity.restful.method.nested.item',
+        'entity.restful.method.presetOfOrder': 'entity.restful.method.presetOfOrder',
+        'entity.restful.method.presetOfOrder.$INDENT': 'entity.restful.method.presetOfOrder.block',
 
         'dataset.is': 'dataset.body'
     };
@@ -100,17 +113,23 @@
         [ 'entity.associations.item', 2 ],
         [ 'entity.associations.item.block.when', 2 ],        
         [ 'entity.interface.accept.block', 2 ],
-        [ 'entity.interface.find.else', 1]
+        [ 'entity.interface.find.else', 2],
+        [ 'entity.restful', 1 ],          
+        [ 'entity.restful.method', 1 ],
+
+        [ 'entity.restful.method.allow', 2],
+        [ 'entity.restful.method.nested.item', 1],
+        [ 'entity.restful.method.nested', 2 ],
+        [ 'entity.restful.method.presetOfOrder', 2 ],
+
+        [ 'entity.restful.method.presetOfOrder.block', 2]
     ]);
 
     //exit number of states on newline if exists in below table
     const NEWLINE_STOPPER = new Map([                
-        [ 'import', 1 ],
+        [ 'import.item', 2 ],
         [ 'type.item', 2 ],
-        [ 'const.item', 2 ],
-        [ 'import.block', 1 ],
-        [ 'type.block', 1 ],
-        [ 'const.block', 1 ],         
+        [ 'const.item', 2 ],      
         [ 'entity.mixes', 1 ],
         [ 'entity.key', 1 ],   
         [ 'entity.data', 1 ],     
@@ -119,26 +138,20 @@
         [ 'entity.interface.find.else', 1], 
         [ 'entity.interface.return.when', 1 ],         
         [ 'entity.associations.item', 1 ],        
-        [ 'entity.associations.item.block.when', 1 ]
+        [ 'entity.associations.item.block.when', 1 ],
+        [ 'entity.restful.method.allow', 1],
+        [ 'entity.restful.method.nested.item', 1]
     ]);
 
-    //exceptions of NEWLINE_STOPPER in the case of indent happens
-    const NEWLINE_STOPPER_INDENT_EXCEPTION = new Set([           
-        'import',
-        'type',     
-        'const'
-    ]);
-
-    const FINAL_STATE = {        
-        'entity.interface.find.else': 'entity.interface.find'
-    };
-
-    const SUPPORT_WORD_OPERATOR = new Set([
-        'entity.interface.find.when',
-        'entity.interface.return.when',
-        'entity.associations.item',
-        'entity.associations.item.block.when',
-        'entity.triggers.onChange.when'                
+    //in below states, certain tokens are allowed
+    const ALLOWED_TOKENS = new Map([
+        [ 'entity.restful', new Set(['route_literal']) ], 
+        [ 'entity.restful.method.nested', new Set([ 'route_literal' ]) ],        
+        [ 'entity.interface.find.when', new Set([ 'word_operators' ]) ],
+        [ 'entity.interface.return.when', new Set([ 'word_operators' ]) ],
+        [ 'entity.associations.item', new Set([ 'word_operators' ]) ],
+        [ 'entity.associations.item.block.when', new Set([ 'word_operators' ]) ],
+        [ 'entity.triggers.onChange.when', new Set([ 'word_operators' ]) ]
     ]);
 
     //indented child starting state
@@ -177,10 +190,6 @@
 
         doIndent() {
             this.indents.push(this.indent);
-
-            if (NEWLINE_STOPPER_INDENT_EXCEPTION.has(this.lastState)) {
-                this.markNewlineStop(false);
-            }
 
             let nextState = NEXT_STATE[this.lastState + '.$INDENT'];
             if (nextState) {
@@ -294,17 +303,6 @@
             let last = this.stack.pop();
             if (state !== last) {
                 throw new Error(`Unmatched "${state}" state!`);
-            }
-
-            let finalStateToExit = FINAL_STATE[last];
-
-            if (finalStateToExit) {
-                do {
-                    last = this.stack.pop(); 
-                    if (DBG_MODE) {
-                        console.log('< exit state:', last, '\n');
-                    }
-                } while (last !== finalStateToExit);
             }
 
             this.newlineStopFlag.pop();
@@ -527,12 +525,12 @@ newline		            \n|\r\n|\r|\f
 element_access          {variable}"["({space})*?({variable}|{shortstring}|{integer})({space})*?"]"
 member_access           {identifier}("."{identifier})+
 variable                {member_access}|{identifier}
-object_reference        "@"{variable}
+object_reference        "@"({variable}|{shortstring})
 symbol_token            "@""@"{identifier}
 
 identifier              ({id_start})({id_continue})*
 id_start                "_"|"$"|({uppercase})|({lowercase})
-id_continue             {id_start}|{digit}
+id_continue             {id_start}|{digit}               
 
 bool_value              "true"|"false"|"yes"|"no"|"on"|"off"
 
@@ -561,7 +559,11 @@ regexp_item             {regexp_char}|{escapeseq}
 regexp_char             [^\\\n\/]
 regexp_flag             "i"|"g"|"m"|"y"
 
-// reserved
+// path literal
+route_literal            ("/"{route_identifier})+
+route_identifier         (":")?{id_start}{id_continue}*
+route_only_one_node      "/"{identifier}
+
 symbol_operators        {relation_operators}|{syntax_operators}|{math_operators}
 word_operators          {logical_operators}|{relation_operators2}|{predicate_operators}
 bracket_operators       "("|")"|"["|"]"|"{"|"}"
@@ -873,14 +875,24 @@ escapeseq               \\.
                            %}
 <INLINE>{word_operators}    %{
                                 state.dump(this.topState(1) + ' -> <INLINE>{word_operators}', yytext);                                     
-
-                                if (SUPPORT_WORD_OPERATOR.has(state.lastState)) {
+                                
+                                if (ALLOWED_TOKENS.has(state.lastState) && ALLOWED_TOKENS.get(state.lastState).has('word_operators')) {    
                                     return yytext;
                                 } else {
                                     this.unput(yytext);
                                     this.begin('REPARSE');
                                 }                                
                             %}
+<INLINE>{route_literal}    %{
+                                state.dump(this.topState(1) + ' -> <INLINE>{route_literal}', yytext);                                     
+
+                                if (ALLOWED_TOKENS.has(state.lastState) && ALLOWED_TOKENS.get(state.lastState).has('route_literal')) {
+                                    return 'ROUTE';
+                                } else {
+                                    this.unput(yytext);
+                                    this.begin('REPARSE');
+                                }                                
+                            %}                            
 <REPARSE,INLINE>{identifier}        %{        
                                 if (this.topState(0) !== 'INLINE') {
                                     this.begin('INLINE');
@@ -896,12 +908,7 @@ escapeseq               \\.
 
                                 state.dump(this.topState(1) + ' -> <INLINE>{identifier}', yytext); 
                                 
-                                if (SUB_KEYWORDS[state.lastState] && SUB_KEYWORDS[state.lastState].has(yytext)) {
-                                    /*
-                                    if (STATE_STOPPER[state.lastState] && STATE_STOPPER[state.lastState].has(yytext)) {
-                                        state.exitState(state.lastState);                                                                        
-                                    }*/
-
+                                if (SUB_KEYWORDS[state.lastState] && SUB_KEYWORDS[state.lastState].has(yytext)) {                                    
                                     let keywordChain = state.lastState + '.' + yytext;
                                     let nextState = NEXT_STATE[keywordChain];
                                     if (nextState) {
@@ -911,7 +918,9 @@ escapeseq               \\.
                                     }
 
                                     return yytext;
-                                }                                
+                                } else {
+                                    state.matchAnyExceptNewline();
+                                }
 
                                 return 'NAME';
                             %}
@@ -1179,6 +1188,7 @@ entity_sub_item
     | interfaces_statement
     | mixin_statement
     | triggers_statement
+    | restful_statement
     ;
 
 mixin_statement
@@ -1351,6 +1361,131 @@ triggers_operation_block
 triggers_operation_item
     : "when" conditional_expression NEWLINE INDENT triggers_result_block DEDENT NEWLINE? -> { condition: $2, do: $5 }
     | "always" NEWLINE INDENT triggers_result_block DEDENT NEWLINE? -> { do: $4 }
+    ;   
+
+restful_statement
+    : "restful" NEWLINE INDENT restful_relative_uri DEDENT NEWLINE? -> { restful: $4 }
+    ;
+
+restful_relative_uri    
+    : ROUTE NEWLINE INDENT restful_methods DEDENT NEWLINE? -> { [$1]: { type: 'entity', methods: $4 } }
+    | ROUTE "->" ROUTE NEWLINE INDENT restful_methods DEDENT NEWLINE? -> { [$1]: { type: 'shortcut', refersTo: $3, methods: $6 } }
+    ;
+
+restful_methods
+    : restful_method+ -> $1.reduce((r, v) => (Object.assign(r, v), r), {})
+    ;
+
+restful_method
+    : "create" NEWLINE INDENT restful_create DEDENT NEWLINE? -> { create: $4 }   
+    | "findOne" NEWLINE INDENT restful_find_one DEDENT NEWLINE? -> { findOne: $4 }    
+    | "findAll" NEWLINE INDENT restful_find_all DEDENT NEWLINE? -> { findAll: $4 }    
+    | "updateOne" NEWLINE INDENT restful_update_one DEDENT NEWLINE? -> { updateOne: $4 }    
+    | "updateMany" NEWLINE INDENT restful_update_many DEDENT NEWLINE? -> { updateMany: $4 }    
+    | "deleteOne" NEWLINE INDENT restful_delete_one DEDENT NEWLINE? -> { deleteOne: $4 }    
+    | "deleteMany" NEWLINE INDENT restful_delete_many DEDENT NEWLINE? -> { deleteMany: $4 }
+    ;
+
+restful_create
+    : restful_create_item* -> $1.reduce((r, v) => (Object.assign(r, v), r), {})
+    ;
+
+restful_create_item
+    : restful_allow_roles    
+    | restful_preset_options
+    ;
+
+restful_find_one
+    : restful_find_one_item* -> $1.reduce((r, v) => (Object.assign(r, v), r), {})
+    ;
+
+restful_find_one_item
+    : restful_allow_roles
+    | restful_preset_order
+    | restful_nested
+    | restful_preset_options
+    | restful_id_binding
+    ;
+
+restful_find_all
+    : restful_find_all_item* -> $1.reduce((r, v) => (Object.assign(r, v), r), {})
+    ;
+
+restful_find_all_item
+    : restful_allow_roles
+    | restful_preset_order
+    | restful_nested
+    | restful_preset_options
+    ;    
+
+restful_update_one
+    : restful_update_one_item* -> $1.reduce((r, v) => (Object.assign(r, v), r), {})
+    ;
+
+restful_update_one_item
+    : restful_allow_roles       
+    | restful_preset_options
+    | restful_id_binding
+    ;        
+
+restful_update_many
+    : restful_update_many_item* -> $1.reduce((r, v) => (Object.assign(r, v), r), {})
+    ;
+
+restful_update_many_item
+    : restful_allow_roles     
+    | restful_preset_options
+    ;        
+
+restful_delete_one
+    : restful_delete_one_item* -> $1.reduce((r, v) => (Object.assign(r, v), r), {})
+    ;
+
+restful_delete_one_item
+    : restful_allow_roles       
+    | restful_preset_options
+    | restful_id_binding
+    ;        
+
+restful_delete_many
+    : restful_delete_many_item* -> $1.reduce((r, v) => (Object.assign(r, v), r), {})
+    ;
+
+restful_delete_many_item
+    : restful_allow_roles        
+    | restful_preset_options
+    ;        
+
+restful_allow_roles
+    : "allow" "anonymous" NEWLINE -> { allowAnonymous: true }  
+    | "allow" "self" NEWLINE -> { allowUserSelf: true }     
+    | "allow" array_of_identifier_or_string NEWLINE -> { allowedRoles: $2 }     
+    ;
+
+restful_preset_order
+    : "presetOfOrder" NEWLINE INDENT restful_preset_order_block DEDENT NEWLINE? -> { presetOfOrder: $4 } 
+    ;
+
+restful_preset_order_block
+    : identifier_or_string inline_object NEWLINE -> { [$1]: $2 }
+    | identifier_or_string inline_object NEWLINE restful_preset_order_block -> { [$1]: $2, ...$4 }
+    ;     
+
+restful_preset_options
+    : "presetOptions" inline_object NEWLINE -> { presetOptions: $2 }
+    ;    
+
+restful_nested
+    : "nested" NEWLINE INDENT nested_routes+ DEDENT NEWLINE? -> { nested: $4.reduce((r, v) => (Object.assign(r, v), r), {}) }
+    ;         
+
+nested_routes
+    : ROUTE inline_array inline_object NEWLINE -> { [$1]: { association: $2, query: $3 } }
+    | ROUTE inline_array NEWLINE -> { [$1]: { association: $2 } }
+    ;   
+
+restful_id_binding
+    : "id" modifiable_value NEWLINE -> { bindId: $2 }
     ;   
 
 interfaces_statement

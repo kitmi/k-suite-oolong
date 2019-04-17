@@ -322,6 +322,8 @@ class MySQLModeler {
             destEntityNameAsFieldName = actualDestEntityName;
         } else {
             destEntity = schema.ensureGetEntity(entity.oolModule, destEntityName, pendingEntities);
+            assert: destEntity;
+
             destEntityNameAsFieldName = destEntityName;
         }   
          
@@ -330,7 +332,7 @@ class MySQLModeler {
         }
 
         let destKeyField = destEntity.getKeyField();
-        assert: destKeyField; 
+        assert: destKeyField, `Empty key field. Entity: ${destEntityName}`; 
 
         if (Array.isArray(destKeyField)) {
             throw new Error(`Destination entity "${destEntityName}" with combination primary key is not supported.`);
@@ -373,6 +375,8 @@ class MySQLModeler {
                             throw new Error('"m2n" association requires "by" property. Entity: ' + entity.name + ' destination: ' + destEntityName);
                         }
 
+                        // one/many to one/many relation
+
                         let connectedByParts = assoc.by.split('.');
                         assert: connectedByParts.length <= 2;
 
@@ -407,7 +411,10 @@ class MySQLModeler {
 
                         let connEntity = schema.ensureGetEntity(entity.oolModule, connEntityName, pendingEntities);
                         if (!connEntity) {                        
-                            throw new Error(`Interconnection entity "${connEntityName}" not found in schema.`);
+                            //create a
+                            connEntity = this._addRelationEntity(schema, connEntityName, connectedByField, connectedByField2);
+                            pendingEntities.push(connEntity.name);
+                            this.logger.log('debug', `New entity "${connEntity.name}" added by association.`);
                         }
                             
                         this._updateRelationEntity(connEntity, entity, destEntity, entity.name, destEntityName, connectedByField, connectedByField2);
@@ -507,7 +514,6 @@ class MySQLModeler {
                     assert: !this._processedRef.has(tag1);  
 
                     let connEntity = schema.ensureGetEntity(entity.oolModule, connEntityName, pendingEntities);
-
                     if (!connEntity) {                        
                         throw new Error(`Relation entity "${connEntityName}" not found in schema.`);
                     }
@@ -812,8 +818,13 @@ class MySQLModeler {
 
     _addRelationEntity(schema, relationEntityName, entity1RefField, entity2RefField) {
         let entityInfo = {
-            features: [ 'createTimestamp' ],
-            key: [ entity1RefField, entity2RefField ]
+            features: [ 'autoId', 'createTimestamp' ],
+            indexes: [
+                {
+                    "fields": [ entity1RefField, entity2RefField ],
+                    "unique": true
+                }
+            ]
         };
 
         let entity = new Entity(this.linker, relationEntityName, schema.oolModule, entityInfo);

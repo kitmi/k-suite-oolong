@@ -1,6 +1,6 @@
-const { pascalCase } = require('rk-utils');
+const { _, pascalCase } = require('rk-utils');
 
-const { Connector, getEntityModelOfDriver } = require('@k-suite/oolong');
+const { Connector, getEntityModelOfDriver, Errors: { BusinessError } } = require('@k-suite/oolong');
 const BaseEntityModel = getEntityModelOfDriver('mysql');
 
 class Test {
@@ -24,7 +24,18 @@ class Test {
         let modelClassName = pascalCase(entityName);
         if (this._modelCache[modelClassName]) return this._modelCache[modelClassName];
 
-        const entitySpecMixin = require(`./test/${modelClassName}`);        
+        let entitySpecMixin;
+
+        try {
+            entitySpecMixin = require(`./test/${modelClassName}`);        
+        } catch (error) {
+            if (error.code === 'MODULE_NOT_FOUND') {
+                throw new BusinessError(`Failed to load "${modelClassName}" entity. ${error.message}`);
+            }
+
+            throw error;
+        }
+
         let modelClass = entitySpecMixin(this, BaseEntityModel);
 
         this._modelCache[entityName] = modelClass;
@@ -35,6 +46,13 @@ class Test {
         return modelClass;
     }
 
+    entitiesOfType(baseEntityName) {
+        return _.filter(this.constructor.entities, entityName => {
+            let Model = this.model(entityName);
+            return Model.baseClasses && Model.baseClasses.indexOf(baseEntityName) > -1;
+        });
+    }
+
     async close_() {
         if (this._connectorOwner) {
             await this.connector.end_();
@@ -43,10 +61,12 @@ class Test {
 
         delete this._modelCache;
         delete this.connector;
+        delete this.app;
     }
 }
 
 Test.driver = 'mysql';
 Test.schemaName = 'test';
+Test.entities = ["user","profile","gender","group","userGroup"];
 
 module.exports = Test;

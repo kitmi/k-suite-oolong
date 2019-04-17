@@ -32,6 +32,9 @@
     "entity": {
         "profile": {
             "comment": "Profile",
+            "features": [
+                "autoId"
+            ],
             "fields": {
                 "firstName": {
                     "name": "firstName",
@@ -73,8 +76,7 @@
                     "srcField": "owner",
                     "fieldProps": {}
                 }
-            ],
-            "key": "owner"
+            ]
         }
     },
     "id": "./entities/profile.ool",

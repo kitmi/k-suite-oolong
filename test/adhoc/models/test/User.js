@@ -2,6 +2,7 @@ const { _ } = require('rk-utils');
 
 const { 
     Types,
+    Activators,
     Validators, 
     Processors, 
     Generators, 
@@ -12,7 +13,9 @@ const normalizeMobile = require('./processors/user-normalizeMobile.js');
 const hashPassword = require('./processors/user-hashPassword.js'); 
 
 module.exports = (db, BaseEntityModel) => {
-    const UserSpec = class extends BaseEntityModel {    
+    let Base = BaseEntityModel;
+    
+    const UserSpec = class extends Base {    
         /**
          * Applying predefined modifiers to entity fields.
          * @param context
@@ -27,7 +30,8 @@ module.exports = (db, BaseEntityModel) => {
                 if (!Validators.isEmail(latest['email'])) {
                     throw new DataValidationError('Invalid "email".', {
                         entity: this.meta.name,
-                        field: 'email'
+                        field: 'email',
+                        value: latest['email']
                     });
                 }
             }
@@ -36,7 +40,8 @@ module.exports = (db, BaseEntityModel) => {
                 if (!Validators.matches(latest['mobile'], new RegExp('^((\\+|00)\\d+)?\\d+(-\\d+)?$'))) {
                     throw new DataValidationError('Invalid "mobile".', {
                         entity: this.meta.name,
-                        field: 'mobile'
+                        field: 'mobile',
+                        value: latest['mobile']
                     });
                 }
             }
@@ -61,7 +66,8 @@ module.exports = (db, BaseEntityModel) => {
                 if (!Validators.isMobilePhone(latest['mobile'], Processors.stringDasherize(latest.hasOwnProperty('locale') ? latest['locale'] : existing['locale']))) {
                     throw new DataValidationError('Invalid "mobile".', {
                         entity: this.meta.name,
-                        field: 'mobile'
+                        field: 'mobile',
+                        value: latest['mobile']
                     });
                 }
             }
@@ -123,7 +129,6 @@ module.exports = (db, BaseEntityModel) => {
                 "type": "integer",
                 "auto": true,
                 "writeOnce": true,
-                "startFrom": 100000,
                 "displayName": "Id",
                 "autoIncrementId": true,
                 "createByDb": true
@@ -132,83 +137,30 @@ module.exports = (db, BaseEntityModel) => {
                 "type": "text",
                 "maxLength": 200,
                 "comment": "User Email",
-                "modifiers": [
-                    {
-                        "oolType": "Validator",
-                        "name": "isEmail"
-                    }
-                ],
                 "subClass": [
                     "email"
                 ],
-                "displayName": "User Email",
+                "displayName": "Email",
                 "optional": true
             },
             "mobile": {
                 "type": "text",
                 "maxLength": 20,
                 "comment": "User Mobile",
-                "modifiers": [
-                    {
-                        "oolType": "Validator",
-                        "name": "matches",
-                        "args": [
-                            {
-                                "oolType": "RegExp",
-                                "value": "/^((\\+|00)\\d+)?\\d+(-\\d+)?$/"
-                            }
-                        ]
-                    },
-                    {
-                        "oolType": "Validator",
-                        "name": "isMobilePhone",
-                        "args": [
-                            {
-                                "oolType": "PipedValue",
-                                "value": {
-                                    "oolType": "ObjectReference",
-                                    "name": "latest.locale"
-                                },
-                                "modifiers": [
-                                    {
-                                        "oolType": "Processor",
-                                        "name": "stringDasherize"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "oolType": "Processor",
-                        "name": "normalizeMobile"
-                    }
-                ],
                 "subClass": [
                     "phone"
                 ],
-                "displayName": "User Mobile",
+                "displayName": "Mobile",
                 "optional": true
             },
             "password": {
                 "type": "text",
                 "maxLength": 200,
                 "comment": "User Password",
-                "modifiers": [
-                    {
-                        "oolType": "Processor",
-                        "name": "hashPassword",
-                        "args": [
-                            {
-                                "oolType": "ObjectReference",
-                                "name": "latest.passwordSalt"
-                            }
-                        ]
-                    }
-                ],
                 "subClass": [
                     "password"
                 ],
-                "displayName": "User Password",
+                "displayName": "Password",
                 "createByDb": true
             },
             "passwordSalt": {
@@ -216,13 +168,13 @@ module.exports = (db, BaseEntityModel) => {
                 "fixedLength": 8,
                 "auto": true,
                 "comment": "User Password Salt",
-                "displayName": "User Password Salt"
+                "displayName": "Password Salt"
             },
             "locale": {
                 "type": "text",
                 "default": "en_AU",
                 "comment": "User Locale",
-                "displayName": "User Locale"
+                "displayName": "Locale"
             },
             "status": {
                 "type": "enum",
@@ -238,12 +190,12 @@ module.exports = (db, BaseEntityModel) => {
                 "subClass": [
                     "userStatus"
                 ],
-                "displayName": "User Status"
+                "displayName": "Status"
             },
             "testToken": {
                 "type": "datetime",
                 "default": {
-                    "oolType": "SymbolToken",
+                    "oorType": "SymbolToken",
                     "name": "now"
                 },
                 "displayName": "Test Token"
@@ -309,7 +261,8 @@ module.exports = (db, BaseEntityModel) => {
         },
         "features": {
             "autoId": {
-                "field": "id"
+                "field": "id",
+                "startFrom": 100000
             },
             "createTimestamp": {
                 "field": "createdAt"
@@ -366,15 +319,30 @@ module.exports = (db, BaseEntityModel) => {
             }
         ],
         "associations": {
-            "groups": {
-                "entity": "group",
-                "isArray": true,
-                "connectedBy": "userGroup"
-            },
             "profiles": {
                 "entity": "profile",
-                "isArray": true,
-                "remoteField": "owner"
+                "key": "id",
+                "on": {
+                    "id": {
+                        "oorType": "ColumnReference",
+                        "name": "profiles.owner"
+                    }
+                },
+                "field": "owner",
+                "list": true
+            },
+            "groups": {
+                "entity": "userGroup",
+                "key": "id",
+                "on": {
+                    "id": {
+                        "oorType": "ColumnReference",
+                        "name": "groups.user"
+                    }
+                },
+                "field": "user",
+                "list": true,
+                "assoc": "group"
             }
         },
         "fieldDependencies": {

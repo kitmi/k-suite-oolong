@@ -223,7 +223,57 @@ class DaoModeler {
 
     _generateEntityManifest(schema) {
         let entities = Object.keys(schema.entities).sort().reduce((result, v) => { result[v] = {}; return result; }, {});
+        /*
+        let manifest = {};
 
+        _.each(schema.entities, (entity, entityName) => {
+            if (entity.info.restful) {
+                _.each(entity.info.restful, ({ type, methods }, relativeUri) => {                    
+                    let apiInfo = {
+                        type,
+                        methods: {}                                            
+                    };
+
+                    if (type === 'entity') {
+                        apiInfo.entity = entityName;
+                        apiInfo.displayName = entity.displayName;
+
+                        if (entity.comment) {
+                            apiInfo.description = entity.comment;
+                        }
+                    }
+
+                    _.each(methods, (meta, methodName) => {
+
+                        switch (methodName) {
+                            case 'create':
+                                apiInfo.methods['post:' + relativeUri] = meta;
+                            break;
+
+                            case 'findOne':
+                            break;
+
+                            case 'fineAll':
+                            break;
+
+                            case 'updateOne':
+                            break;
+
+                            case 'updateMany':
+                            break;
+
+                            case 'deleteOne':
+                            break;
+
+                            case 'deleteMany':
+                            break;
+                        }
+
+                    });
+                });
+            }
+        });
+        */
         let outputFilePath = path.resolve(this.manifestPath, schema.name + '.manifest.json');
         fs.ensureFileSync(outputFilePath);
         fs.writeFileSync(outputFilePath, JSON.stringify(entities, null, 4));

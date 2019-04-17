@@ -8,7 +8,8 @@
             "comment": "User Credential",
             "features": {
                 "autoId": {
-                    "field": "id"
+                    "field": "id",
+                    "startFrom": 100000
                 },
                 "createTimestamp": {
                     "field": "createdAt"
@@ -44,7 +45,6 @@
                     "type": "integer",
                     "auto": true,
                     "writeOnce": true,
-                    "startFrom": 100000,
                     "displayName": "Id"
                 },
                 "email": {
@@ -60,7 +60,7 @@
                     "subClass": [
                         "email"
                     ],
-                    "displayName": "User Email",
+                    "displayName": "Email",
                     "optional": true
                 },
                 "mobile": {
@@ -105,7 +105,7 @@
                     "subClass": [
                         "phone"
                     ],
-                    "displayName": "User Mobile",
+                    "displayName": "Mobile",
                     "optional": true
                 },
                 "password": {
@@ -127,20 +127,20 @@
                     "subClass": [
                         "password"
                     ],
-                    "displayName": "User Password"
+                    "displayName": "Password"
                 },
                 "passwordSalt": {
                     "type": "text",
                     "fixedLength": 8,
                     "auto": true,
                     "comment": "User Password Salt",
-                    "displayName": "User Password Salt"
+                    "displayName": "Password Salt"
                 },
                 "locale": {
                     "type": "text",
                     "default": "en_AU",
                     "comment": "User Locale",
-                    "displayName": "User Locale"
+                    "displayName": "Locale"
                 },
                 "status": {
                     "type": "enum",
@@ -156,12 +156,12 @@
                     "subClass": [
                         "userStatus"
                     ],
-                    "displayName": "User Status"
+                    "displayName": "Status"
                 },
                 "testToken": {
                     "type": "datetime",
                     "default": {
-                        "oolType": "SymbolToken",
+                        "oorType": "SymbolToken",
                         "name": "now"
                     },
                     "displayName": "Test Token"
@@ -227,7 +227,18 @@
             "name": "profile",
             "displayName": "Profile",
             "comment": "Profile",
+            "features": {
+                "autoId": {
+                    "field": "id"
+                }
+            },
             "fields": {
+                "id": {
+                    "type": "integer",
+                    "auto": true,
+                    "writeOnce": true,
+                    "displayName": "Id"
+                },
                 "firstName": {
                     "type": "text",
                     "maxLength": 40,
@@ -259,25 +270,19 @@
                     "type": "datetime",
                     "optional": true,
                     "comment": "Date of birth",
-                    "displayName": "Date of birth"
+                    "displayName": "Dob"
                 },
                 "avatar": {
                     "type": "text",
-                    "maxLength": 2000,
+                    "maxLength": 200,
                     "optional": true,
-                    "modifiers": [
-                        {
-                            "oolType": "Validator",
-                            "name": "isURL"
-                        }
-                    ],
                     "subClass": [
                         "url"
                     ],
                     "displayName": "Avatar"
                 }
             },
-            "key": "owner"
+            "key": "id"
         },
         "gender": {
             "name": "gender",
@@ -288,14 +293,14 @@
                     "type": "text",
                     "maxLength": 1,
                     "comment": "Gender Code",
-                    "displayName": "Gender Code"
+                    "displayName": "Code"
                 },
                 "name": {
                     "type": "text",
                     "maxLength": 20,
                     "optional": true,
                     "comment": "Gender Name",
-                    "displayName": "Gender Name"
+                    "displayName": "Name"
                 }
             },
             "key": "code"
@@ -321,7 +326,7 @@
                     "maxLength": 255,
                     "optional": true,
                     "comment": "Group Name",
-                    "displayName": "Group Name"
+                    "displayName": "Name"
                 }
             },
             "key": "id"
