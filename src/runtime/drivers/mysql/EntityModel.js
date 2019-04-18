@@ -270,7 +270,7 @@ class MySQLEntityModel extends EntityModel {
 
         associations.forEach(assoc => {
             if (_.isPlainObject(assoc)) {
-                assoc = this._translateSchemaNameToDb(assoc);
+                assoc = this._translateSchemaNameToDb(assoc, this.db.schemaName);
 
                 let alias = assoc.alias;
                 if (!assoc.alias) {
@@ -325,13 +325,13 @@ class MySQLEntityModel extends EntityModel {
                 baseNode = this._loadAssocIntoTable(assocTable, cache, base);                                                
             }            
 
-            let entity = this.db.model(baseNode.entity);
-            let assocInfo ={ ...entity.meta.associations[last] };
+            let entity = baseNode.model || this.db.model(baseNode.entity);
+            let assocInfo = { ...entity.meta.associations[last] };
             if (_.isEmpty(assocInfo)) {
                 throw new BusinessError(`Entity "${entity.meta.name}" does not have the association "${assoc}".`);
             }
 
-            result = { ...this._translateSchemaNameToDb(assocInfo) };
+            result = { ...entity._translateSchemaNameToDb(assocInfo, this.db) };
 
             if (!baseNode.subAssocs) {
                 baseNode.subAssocs = {};
@@ -347,7 +347,7 @@ class MySQLEntityModel extends EntityModel {
         return result;
     }
 
-    static _translateSchemaNameToDb(assoc) {
+    static _translateSchemaNameToDb(assoc, currentDb) {
         if (assoc.entity.indexOf('.') > 0) {
             let [ schemaName, entityName ] = assoc.entity.split('.', 2);
 
@@ -362,17 +362,21 @@ class MySQLEntityModel extends EntityModel {
             }
 
             assoc.entity = refDb.connector.database + '.' + entityName;
+            assoc.model = refDb.model(entityName);
 
-            if (!assoc.key) {
-                let model = refDb.model(entityName);
-                if (!model) {
-                    throw new OolongUsageError(`Failed load the entity model "${schemaName}.${entityName}".`);
-                }
-
-                assoc.key = model.meta.keyField;
+            if (!assoc.model) {
+                throw new OolongUsageError(`Failed load the entity model "${schemaName}.${entityName}".`);
             }
-        } else if (!assoc.key) {
-            assoc.key = this.db.model(assoc.entity).meta.keyField;    
+        } else {
+            assoc.model = this.db.model(assoc.entity);   
+            
+            if (currentDb && currentDb !== this.db) {
+                assoc.entity = this.db.connector.database + '.' + assoc.entity;
+            }
+        }
+
+        if (!assoc.key) {
+            assoc.key = assoc.model.meta.keyField;    
         }
 
         return assoc;
