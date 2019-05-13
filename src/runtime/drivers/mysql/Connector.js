@@ -530,8 +530,8 @@ class MySQLConnector extends Connector {
                     return '(' + this._joinCondition(value, params, 'AND', hasJoining, aliasMap) + ')';
                 }
     
-                if (key === '$any' || key === '$or') {
-                    assert: Array.isArray(value) || _.isPlainObject(value), '"$or" operator value should be a plain object.';       
+                if (key === '$any' || key === '$or' || key.startsWith('$or_')) {
+                    assert: Array.isArray(value) || _.isPlainObject(value), '"$or" operator value should be an array or plain object.';       
                     
                     return '(' + this._joinCondition(value, params, 'OR', hasJoining, aliasMap) + ')';
                 }
@@ -747,6 +747,7 @@ class MySQLConnector extends Connector {
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' NOT IN (?)';
 
                             case '$startWith':
+                            case '$startsWith':
 
                                 if (typeof v !== 'string') {
                                     throw new Error('The value should be a string when using "$startWith" operator.');
@@ -758,6 +759,7 @@ class MySQLConnector extends Connector {
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
 
                             case '$endWith':
+                            case '$endsWith':
 
                                 if (typeof v !== 'string') {
                                     throw new Error('The value should be a string when using "$endWith" operator.');
@@ -769,6 +771,7 @@ class MySQLConnector extends Connector {
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
 
                             case '$like':
+                            case '$likes':
 
                                 if (typeof v !== 'string') {
                                     throw new Error('The value should be a string when using "$like" operator.');

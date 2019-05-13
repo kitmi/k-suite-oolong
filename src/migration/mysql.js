@@ -78,7 +78,12 @@ class MySQLMigration {
         if (ext === '.json') {
             let data = fs.readJsonSync(dataFile, {encoding: 'utf8'});
 
-            await this._loadData_(data);
+            if (Array.isArray(data)) {
+                let entityName = path.basename(dataFile, ext);
+                await this._loadSingleEntityRecords_(entityName, data);
+            } else {
+                await this._loadMultiEntityRecords_(data);
+            }
         } else if (ext === '.sql') {
             let sql = fs.readFileSync(dataFile, {encoding: 'utf8'});
             let result = await this.connector.execute_(sql, null, { multipleStatements: 1 });
@@ -109,33 +114,45 @@ class MySQLMigration {
                 });
             });
 
-            await this._loadData_(data);
+            await this._loadMultiEntityRecords_(data);
         } else {
             throw new Error('Unsupported data file format.');
         }
     }
 
-    async _loadData_(data) {
+    async _loadMultiEntityRecords_(data) {
         let className = pascalCase(this.schemaName);
         let Db = require(path.join(this.modelPath, className));
-        let db = new Db(this.connector.connectionString, this.connector.options);            
+        let db = new Db(this.connector.connectionString, this.connector.options);    
 
         try {
             await db.connector.execute_('SET FOREIGN_KEY_CHECKS=0;');
 
-            await eachAsync_(data, async (records, entityName) => {
-                let Model = db.model(entityName);                        
+            await eachAsync_(data, async (records, entityName) => {                
                 let items = Array.isArray(records) ? records : [ records ];
-
-                return eachAsync_(items, async item => {
-                    await Model.create_(item);
-                });
+                return eachAsync_(items, item => db.model(entityName).create_(item));  
             });
-
-            await db.connector.execute_('SET FOREIGN_KEY_CHECKS=1;');
         } catch (error) {
             throw error;
         } finally {
+            await db.connector.execute_('SET FOREIGN_KEY_CHECKS=1;');
+            await db.close_();
+        }
+    }
+
+    async _loadSingleEntityRecords_(entityName, data) {
+        let className = pascalCase(this.schemaName);
+        let Db = require(path.join(this.modelPath, className));
+        let db = new Db(this.connector.connectionString, this.connector.options);    
+
+        try {
+            await db.connector.execute_('SET FOREIGN_KEY_CHECKS=0;');
+
+            await eachAsync_(data, item => db.model(entityName).create_(item));  
+        } catch (error) {
+            throw error;
+        } finally {
+            await db.connector.execute_('SET FOREIGN_KEY_CHECKS=1;');
             await db.close_();
         }
     }

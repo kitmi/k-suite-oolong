@@ -68,7 +68,7 @@ class EntityModel {
     /**
      * Get a pk-indexed hashtable with all undeleted data
      */
-    static async cached_(key) {
+    static async cached_(key, connOptions) {
         if (key) {
             let cachedData;
 
@@ -79,14 +79,14 @@ class EntityModel {
             }
 
             if (!cachedData) {
-                cachedData = this._cachedDataAltKey[key] = await this.findAll_({ $toDictionary: key });
+                cachedData = this._cachedDataAltKey[key] = await this.findAll_({ $toDictionary: key }, connOptions);
             }
     
             return cachedData;
         }
 
         if (!this._cachedData) {
-            this._cachedData = await this.findAll_({ $toDictionary: true });
+            this._cachedData = await this.findAll_({ $toDictionary: true }, connOptions);
         }
 
         return this._cachedData;
