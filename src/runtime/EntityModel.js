@@ -45,7 +45,7 @@ class EntityModel {
      * @param {object} data - Input data.
      */
     static getUniqueKeyValuePairsFrom(data) {  
-        pre: _.isPlainObject(data);    
+        pre: typeof data === 'object';
         
         let ukFields = this.getUniqueKeyFieldsFrom(data);
         return _.pick(data, ukFields);
