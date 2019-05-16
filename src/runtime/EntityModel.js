@@ -373,11 +373,11 @@ class EntityModel {
             connOptions
         };
         
-        return this._safeExecute_(async (context) => {
+        let success = await this._safeExecute_(async (context) => {
             await this._prepareEntityData_(context, true /* is updating */);          
 
             if (!(await Features.applyRules_(Rules.RULE_BEFORE_UPDATE, this, context))) {
-                return context.latest;
+                return false;
             }
             
             let toUpdate;
@@ -389,7 +389,7 @@ class EntityModel {
             }
 
             if (!toUpdate) {
-                return context.latest;
+                return false;
             }
 
             context.result = await this.db.connector.update_(
@@ -398,16 +398,20 @@ class EntityModel {
                 context.updateOptions.$query,
                 context.updateOptions,
                 context.connOptions
-            );            
+            );  
 
+            return true;
+        }, context);
+
+        if (success) {
             if (forSingleRecord) {
                 await this.afterUpdate_(context);
             } else {
                 await this.afterUpdateMany_(context);
-            }            
-            
-            return context.latest;
-        }, context);
+            }          
+        }
+
+        return context.latest;
     }
 
     /**
@@ -488,9 +492,9 @@ class EntityModel {
             connOptions
         };
         
-        return this._safeExecute_(async (context) => {
+        let success = await this._safeExecute_(async (context) => {
             if (!(await Features.applyRules_(Rules.RULE_BEFORE_DELETE, this, context))) {
-                return context.latest;
+                return false;
             }        
 
             let toDelete;
@@ -502,23 +506,27 @@ class EntityModel {
             }
 
             if (!toDelete) {
-                return context.latest;
+                return false;
             }
 
             context.result = await this.db.connector.delete_(
                 this.meta.name,                 
                 context.deleteOptions.$query,
                 context.connOptions
-            );
+            ); 
+            
+            return true;
+        }, context);
 
+        if (success) {
             if (forSingleRecord) {
                 await this.afterDelete_(context);
             } else {
                 await this.afterDeleteMany_(context);
-            }     
-            
-            return context.existing;
-        }, context);
+            }    
+        }
+
+        return context.existing;
     }
 
     /**
@@ -740,16 +748,18 @@ class EntityModel {
             let result = await executor(context);
             
             //if the executor have initiated a transaction
-            context.connOptions && 
-                context.connOptions.connection && 
-                await this.db.connector.commit_(context.connOptions.connection);                
+            if (context.connOptions && context.connOptions.connection) { 
+                await this.db.connector.commit_(context.connOptions.connection);
+                delete context.connOptions.connection;       
+            }
 
             return result;
         } catch (error) {
             //we have to rollback if error occurred in a transaction
-            context.connOptions && 
-                context.connOptions.connection && 
-                await this.db.connector.rollback_(context.connOptions.connection);                
+            if (context.connOptions && context.connOptions.connection) { 
+                await this.db.connector.rollback_(context.connOptions.connection);                    
+                delete context.connOptions.connection;   
+            }     
 
             throw error;
         } 

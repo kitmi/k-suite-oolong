@@ -19,6 +19,8 @@ class MongodbConnector extends Connector {
         super('mongodb', connectionString, options);         
     }
 
+    findAll_ = this.find_;
+
     /**
      * Close all connection initiated by this connector.
      */
