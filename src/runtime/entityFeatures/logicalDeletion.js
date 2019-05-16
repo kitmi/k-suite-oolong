@@ -33,7 +33,6 @@ module.exports = {
             context.latest = entityModel._update_(updateTo, { 
                 $query: deleteOptions.$query, 
                 $retrieveUpdated: deleteOptions.$retrieveDeleted,
-                $unboxing: deleteOptions.$unboxing,
                 $byPassReadOnly: new Set([field, timestampField])
             });
 

@@ -33,16 +33,6 @@ class EntityModel {
     }
 
     /**
-     * Populate data from database.
-     * @param {*} data 
-     * @return {EntityModel}
-     */
-    static populate(data) {
-        let ModelClass = this;
-        return new ModelClass(data);
-    }
-
-    /**
      * Get field names array of a unique key from input data.
      * @param {object} data - Input data.
      */
@@ -61,8 +51,58 @@ class EntityModel {
         return _.pick(data, ukFields);
     }
 
+    /**
+     * Get nested object of an entity.
+     * @param {*} entityObj 
+     * @param {*} keyPath 
+     */
     static getNestedObject(entityObj, keyPath) {
-        return getValueByPath(entityObj, keyPath.split('.').map(p => ':'+p).join('.'));
+        return getValueByPath(entityObj, keyPath);
+    }
+
+    /**
+     * Ensure context.latest be the just created entity.
+     * @param {*} context 
+     * @param {*} customOptions 
+     */
+    static ensureRetrieveCreated(context, customOptions) {
+        if (!context.createOptions.$retrieveCreated) {
+            context.createOptions.$retrieveCreated = customOptions ? customOptions : true;
+        }
+    }
+
+    /**
+     * Ensure context.latest be the just updated entity.
+     * @param {*} context 
+     * @param {*} customOptions 
+     */
+    static ensureRetrieveUpdated(context, customOptions) {
+        if (!context.updateOptions.$retrieveUpdated) {
+            context.updateOptions.$retrieveUpdated = customOptions ? customOptions : true;
+        }
+    }
+
+    /**
+     * Ensure context.exisintg be the just deleted entity.
+     * @param {*} context 
+     * @param {*} customOptions 
+     */
+    static ensureRetrieveDeleted(context, customOptions) {
+        if (!context.deleteOptions.$retrieveDeleted) {
+            context.deleteOptions.$retrieveDeleted = customOptions ? customOptions : true;
+        }
+    }
+
+    /**
+     * Ensure the upcoming operations are executed in a transaction.
+     * @param {*} context 
+     */
+    static async ensureTransaction_(context) {
+        if (!context.connOptions || !context.connOptions.connection) {                
+            context.connOptions || (context.connOptions = {});
+
+            context.connOptions.connection = await this.db.connector.beginTransaction_();                           
+        } 
     }
 
     /**
@@ -120,10 +160,6 @@ class EntityModel {
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
 
-        if (findOptions.$association && !findOptions.$relationships) {
-            findOptions.$relationships = this._prepareAssociations(findOptions);
-        }
-
         return this._safeExecute_(async (context) => {            
             let records = await this.db.connector.find_(
                 this.meta.name, 
@@ -173,10 +209,6 @@ class EntityModel {
         }; 
 
         await Features.applyRules_(Rules.RULE_BEFORE_FIND, this, context);  
-
-        if (findOptions.$association && !findOptions.$relationships) {            
-            findOptions.$relationships = this._prepareAssociations(findOptions);
-        }
 
         let totalCount;
 
@@ -252,20 +284,20 @@ class EntityModel {
             needCreateAssocs = true;
         }
 
-        return this._safeExecute_(async (context) => {
-            await this.beforeCreate_(context);
-
+        return this._safeExecute_(async (context) => { 
             if (needCreateAssocs) {
-                if (!context.connOptions || !context.connOptions.connection) {                
-                    context.connOptions || (context.connOptions = {});
-    
-                    context.connOptions.connection = await this.db.connector.beginTransaction_();                           
-                } // else already in a transaction                        
+                await this.ensureTransaction_(context);                       
             }
 
             await this._prepareEntityData_(context);          
 
-            await Features.applyRules_(Rules.RULE_BEFORE_CREATE, this, context);    
+            if (!(await Features.applyRules_(Rules.RULE_BEFORE_CREATE, this, context))) {
+                return context.latest;
+            }
+            
+            if (!(await this.beforeCreate_(context))) {
+                return context.latest;
+            }
 
             context.result = await this.db.connector.create_(
                 this.meta.name, 
@@ -282,68 +314,6 @@ class EntityModel {
             return context.latest;
         }, context);
     }
-
-    /**
-     * Create a new entity with given data.
-     * @param {object} data - Entity data 
-     * @param {object} [createOptions] - Create options     
-     * @property {bool} [createOptions.$retrieveCreated=false] - Retrieve the newly created record from db.     
-     * @param {object} [connOptions]
-     * @property {object} [connOptions.connection]
-     * @returns {EntityModel}
-     */
-    /*
-    static async createMany_(records, createOptions, connOptions) {
-        createOptions || (createOptions = {});
-
-        records.forEach(data => {
-            
-
-
-        });
-
-        let [ raw, associations ] = this._extractAssociations(data);
-
-        let context = { 
-            raw, 
-            createOptions,
-            connOptions
-        };       
-        
-        let needCreateAssocs = false;
-
-        if (!_.isEmpty(associations)) {
-            needCreateAssocs = true;
-        }
-
-        return this._safeExecute_(async (context) => {
-            if (needCreateAssocs) {
-                if (!context.connOptions || !context.connOptions.connection) {                
-                    context.connOptions || (context.connOptions = {});
-    
-                    context.connOptions.connection = await this.db.connector.beginTransaction_();                           
-                } // else already in a transaction                        
-            }
-
-            await this._prepareEntityData_(context);          
-
-            await Features.applyRules_(Rules.RULE_BEFORE_CREATE, this, context);    
-
-            context.result = await this.db.connector.create_(
-                this.meta.name, 
-                context.latest, 
-                context.connOptions
-            );
-
-            await this.afterCreate_(context);
-
-            if (needCreateAssocs) {
-                await this._createAssocs_(context, associations);
-            }
-            
-            return context.latest;
-        }, context);
-    }*/
 
     /**
      * Update an existing entity with given data.
@@ -368,7 +338,7 @@ class EntityModel {
     }
 
     /**
-     * 
+     * Update many existing entites with given data.
      * @param {*} data 
      * @param {*} updateOptions 
      * @param {*} connOptions 
@@ -397,10 +367,6 @@ class EntityModel {
 
         updateOptions = this._prepareQueries(updateOptions, forSingleRecord /* for single record */);
 
-        if (updateOptions.$association && !updateOptions.$relationships) {
-            updateOptions.$relationships = this._prepareAssociations(updateOptions);
-        }
-
         let context = { 
             raw: data, 
             updateOptions,
@@ -410,7 +376,21 @@ class EntityModel {
         return this._safeExecute_(async (context) => {
             await this._prepareEntityData_(context, true /* is updating */);          
 
-            await Features.applyRules_(Rules.RULE_BEFORE_UPDATE, this, context);     
+            if (!(await Features.applyRules_(Rules.RULE_BEFORE_UPDATE, this, context))) {
+                return context.latest;
+            }
+            
+            let toUpdate;
+
+            if (forSingleRecord) {
+                toUpdate = await this.beforeUpdate_(context);
+            } else {
+                toUpdate = await this.beforeUpdateMany_(context);
+            }
+
+            if (!toUpdate) {
+                return context.latest;
+            }
 
             context.result = await this.db.connector.update_(
                 this.meta.name, 
@@ -430,6 +410,12 @@ class EntityModel {
         }, context);
     }
 
+    /**
+     * Update an existing entity with given data, or create one if not found.
+     * @param {*} data 
+     * @param {*} updateOptions 
+     * @param {*} connOptions 
+     */    
     static async replaceOne_(data, updateOptions, connOptions) {
         if (!updateOptions) {
             let conditionFields = this.getUniqueKeyFieldsFrom(data);
@@ -501,17 +487,22 @@ class EntityModel {
             deleteOptions,
             connOptions
         };
-
-        let notFinished = await Features.applyRules_(Rules.RULE_BEFORE_DELETE, this, context);     
-        if (!notFinished) {
-            return context.latest;
-        }        
         
         return this._safeExecute_(async (context) => {
+            if (!(await Features.applyRules_(Rules.RULE_BEFORE_DELETE, this, context))) {
+                return context.latest;
+            }        
+
+            let toDelete;
+
             if (forSingleRecord) {
-                await this.beforeDelete_(context);
+                toDelete = await this.beforeDelete_(context);
             } else {
-                await this.beforeDeleteMany_(context);
+                toDelete = await this.beforeDeleteMany_(context);
+            }
+
+            if (!toDelete) {
+                return context.latest;
             }
 
             context.result = await this.db.connector.delete_(
@@ -591,11 +582,7 @@ class EntityModel {
         let opOptions = isUpdating ? context.updateOptions : context.createOptions;
 
         if (isUpdating && this._dependsOnExistingData(raw)) {
-            if (!context.connOptions || !context.connOptions.connection) {                
-                context.connOptions || (context.connOptions = {});
-
-                context.connOptions.connection = await this.db.connector.beginTransaction_();                           
-            } // else already in a transaction                        
+            this.ensureRetrieveCreated(context);          
 
             existing = await this.findOne_({ $query: opOptions.$query }, context.connOptions);            
             context.existing = existing;                        
@@ -709,7 +696,7 @@ class EntityModel {
             } // else default value set by database or by rules
         });
 
-        latest = context.latest = this.translateValue(latest, opOptions.$variables, true);
+        latest = context.latest = this._translateValue(latest, opOptions.$variables, true);
 
         try {
             await Features.applyRules_(Rules.RULE_AFTER_VALIDATION, this, context);    
@@ -731,12 +718,17 @@ class EntityModel {
             let fieldInfo = fields[key];
             assert: fieldInfo;
 
-            return this._serializeByType(value, fieldInfo);
+            return this._serializeByTypeInfo(value, fieldInfo);
         });        
 
         return context;
     }
 
+    /**
+     * Ensure commit or rollback is called if transaction is created within the executor.
+     * @param {*} executor 
+     * @param {*} context 
+     */
     static async _safeExecute_(executor, context) {
         executor = executor.bind(this);
 
@@ -807,7 +799,7 @@ class EntityModel {
                 throw new OolongUsageError('Cannot use a singular value as condition to query against a entity with combined primary key.');
             }
 
-            return options ? { $query: { [this.meta.keyField]: this.translateValue(options) } } : {};
+            return options ? { $query: { [this.meta.keyField]: this._translateValue(options) } } : {};
         }
 
         let normalizedOptions = {}, query = {};
@@ -826,21 +818,155 @@ class EntityModel {
             this._ensureContainsUniqueKey(normalizedOptions.$query);
         }        
 
-        normalizedOptions.$query = this.translateValue(normalizedOptions.$query, normalizedOptions.$variables);
+        normalizedOptions.$query = this._translateValue(normalizedOptions.$query, normalizedOptions.$variables);
 
         if (normalizedOptions.$groupBy) {
             if (_.isPlainObject(normalizedOptions.$groupBy)) {
                 if (normalizedOptions.$groupBy.having) {
-                    normalizedOptions.$groupBy.having = this.translateValue(normalizedOptions.$groupBy.having, normalizedOptions.$variables);
+                    normalizedOptions.$groupBy.having = this._translateValue(normalizedOptions.$groupBy.having, normalizedOptions.$variables);
                 }
             }
         }
 
         if (normalizedOptions.$projection) {
-            normalizedOptions.$projection = this.translateValue(normalizedOptions.$projection, normalizedOptions.$variables);
+            normalizedOptions.$projection = this._translateValue(normalizedOptions.$projection, normalizedOptions.$variables);
+        }
+
+        if (normalizedOptions.$association && !normalizedOptions.$relationships) {
+            normalizedOptions.$relationships = this._prepareAssociations(normalizedOptions);
         }
 
         return normalizedOptions;
+    }
+
+    /**
+     * Pre create processing, return false to stop upcoming operation.
+     * @param {*} context      
+     */
+    static async beforeCreate_(context) {
+        return true;
+    }
+
+    /**
+     * Pre update processing, return false to stop upcoming operation.
+     * @param {*} context      
+     */
+    static async beforeUpdate_(context) {
+        return true;
+    }
+
+    /**
+     * Pre update processing, multiple records, return false to stop upcoming operation.
+     * @param {*} context      
+     */
+    static async beforeUpdateMany_(context) {
+        return true;
+    }
+
+    /**
+     * Pre delete processing, return false to stop upcoming operation.
+     * @param {*} context      
+     */
+    static async beforeDelete_(context) {
+        return true;
+    }
+
+    /**
+     * Pre delete processing, multiple records, return false to stop upcoming operation.
+     * @param {*} context      
+     */
+    static async beforeDeleteMany_(context) {
+        return true;
+    }
+
+    /**
+     * Post create processing.
+     * @param {*} context      
+     */
+    static async afterCreate_(context) {
+        let which = this.getUniqueKeyValuePairsFrom(context.latest);
+
+        assert: !_.isEmpty(which);
+
+        return this.afterChange_(context, which);
+    }
+
+    /**
+     * Post update processing.
+     * @param {*} context      
+     */
+    static async afterUpdate_(context) {
+        let which = this.getUniqueKeyValuePairsFrom(context.updateOptions.$query);
+
+        assert: !_.isEmpty(which);
+
+        return this.afterChange_(context, which);
+    }
+
+    /**
+     * Post update processing, multiple records 
+     * @param {*} context      
+     */
+    static async afterUpdateMany_(context) {
+        return this.afterChangeMany_(context);
+    }
+
+    /**
+     * Post delete processing.
+     * @param {*} context      
+     */
+    static async afterDelete_(context) {
+        let which = this.getUniqueKeyValuePairsFrom(context.deleteOptions.$query);
+
+        assert: !_.isEmpty(which);
+
+        return this.afterChange_(context, which);
+    }
+
+    /**
+     * Post delete processing, multiple records 
+     * @param {*} context      
+     */
+    static async afterDeleteMany_(context) {
+        return this.afterChangeMany_(context);
+    }
+
+    /**
+     * Post create/update/delete processing
+     */
+    static async afterChange_(context, keyFields) {
+    }
+
+    /**
+     * Post create/update/delete processing, multiple records 
+     */
+    static async afterChangeMany_(context) {
+    }
+
+    /**
+     * Post findAll processing
+     * @param {*} context 
+     * @param {*} records 
+     */
+    static async afterFindAll_(context, records) {
+        if (context.findOptions.$toDictionary) {
+            let keyField = this.meta.keyField;
+            
+            if (typeof context.findOptions.$toDictionary === 'string') { 
+                keyField = context.findOptions.$toDictionary; 
+
+                if (!(keyField in this.meta.fields)) {
+                    throw new OolongUsageError(`The key field "${keyField}" provided to index the cached dictionary is not a field of entity "${this.meta.name}".`);
+                }
+            }
+
+            return records.reduce((table, v) => {
+                table[v[keyField]] = v;
+                return table;
+            }, {});
+        } 
+
+        return records;
     }
 
     static _prepareAssociations() {
@@ -867,7 +993,11 @@ class EntityModel {
         throw new Error(NEED_OVERRIDE);
     }
 
-    static translateValue(value, variables, skipSerialize) {
+    static _serializeByTypeInfo(value, info) {
+        throw new Error(NEED_OVERRIDE);
+    }
+
+    static _translateValue(value, variables, skipSerialize) {
         if (_.isPlainObject(value)) {
             if (value.oorType) {
                 if (value.oorType === 'SessionVariable') {
@@ -905,11 +1035,11 @@ class EntityModel {
                 throw new Error('Not impletemented yet. ' + value.oorType);
             }
 
-            return _.mapValues(value, (v) => this.translateValue(v, variables));
+            return _.mapValues(value, (v) => this._translateValue(v, variables));
         }
 
         if (Array.isArray(value)) {
-            return value.map(v => this.translateValue(v, variables));
+            return value.map(v => this._translateValue(v, variables));
         }
 
         if (skipSerialize) return value;

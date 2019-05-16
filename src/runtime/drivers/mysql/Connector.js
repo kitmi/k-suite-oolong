@@ -583,7 +583,8 @@ class MySQLConnector extends Connector {
         return aliasMap[mainEntity] + '.' + (fieldName === '*' ? fieldName : mysql.escapeId(fieldName));
     }
 
-    _escapeIdWithAlias(fieldName, mainEntity, aliasMap) {
+    _escapeIdWithAlias(fieldName, mainEntity, aliasMap) {   
+
         if (mainEntity) {
             return this._replaceFieldNameWithAlias(fieldName, mainEntity, aliasMap); 
         }
@@ -827,6 +828,10 @@ class MySQLConnector extends Connector {
             }
 
             if (col.type === 'function') {
+                if (col.name.toUpperCase() === 'COUNT' && col.args.length === 1 && col.args[0] === '*') {
+                    return 'COUNT(*)';
+                }
+
                 return col.name + '(' + (col.args ? this._buildColumns(col.args, params, hasJoining, aliasMap) : '') + ')';
             }            
 

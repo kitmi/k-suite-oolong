@@ -1,7 +1,7 @@
 "use strict";
 
 const Util = require('rk-utils');
-const { _, setValueByPath, eachAsync_ } = Util;
+const { _, getValueByPath, setValueByPath, eachAsync_ } = Util;
 
 const { DateTime } = require('luxon');
 const EntityModel = require('../../EntityModel');
@@ -11,14 +11,26 @@ const Types = require('../../types');
 /**
  * MySQL entity model class.
  */
-class MySQLEntityModel extends EntityModel {    
+class MySQLEntityModel extends EntityModel {  
+    /**
+     * [specific] Check if this entity has auto increment feature.
+     */
     static get hasAutoIncrement() {
         let autoId = this.meta.features.autoId;
         return autoId && this.meta.fields[autoId.field].autoIncrementId;    
     }
 
     /**
-     * Serialize value into database acceptable format.
+     * [override] 
+     * @param {*} entityObj 
+     * @param {*} keyPath 
+     */
+    static getNestedObject(entityObj, keyPath) {
+        return getValueByPath(entityObj, keyPath.split('.').map(p => ':'+p).join('.'));
+    }
+
+    /**
+     * [override] Serialize value into database acceptable format.
      * @param {object} name - Name of the symbol token 
      */
     static _translateSymbolToken(name) {
@@ -29,6 +41,10 @@ class MySQLEntityModel extends EntityModel {
         throw new Error('not support');
     }
 
+    /**
+     * [override]
+     * @param {*} value 
+     */
     static _serialize(value) {
         if (typeof value === 'boolean') return value ? 1 : 0;
 
@@ -39,7 +55,12 @@ class MySQLEntityModel extends EntityModel {
         return value;
     }    
 
-    static _serializeByType(value, info) {
+    /**
+     * [override]
+     * @param {*} value 
+     * @param {*} info 
+     */
+    static _serializeByTypeInfo(value, info) {
         if (info.type === 'boolean') {
             return value ? 1 : 0;
         }
@@ -86,7 +107,7 @@ class MySQLEntityModel extends EntityModel {
             let errorCode = error.code;
 
             if (errorCode === 'ER_NO_REFERENCED_ROW_2') {
-                throw new BusinessError('The new entity is referencing to an unexisting entity. Detail: ' + error.message);
+                throw new BusinessError('The entity to be updated is referencing to an unexisting entity. Detail: ' + error.message);
             } else if (errorCode === 'ER_DUP_ENTRY') {
                 throw new BusinessError(error.message + ` while updating an existing "${this.meta.name}".`);
             }
@@ -96,23 +117,15 @@ class MySQLEntityModel extends EntityModel {
     }
 
     static async _doReplaceOne_(context) {
-        if (!context.connOptions || !context.connOptions.connection) {
-            context.connOptions || (context.connOptions = {});
-
-            context.connOptions.connection = await this.db.connector.beginTransaction_();                           
-        }
-        
+        await this.ensureTransaction_(context); 
+            
         let entity = await this.findOne_({ $query: context.updateOptions.$query }, context.connOptions);
 
         if (entity) {
             return this.updateOne_(context.raw, { ...context.updateOptions, $query: { [this.meta.keyField]: this.valueOfKey(entity) } }, context.connOptions);
         } else {
             return this.create_(context.raw, { $retrieveCreated: context.updateOptions.$retrieveUpdated }, context.connOptions);
-        }
-    }
-
-    static async beforeCreate_(context) {
-        return true;
+        }       
     }
     
     /**
@@ -133,7 +146,7 @@ class MySQLEntityModel extends EntityModel {
             context.latest = await this.findOne_({ ...retrieveOptions, $query: condition }, context.connOptions);
         }
 
-        return true;
+        return super.afterCreate_(context);
     }
 
     /**
@@ -160,7 +173,7 @@ class MySQLEntityModel extends EntityModel {
             context.latest = await this.findOne_({ ...retrieveOptions, ...condition }, context.connOptions);
         }
 
-        return true;
+        return super.afterUpdate_(context);
     }
 
     /**
@@ -182,44 +195,7 @@ class MySQLEntityModel extends EntityModel {
             context.latest = await this.findAll_({ ...retrieveOptions, $query: context.updateOptions.$query }, context.connOptions);
         }
 
-        return true;
-    }
-
-    /**
-     * Post delete processing.
-     * @param {*} context      
-     */
-    static async afterDelete_(context) {
-        return true;
-    }
-
-    /**
-     * Post delete processing.
-     * @param {*} context      
-     */
-    static async afterDeleteMany_(context) {
-        return true;
-    }
-
-    static async afterFindAll_(context, records) {
-        if (context.findOptions.$toDictionary) {
-            let keyField = this.meta.keyField;
-            
-            if (typeof context.findOptions.$toDictionary === 'string') { 
-                keyField = context.findOptions.$toDictionary; 
-
-                if (!(keyField in this.meta.fields)) {
-                    throw new OolongUsageError(`The key field "${keyField}" provided to index the cached dictionary is not a field of entity "${this.meta.name}".`);
-                }
-            }
-
-            return records.reduce((table, v) => {
-                table[v[keyField]] = v;
-                return table;
-            }, {});
-        } 
-
-        return records;
+        return super.afterChangeMany_(context);
     }
 
     /**
@@ -230,11 +206,7 @@ class MySQLEntityModel extends EntityModel {
      */
     static async beforeDelete_(context) {
         if (context.deleteOptions.$retrieveDeleted) {            
-            if (!context.connOptions || !context.connOptions.connection) {
-                context.connOptions || (context.connOptions = {});
-
-                context.connOptions.connection = await this.db.connector.beginTransaction_();                           
-            }
+            await this.ensureTransaction_(context); 
 
             let retrieveOptions = _.isPlainObject(context.deleteOptions.$retrieveDeleted) ? 
                 context.deleteOptions.$retrieveDeleted :
@@ -242,15 +214,13 @@ class MySQLEntityModel extends EntityModel {
             
             context.existing = await this.findOne_({ ...retrieveOptions, $query: context.deleteOptions.$query }, context.connOptions);
         }
+
+        return true;
     }
 
     static async beforeDeleteMany_(context) {
         if (context.deleteOptions.$retrieveDeleted) {            
-            if (!context.connOptions || !context.connOptions.connection) {
-                context.connOptions || (context.connOptions = {});
-
-                context.connOptions.connection = await this.db.connector.beginTransaction_();                           
-            }
+            await this.ensureTransaction_(context); 
 
             let retrieveOptions = _.isPlainObject(context.deleteOptions.$retrieveDeleted) ? 
                 context.deleteOptions.$retrieveDeleted :
@@ -258,6 +228,8 @@ class MySQLEntityModel extends EntityModel {
             
             context.existing = await this.findAll_({ ...retrieveOptions, $query: context.deleteOptions.$query }, context.connOptions);
         }
+
+        return true;
     }
 
     /**
@@ -286,7 +258,7 @@ class MySQLEntityModel extends EntityModel {
                     on: assoc.on,
                     ...(assoc.dataset ? this.db.connector.buildQuery(
                             assoc.entity, 
-                            this._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables })
+                            assoc.model._prepareQueries({ ...assoc.dataset, $variables: findOptions.$variables })
                         ) : {})                       
                 };
             } else {
