@@ -19,8 +19,8 @@ module.exports = {
         return true;
     },
     [Rules.RULE_BEFORE_DELETE]: (feature, entityModel, context) => {
-        let deleteOptions = context.deleteOptions;
-        if (!deleteOptions.$physicalDeletion) {
+        let options = context.options;
+        if (!options.$physicalDeletion) {
             let { field, value, timestampField } = feature;
             let updateTo = {
                 [field]: value
@@ -31,8 +31,8 @@ module.exports = {
             }
 
             context.latest = entityModel._update_(updateTo, { 
-                $query: deleteOptions.$query, 
-                $retrieveUpdated: deleteOptions.$retrieveDeleted,
+                $query: options.$query, 
+                $retrieveUpdated: options.$retrieveDeleted,
                 $byPassReadOnly: new Set([field, timestampField])
             });
 

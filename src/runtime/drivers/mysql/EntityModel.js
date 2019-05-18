@@ -119,114 +119,122 @@ class MySQLEntityModel extends EntityModel {
     static async _doReplaceOne_(context) {
         await this.ensureTransaction_(context); 
             
-        let entity = await this.findOne_({ $query: context.updateOptions.$query }, context.connOptions);
+        let entity = await this.findOne_({ $query: context.options.$query }, context.connOptions);
 
         if (entity) {
-            return this.updateOne_(context.raw, { ...context.updateOptions, $query: { [this.meta.keyField]: this.valueOfKey(entity) } }, context.connOptions);
+            return this.updateOne_(context.raw, { ...context.options, $query: { [this.meta.keyField]: this.valueOfKey(entity) } }, context.connOptions);
         } else {
-            return this.create_(context.raw, { $retrieveCreated: context.updateOptions.$retrieveUpdated }, context.connOptions);
+            return this.create_(context.raw, { $retrieveCreated: context.options.$retrieveUpdated }, context.connOptions);
         }       
     }
     
     /**
      * Post create processing.
      * @param {*} context 
-     * @property {object} [context.createOptions] - Create options     
-     * @property {bool} [createOptions.$retrieveCreated] - Retrieve the newly created record from db. 
+     * @property {object} [context.options] - Create options     
+     * @property {bool} [options.$retrieveCreated] - Retrieve the newly created record from db. 
      */
-    static async afterCreate_(context) {
+    static async _internalAfterCreate_(context) {
         if (this.hasAutoIncrement) {
             let { insertId } = context.result;
             context.latest[this.meta.features.autoId.field] = insertId;
         }
 
-        if (context.createOptions.$retrieveCreated) {
+        if (context.options.$retrieveCreated) {
             let condition = this.getUniqueKeyValuePairsFrom(context.latest);
-            let retrieveOptions = _.isPlainObject(context.createOptions.$retrieveCreated) ? context.createOptions.$retrieveCreated : {};
-            context.latest = await this.findOne_({ ...retrieveOptions, $query: condition }, context.connOptions);
+            let retrieveOptions = _.isPlainObject(context.options.$retrieveCreated) ? context.options.$retrieveCreated : {};
+            context.latest = await this.findOne_({ ...retrieveOptions, $query: condition }, context.connOptions);            
         }
-
-        return super.afterCreate_(context);
     }
 
     /**
      * Post update processing.
      * @param {*} context 
-     * @param {object} [updateOptions] - Update options     
-     * @property {bool} [updateOptions.$retrieveUpdated] - Retrieve the newly updated record from db. 
+     * @property {object} [context.options] - Update options     
+     * @property {bool} [context.options.$retrieveUpdated] - Retrieve the newly updated record from db. 
      */
-    static async afterUpdate_(context) {
-        if (context.updateOptions.$retrieveUpdated) {    
-            let condition = { $query: context.updateOptions.$query };
-            if (context.updateOptions.$byPassEnsureUnique) {
-                condition.$byPassEnsureUnique = context.updateOptions.$byPassEnsureUnique;
+    static async _internalAfterUpdate_(context) {
+        if (context.options.$retrieveUpdated) {    
+            let condition = { $query: context.options.$query };
+            if (context.options.$byPassEnsureUnique) {
+                condition.$byPassEnsureUnique = context.options.$byPassEnsureUnique;
             }
 
             let retrieveOptions = {};
             
-            if (_.isPlainObject(context.updateOptions.$retrieveUpdated)) {
-                retrieveOptions = context.updateOptions.$retrieveUpdated;
-            } else if (context.updateOptions.$relationships) {
-                retrieveOptions.$relationships = context.updateOptions.$relationships;
+            if (_.isPlainObject(context.options.$retrieveUpdated)) {
+                retrieveOptions = context.options.$retrieveUpdated;
+            } else if (context.options.$relationships) {
+                retrieveOptions.$relationships = context.options.$relationships;
             }
             
             context.latest = await this.findOne_({ ...retrieveOptions, ...condition }, context.connOptions);
         }
-
-        return super.afterUpdate_(context);
     }
 
     /**
      * Post update processing.
      * @param {*} context 
-     * @param {object} [updateOptions] - Update options     
-     * @property {bool} [updateOptions.$retrieveUpdated] - Retrieve the newly updated record from db. 
+     * @param {object} [options] - Update options     
+     * @property {bool} [options.$retrieveUpdated] - Retrieve the newly updated record from db. 
      */
-    static async afterUpdateMany_(context) {
-        if (context.updateOptions.$retrieveUpdated) {    
+    static async _internalAfterUpdateMany_(context) {
+        if (context.options.$retrieveUpdated) {    
             let retrieveOptions = {};
 
-            if (_.isPlainObject(context.updateOptions.$retrieveUpdated)) {
-                retrieveOptions = context.updateOptions.$retrieveUpdated;
-            } else if (context.updateOptions.$relationships) {
-                retrieveOptions.$relationships = context.updateOptions.$relationships;
+            if (_.isPlainObject(context.options.$retrieveUpdated)) {
+                retrieveOptions = context.options.$retrieveUpdated;
+            } else if (context.options.$relationships) {
+                retrieveOptions.$relationships = context.options.$relationships;
             }
             
-            context.latest = await this.findAll_({ ...retrieveOptions, $query: context.updateOptions.$query }, context.connOptions);
+            context.latest = await this.findAll_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);
         }
+    }
 
-        return super.afterChangeMany_(context);
+    /**
+     * Post delete processing.
+     * @param {*} context 
+     */
+    static async _internalAfterDelete_(context) {
+    }
+
+    /**
+     * Post delete processing.
+     * @param {*} context 
+     */
+    static async _internalAfterDeleteMany_(context) {
     }
 
     /**
      * Before deleting an entity.
      * @param {*} context 
-     * @property {object} [context.deleteOptions] - Delete options     
-     * @property {bool} [deleteOptions.$retrieveDeleted] - Retrieve the recently deleted record from db. 
+     * @property {object} [context.options] - Delete options     
+     * @property {bool} [options.$retrieveDeleted] - Retrieve the recently deleted record from db. 
      */
     static async beforeDelete_(context) {
-        if (context.deleteOptions.$retrieveDeleted) {            
+        if (context.options.$retrieveDeleted) {            
             await this.ensureTransaction_(context); 
 
-            let retrieveOptions = _.isPlainObject(context.deleteOptions.$retrieveDeleted) ? 
-                context.deleteOptions.$retrieveDeleted :
+            let retrieveOptions = _.isPlainObject(context.options.$retrieveDeleted) ? 
+                context.options.$retrieveDeleted :
                 {};
             
-            context.existing = await this.findOne_({ ...retrieveOptions, $query: context.deleteOptions.$query }, context.connOptions);
+            context.existing = await this.findOne_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);
         }
 
         return true;
     }
 
     static async beforeDeleteMany_(context) {
-        if (context.deleteOptions.$retrieveDeleted) {            
+        if (context.options.$retrieveDeleted) {            
             await this.ensureTransaction_(context); 
 
-            let retrieveOptions = _.isPlainObject(context.deleteOptions.$retrieveDeleted) ? 
-                context.deleteOptions.$retrieveDeleted :
+            let retrieveOptions = _.isPlainObject(context.options.$retrieveDeleted) ? 
+                context.options.$retrieveDeleted :
                 {};
             
-            context.existing = await this.findAll_({ ...retrieveOptions, $query: context.deleteOptions.$query }, context.connOptions);
+            context.existing = await this.findAll_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);
         }
 
         return true;
@@ -519,7 +527,7 @@ class MySQLEntityModel extends EntityModel {
             if (assocMeta.list) {
                 data = _.castArray(data);
 
-                return eachAsync_(data, item => assocModel.create_({ ...item, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, context.createOptions, context.connOptions));
+                return eachAsync_(data, item => assocModel.create_({ ...item, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, context.options, context.connOptions));
             } else if (!_.isPlainObject(data)) {
                 if (Array.isArray(data)) {
                     throw new BusinessError(`Invalid type of associated entity (${assocMeta.entity}) data triggered from "${this.meta.name}" entity. Singular value expected (${anchor}), but an array is given instead.`);
@@ -532,7 +540,7 @@ class MySQLEntityModel extends EntityModel {
                 data = { [assocMeta.assoc]: data };
             }
 
-            return assocModel.create_({ ...data, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, context.createOptions, context.connOptions);  
+            return assocModel.create_({ ...data, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, context.options, context.connOptions);  
         });
     }
 }

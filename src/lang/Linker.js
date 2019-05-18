@@ -74,6 +74,12 @@ class Linker {
         this.saveIntermediate = context.saveIntermediate || false;
 
         /**
+         * Schema deployment settings
+         * @member {object}
+         */
+        this.schemaDeployment = context.schemaDeployment;
+
+        /**
          * Linked schemas
          * @member {object.<string, Schema>}
          */
@@ -152,7 +158,10 @@ class Linker {
         }
 
         _.forOwn(entryModule.schema, (schemaInfo, schemaName) => {
-            let schema = new Schema(this, schemaName, entryModule, schemaInfo);
+            let deploymentSettings = this.schemaDeployment[schemaName];
+            assert: deploymentSettings, `"deploymentSettings" of schema [${schemaName}] not found.`;
+            
+            let schema = new Schema(this, schemaName, entryModule, schemaInfo, deploymentSettings);
             schema.link();
 
             if (this.schemas.hasOwnProperty(schemaName)) {

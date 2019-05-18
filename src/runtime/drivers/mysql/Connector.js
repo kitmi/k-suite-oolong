@@ -231,6 +231,8 @@ class MySQLConnector extends Connector {
         return this.execute_(sql, params, options); 
     }
 
+    insertOne_ = this.create_;
+
     /**
      * Update an existing entity.
      * @param {string} model 
@@ -266,6 +268,8 @@ class MySQLConnector extends Connector {
 
         return this.execute_(sql, params, connOptions);
     }
+
+    updateOne_ = this.update_;
 
     /**
      * Replace an existing entity or create a new one.

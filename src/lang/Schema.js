@@ -32,7 +32,7 @@ class Schema extends Clonable {
      * @param {object} oolModule
      * @param {object} info
      */
-    constructor(linker, name, oolModule, info) {
+    constructor(linker, name, oolModule, info, deploymentSettings) {
         super();
 
         /**
@@ -58,6 +58,12 @@ class Schema extends Clonable {
          * @member {object}
          */
         this.info = info;        
+
+        /**
+         * Deployment settings
+         * @member {object}
+         */
+        this.deploymentSettings = deploymentSettings;
     }
 
     /**
@@ -209,7 +215,7 @@ class Schema extends Clonable {
     clone() {
         super.clone();
         
-        let schema = new Schema(this.linker, this.name, this.oolModule, this.info);
+        let schema = new Schema(this.linker, this.name, this.oolModule, this.info, this.deploymentSettings);
         
         deepCloneField(this, schema, 'displayName');
         deepCloneField(this, schema, 'comment');        

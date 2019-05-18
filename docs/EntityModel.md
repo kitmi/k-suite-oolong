@@ -28,6 +28,20 @@ There are predefined context properties which can be accessed in an entity opera
 
 * connector - Transaction connector.
 
+## operation sequence
+
+1. prepare query & context
+2. wrap in transaction-safe closure
+3. pre-process data
+4. features before hooks
+5. sub-class before hooks
+6. execute the operation
+7. driver-specific post-process
+8. store query key 
+9. features after hooks
+10. end transaction-safe closure
+11. sub-class after hooks
+
 ## semantic symbols
 
 * supported symbols 

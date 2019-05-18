@@ -132,9 +132,9 @@ class MySQLModeler {
             if (entity.features) {
                 _.forOwn(entity.features, (f, featureName) => {
                     if (Array.isArray(f)) {
-                        f.forEach(ff => this._featureReducer(entity, featureName, ff));
+                        f.forEach(ff => this._featureReducer(modelingSchema, entity, featureName, ff));
                     } else {
-                        this._featureReducer(entity, featureName, f);
+                        this._featureReducer(modelingSchema, entity, featureName, f);
                     }
                 });
             }            
@@ -762,7 +762,7 @@ class MySQLModeler {
         ));
     }
 
-    _featureReducer(entity, featureName, feature) {
+    _featureReducer(schema, entity, featureName, feature) {
         let field;
 
         switch (featureName) {
@@ -802,6 +802,22 @@ class MySQLModeler {
                 break;
 
             case 'i18n':
+                break;
+
+            case 'changeLog':
+                console.log(schema.deploymentSettings);
+
+                let changeLogSettings = Util.getValueByPath(schema.deploymentSettings, 'features.changeLog');
+
+                if (!changeLogSettings) {
+                    throw new Error(`Missing "changeLog" feature settings in deployment config for schema [${schema.name}].`);
+                }
+
+                if (!changeLogSettings.dataSource) {
+                    throw new Error(`"changeLog.dataSource" is required. Schema: ${schema.name}`);
+                }
+
+                Object.assign(feature, changeLogSettings);
                 break;
 
             default:

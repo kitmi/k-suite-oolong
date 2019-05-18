@@ -41,6 +41,15 @@ variables
         newFunctorFiles: (sharedContext && sharedContext.newFunctorFiles) || []
     };
 
+## oolong config
 
+oolong.schemaDeployment is a map of schemaName to modelSettings which will be merged with dataSource config when passed into modeler api.
+
+    modelSettings = { 
+        dataSource /* schemaDeployment.dataSource */, 
+        connectionString /* dataSource.<driver>.<name>.connection */, 
+        options /* other members under dataSource.<driver>.<name> */, 
+        ...others /* other members under schemaDeployment */
+    };
 
     

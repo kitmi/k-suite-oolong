@@ -66,8 +66,8 @@ class EntityModel {
      * @param {*} customOptions 
      */
     static ensureRetrieveCreated(context, customOptions) {
-        if (!context.createOptions.$retrieveCreated) {
-            context.createOptions.$retrieveCreated = customOptions ? customOptions : true;
+        if (!context.options.$retrieveCreated) {
+            context.options.$retrieveCreated = customOptions ? customOptions : true;
         }
     }
 
@@ -77,8 +77,8 @@ class EntityModel {
      * @param {*} customOptions 
      */
     static ensureRetrieveUpdated(context, customOptions) {
-        if (!context.updateOptions.$retrieveUpdated) {
-            context.updateOptions.$retrieveUpdated = customOptions ? customOptions : true;
+        if (!context.options.$retrieveUpdated) {
+            context.options.$retrieveUpdated = customOptions ? customOptions : true;
         }
     }
 
@@ -88,8 +88,8 @@ class EntityModel {
      * @param {*} customOptions 
      */
     static ensureRetrieveDeleted(context, customOptions) {
-        if (!context.deleteOptions.$retrieveDeleted) {
-            context.deleteOptions.$retrieveDeleted = customOptions ? customOptions : true;
+        if (!context.options.$retrieveDeleted) {
+            context.options.$retrieveDeleted = customOptions ? customOptions : true;
         }
     }
 
@@ -103,6 +103,16 @@ class EntityModel {
 
             context.connOptions.connection = await this.db.connector.beginTransaction_();                           
         } 
+    }
+
+    /**
+     * Get value from context, e.g. session, query ...
+     * @param {*} context 
+     * @param {string} key
+     * @returns {*} 
+     */
+    static getValueFromContext(context, key) {
+        return getValueByPath(context, 'options.$variables.' + key);
     }
 
     /**
@@ -274,7 +284,7 @@ class EntityModel {
 
         let context = { 
             raw, 
-            createOptions,
+            options: createOptions,
             connOptions
         };       
         
@@ -284,7 +294,11 @@ class EntityModel {
             needCreateAssocs = true;
         }
 
-        return this._safeExecute_(async (context) => { 
+        if (this.meta.name === 'party') {
+            let a = 1;
+        }
+
+        let success = await this._safeExecute_(async (context) => { 
             if (needCreateAssocs) {
                 await this.ensureTransaction_(context);                       
             }
@@ -292,11 +306,11 @@ class EntityModel {
             await this._prepareEntityData_(context);          
 
             if (!(await Features.applyRules_(Rules.RULE_BEFORE_CREATE, this, context))) {
-                return context.latest;
+                return false;
             }
             
             if (!(await this.beforeCreate_(context))) {
-                return context.latest;
+                return false;
             }
 
             context.result = await this.db.connector.create_(
@@ -305,14 +319,26 @@ class EntityModel {
                 context.connOptions
             );
 
-            await this.afterCreate_(context);
+            await this._internalAfterCreate_(context);
+
+            if (!context.queryKey) {
+                context.queryKey = this.getUniqueKeyValuePairsFrom(context.latest);
+            }            
+
+            await Features.applyRules_(Rules.RULE_AFTER_CREATE, this, context);
 
             if (needCreateAssocs) {
                 await this._createAssocs_(context, associations);
             }
             
-            return context.latest;
+            return true;
         }, context);
+
+        if (success) {
+            await this.afterCreate_(context);            
+        }
+
+        return context.latest;
     }
 
     /**
@@ -369,7 +395,7 @@ class EntityModel {
 
         let context = { 
             raw: data, 
-            updateOptions,
+            options: updateOptions,
             connOptions
         };
         
@@ -395,10 +421,22 @@ class EntityModel {
             context.result = await this.db.connector.update_(
                 this.meta.name, 
                 context.latest, 
-                context.updateOptions.$query,
-                context.updateOptions,
+                context.options.$query,
+                context.options,
                 context.connOptions
             );  
+
+            if (forSingleRecord) {
+                await this._internalAfterUpdate_(context);
+            } else {
+                await this._internalAfterUpdateMany_(context);
+            }
+
+            if (!context.queryKey) {
+                context.queryKey = this.getUniqueKeyValuePairsFrom(context.options.$query);
+            }
+
+            await Features.applyRules_(Rules.RULE_AFTER_UPDATE, this, context);
 
             return true;
         }, context);
@@ -434,7 +472,7 @@ class EntityModel {
 
         let context = { 
             raw: data, 
-            updateOptions,
+            options: updateOptions,
             connOptions
         };
 
@@ -488,7 +526,7 @@ class EntityModel {
         }
 
         let context = { 
-            deleteOptions,
+            options: deleteOptions,
             connOptions
         };
         
@@ -511,9 +549,21 @@ class EntityModel {
 
             context.result = await this.db.connector.delete_(
                 this.meta.name,                 
-                context.deleteOptions.$query,
+                context.options.$query,
                 context.connOptions
             ); 
+
+            if (forSingleRecord) {
+                await this._internalAfterDelete_(context);
+            } else {
+                await this._internalAfterDeleteMany_(context);
+            }
+
+            if (!context.queryKey) {
+                context.queryKey = this.getUniqueKeyValuePairsFrom(context.options.$query);
+            }
+
+            await Features.applyRules_(Rules.RULE_AFTER_DELETE, this, context);
             
             return true;
         }, context);
@@ -587,7 +637,7 @@ class EntityModel {
             context.i18n = i18n;
         }
 
-        let opOptions = isUpdating ? context.updateOptions : context.createOptions;
+        let opOptions = context.options;
 
         if (isUpdating && this._dependsOnExistingData(raw)) {
             this.ensureRetrieveCreated(context);          
@@ -894,11 +944,6 @@ class EntityModel {
      * @param {*} context      
      */
     static async afterCreate_(context) {
-        let which = this.getUniqueKeyValuePairsFrom(context.latest);
-
-        assert: !_.isEmpty(which);
-
-        return this.afterChange_(context, which);
     }
 
     /**
@@ -906,11 +951,6 @@ class EntityModel {
      * @param {*} context      
      */
     static async afterUpdate_(context) {
-        let which = this.getUniqueKeyValuePairsFrom(context.updateOptions.$query);
-
-        assert: !_.isEmpty(which);
-
-        return this.afterChange_(context, which);
     }
 
     /**
@@ -918,7 +958,6 @@ class EntityModel {
      * @param {*} context      
      */
     static async afterUpdateMany_(context) {
-        return this.afterChangeMany_(context);
     }
 
     /**
@@ -926,11 +965,6 @@ class EntityModel {
      * @param {*} context      
      */
     static async afterDelete_(context) {
-        let which = this.getUniqueKeyValuePairsFrom(context.deleteOptions.$query);
-
-        assert: !_.isEmpty(which);
-
-        return this.afterChange_(context, which);
     }
 
     /**
@@ -938,19 +972,6 @@ class EntityModel {
      * @param {*} context      
      */
     static async afterDeleteMany_(context) {
-        return this.afterChangeMany_(context);
-    }
-
-    /**
-     * Post create/update/delete processing
-     */
-    static async afterChange_(context, keyFields) {
-    }
-
-    /**
-     * Post create/update/delete processing, multiple records 
-     */
-    static async afterChangeMany_(context) {
     }
 
     /**
