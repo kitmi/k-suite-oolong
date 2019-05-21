@@ -8,7 +8,7 @@ module.exports = {
 
     alias: [ 'bool' ],
 
-    sanitize: (value, info, i18n) => typeof value === 'boolean' ? value : validator.toBoolean(value, true),
+    sanitize: (value, info, i18n) => typeof value === 'string' ? validator.toBoolean(value, true) : !!value,
 
     defaultValue: false,
 

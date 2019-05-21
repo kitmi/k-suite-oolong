@@ -33,6 +33,16 @@ module.exports = {
 
             if (action) {
                 let featureInfo = entityModel.meta.features[featureName];
+
+                if (context.options.$features && context.options.$features.hasOwnProperty(featureName)) {
+                    let customFeatureInfo = context.options.$features[featureName];
+                    if (!customFeatureInfo) {                        
+                        continue;
+                    }
+                    
+                    featureInfo = { ...featureInfo, ...customFeatureInfo };
+                }   
+
                 let asExpected = await action(featureInfo, entityModel, context);
                 if (!asExpected) return false;
             }

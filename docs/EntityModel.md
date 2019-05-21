@@ -20,6 +20,7 @@ There are predefined context properties which can be accessed in an entity opera
 * i18n - I18n object.
 * connector - Existing connector for chained operation.
 * result - Operation result
+* return - Data to return
 * entities - Access other entity models in the same schema
 * schemas - Access other schema models in the same application
 * state - Current request state
@@ -27,20 +28,25 @@ There are predefined context properties which can be accessed in an entity opera
 ## operation options
 
 * connector - Transaction connector.
+* $query
+* $custom
+* $variables
+* $features
 
 ## operation sequence
 
 1. prepare query & context
-2. wrap in transaction-safe closure
-3. pre-process data
-4. features before hooks
-5. sub-class before hooks
-6. execute the operation
-7. driver-specific post-process
-8. store query key 
-9. features after hooks
-10. end transaction-safe closure
-11. sub-class after hooks
+2. sub-class before hooks
+3. wrap in transaction-safe closure
+4. pre-process data
+5. features before hooks
+6. driver-specific pre-process
+7. execute the operation
+8. driver-specific post-process
+9. store query key 
+10. features after hooks
+11. end transaction-safe closure
+12. sub-class after hooks
 
 ## semantic symbols
 

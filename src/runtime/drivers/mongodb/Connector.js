@@ -136,6 +136,17 @@ class MongodbConnector extends Connector {
     }
 
     /**
+     * Update multiple documents.
+     * @param {string} model 
+     * @param {*} data 
+     * @param {*} condition 
+     * @param {*} options 
+     */
+    async updateMany_(model, data, condition, options) { 
+        return this.onCollection_(model, (coll) => coll.updateMany(condition, { $set: data }, options));
+    }
+
+    /**
      * Replace an existing entity or create a new one.
      * @param {string} model 
      * @param {object} data 

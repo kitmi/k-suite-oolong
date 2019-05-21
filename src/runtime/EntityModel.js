@@ -164,7 +164,7 @@ class EntityModel {
         findOptions = this._prepareQueries(findOptions, true /* for single record */);
         
         let context = {             
-            findOptions,
+            options: findOptions,
             connOptions
         }; 
 
@@ -173,7 +173,7 @@ class EntityModel {
         return this._safeExecute_(async (context) => {            
             let records = await this.db.connector.find_(
                 this.meta.name, 
-                context.findOptions, 
+                context.options, 
                 context.connOptions
             );
             if (!records) throw new DsOperationError('connector.find_() returns undefined data record.');
@@ -214,7 +214,7 @@ class EntityModel {
         findOptions = this._prepareQueries(findOptions);
 
         let context = {             
-            findOptions,
+            options: findOptions,
             connOptions
         }; 
 
@@ -225,7 +225,7 @@ class EntityModel {
         let rows = await this._safeExecute_(async (context) => {             
             let records = await this.db.connector.find_(
                 this.meta.name, 
-                context.findOptions, 
+                context.options, 
                 context.connOptions
             );
 
@@ -294,8 +294,8 @@ class EntityModel {
             needCreateAssocs = true;
         }
 
-        if (this.meta.name === 'party') {
-            let a = 1;
+        if (!(await this.beforeCreate_(context))) {
+            return context.return;
         }
 
         let success = await this._safeExecute_(async (context) => { 
@@ -309,15 +309,19 @@ class EntityModel {
                 return false;
             }
             
-            if (!(await this.beforeCreate_(context))) {
+            if (!(await this._internalBeforeCreate_(context))) {
                 return false;
             }
+
+            context.latest = Object.freeze(context.latest);
 
             context.result = await this.db.connector.create_(
                 this.meta.name, 
                 context.latest, 
                 context.connOptions
             );
+
+            context.return = context.latest;
 
             await this._internalAfterCreate_(context);
 
@@ -338,7 +342,7 @@ class EntityModel {
             await this.afterCreate_(context);            
         }
 
-        return context.latest;
+        return context.return;
     }
 
     /**
@@ -352,10 +356,10 @@ class EntityModel {
      * @returns {object}
      */
     static async updateOne_(data, updateOptions, connOptions) {
-        if (updateOptions && updateOptions.$byPassReadOnly) {
+        if (updateOptions && updateOptions.$bypassReadOnly) {
             throw new OolongUsageError('Unexpected usage.', { 
                 entity: this.meta.name, 
-                reason: '$byPassReadOnly option is not allow to be set from public update_ method.',
+                reason: '$bypassReadOnly option is not allow to be set from public update_ method.',
                 updateOptions
             });     
         }
@@ -370,10 +374,10 @@ class EntityModel {
      * @param {*} connOptions 
      */
     static async updateMany_(data, updateOptions, connOptions) {
-        if (updateOptions && updateOptions.$byPassReadOnly) {
+        if (updateOptions && updateOptions.$bypassReadOnly) {
             throw new OolongUsageError('Unexpected usage.', { 
                 entity: this.meta.name, 
-                reason: '$byPassReadOnly option is not allow to be set from public update_ method.',
+                reason: '$bypassReadOnly option is not allow to be set from public update_ method.',
                 updateOptions
             });     
         }
@@ -398,6 +402,18 @@ class EntityModel {
             options: updateOptions,
             connOptions
         };
+
+        let toUpdate;
+
+        if (forSingleRecord) {
+            toUpdate = await this.beforeUpdate_(context);
+        } else {
+            toUpdate = await this.beforeUpdateMany_(context);
+        }
+
+        if (!toUpdate) {
+            return context.return;
+        }
         
         let success = await this._safeExecute_(async (context) => {
             await this._prepareEntityData_(context, true /* is updating */);          
@@ -405,18 +421,18 @@ class EntityModel {
             if (!(await Features.applyRules_(Rules.RULE_BEFORE_UPDATE, this, context))) {
                 return false;
             }
-            
-            let toUpdate;
 
             if (forSingleRecord) {
-                toUpdate = await this.beforeUpdate_(context);
+                toUpdate = await this._internalBeforeUpdate_(context);
             } else {
-                toUpdate = await this.beforeUpdateMany_(context);
+                toUpdate = await this._internalBeforeUpdateMany_(context);
             }
 
             if (!toUpdate) {
                 return false;
             }
+
+            context.latest = Object.freeze(context.latest);
 
             context.result = await this.db.connector.update_(
                 this.meta.name, 
@@ -425,6 +441,8 @@ class EntityModel {
                 context.options,
                 context.connOptions
             );  
+
+            context.return = context.latest;
 
             if (forSingleRecord) {
                 await this._internalAfterUpdate_(context);
@@ -449,7 +467,7 @@ class EntityModel {
             }          
         }
 
-        return context.latest;
+        return context.return;
     }
 
     /**
@@ -529,18 +547,28 @@ class EntityModel {
             options: deleteOptions,
             connOptions
         };
+
+        let toDelete;
+
+        if (forSingleRecord) {
+            toDelete = await this.beforeDelete_(context);
+        } else {
+            toDelete = await this.beforeDeleteMany_(context);
+        }
+
+        if (!toDelete) {
+            return context.return;
+        }
         
         let success = await this._safeExecute_(async (context) => {
             if (!(await Features.applyRules_(Rules.RULE_BEFORE_DELETE, this, context))) {
                 return false;
             }        
 
-            let toDelete;
-
             if (forSingleRecord) {
-                toDelete = await this.beforeDelete_(context);
+                toDelete = await this._internalBeforeDelete_(context);
             } else {
-                toDelete = await this.beforeDeleteMany_(context);
+                toDelete = await this._internalBeforeDeleteMany_(context);
             }
 
             if (!toDelete) {
@@ -560,7 +588,11 @@ class EntityModel {
             }
 
             if (!context.queryKey) {
-                context.queryKey = this.getUniqueKeyValuePairsFrom(context.options.$query);
+                if (forSingleRecord) {
+                    context.queryKey = this.getUniqueKeyValuePairsFrom(context.options.$query);
+                } else {
+                    context.queryKey = context.options.$query;
+                }
             }
 
             await Features.applyRules_(Rules.RULE_AFTER_DELETE, this, context);
@@ -576,7 +608,7 @@ class EntityModel {
             }    
         }
 
-        return context.existing;
+        return context.return;
     }
 
     /**
@@ -650,7 +682,7 @@ class EntityModel {
             if (fieldName in raw) {
                 //field value given in raw data
                 if (fieldInfo.readOnly) {
-                    if (!isUpdating || !opOptions.$byPassReadOnly.has(fieldName)) {
+                    if (!isUpdating || !opOptions.$bypassReadOnly.has(fieldName)) {
                         //read only, not allow to set by input value
                         throw new DataValidationError(`Read-only field "${fieldName}" is not allowed to be set by manual input.`, {
                             entity: name,                        
@@ -874,7 +906,7 @@ class EntityModel {
 
         normalizedOptions.$query = { ...query, ...normalizedOptions.$query };
 
-        if (forSingleRecord && !options.$byPassEnsureUnique) {            
+        if (forSingleRecord && !options.$bypassEnsureUnique) {            
             this._ensureContainsUniqueKey(normalizedOptions.$query);
         }        
 
@@ -980,11 +1012,11 @@ class EntityModel {
      * @param {*} records 
      */
     static async afterFindAll_(context, records) {
-        if (context.findOptions.$toDictionary) {
+        if (context.options.$toDictionary) {
             let keyField = this.meta.keyField;
             
-            if (typeof context.findOptions.$toDictionary === 'string') { 
-                keyField = context.findOptions.$toDictionary; 
+            if (typeof context.options.$toDictionary === 'string') { 
+                keyField = context.options.$toDictionary; 
 
                 if (!(keyField in this.meta.fields)) {
                     throw new OolongUsageError(`The key field "${keyField}" provided to index the cached dictionary is not a field of entity "${this.meta.name}".`);

@@ -127,6 +127,10 @@ class MySQLEntityModel extends EntityModel {
             return this.create_(context.raw, { $retrieveCreated: context.options.$retrieveUpdated }, context.connOptions);
         }       
     }
+
+    static _internalBeforeCreate_(context) {
+        return true;
+    }
     
     /**
      * Post create processing.
@@ -135,16 +139,31 @@ class MySQLEntityModel extends EntityModel {
      * @property {bool} [options.$retrieveCreated] - Retrieve the newly created record from db. 
      */
     static async _internalAfterCreate_(context) {
-        if (this.hasAutoIncrement) {
-            let { insertId } = context.result;
-            context.latest[this.meta.features.autoId.field] = insertId;
-        }
+        if (context.options.$retrieveCreated) {            
+            if (this.hasAutoIncrement) {
+                let { insertId } = context.result;
+                context.queryKey = { [this.meta.features.autoId.field]: insertId };
+            } else {
+                context.queryKey = this.getUniqueKeyValuePairsFrom(context.latest);
+            }
 
-        if (context.options.$retrieveCreated) {
-            let condition = this.getUniqueKeyValuePairsFrom(context.latest);
             let retrieveOptions = _.isPlainObject(context.options.$retrieveCreated) ? context.options.$retrieveCreated : {};
-            context.latest = await this.findOne_({ ...retrieveOptions, $query: condition }, context.connOptions);            
+            context.return = await this.findOne_({ ...retrieveOptions, $query: context.queryKey }, context.connOptions);            
+        } else {
+            if (this.hasAutoIncrement) {
+                let { insertId } = context.result;
+                context.queryKey = { [this.meta.features.autoId.field]: insertId };
+                context.return = { ...context.return, ...context.queryKey };
+            }
         }
+    }
+
+    static _internalBeforeUpdate_(context) {
+        return true;
+    }
+
+    static _internalBeforeUpdateMany_(context) {
+        return true;
     }
 
     /**
@@ -156,8 +175,8 @@ class MySQLEntityModel extends EntityModel {
     static async _internalAfterUpdate_(context) {
         if (context.options.$retrieveUpdated) {    
             let condition = { $query: context.options.$query };
-            if (context.options.$byPassEnsureUnique) {
-                condition.$byPassEnsureUnique = context.options.$byPassEnsureUnique;
+            if (context.options.$bypassEnsureUnique) {
+                condition.$bypassEnsureUnique = context.options.$bypassEnsureUnique;
             }
 
             let retrieveOptions = {};
@@ -168,7 +187,8 @@ class MySQLEntityModel extends EntityModel {
                 retrieveOptions.$relationships = context.options.$relationships;
             }
             
-            context.latest = await this.findOne_({ ...retrieveOptions, ...condition }, context.connOptions);
+            context.return = await this.findOne_({ ...retrieveOptions, ...condition }, context.connOptions);
+            context.queryKey = this.getUniqueKeyValuePairsFrom(context.return);
         }
     }
 
@@ -188,22 +208,10 @@ class MySQLEntityModel extends EntityModel {
                 retrieveOptions.$relationships = context.options.$relationships;
             }
             
-            context.latest = await this.findAll_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);
+            context.return = await this.findAll_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);            
         }
-    }
 
-    /**
-     * Post delete processing.
-     * @param {*} context 
-     */
-    static async _internalAfterDelete_(context) {
-    }
-
-    /**
-     * Post delete processing.
-     * @param {*} context 
-     */
-    static async _internalAfterDeleteMany_(context) {
+        context.queryKey = context.options.$query;
     }
 
     /**
@@ -212,7 +220,7 @@ class MySQLEntityModel extends EntityModel {
      * @property {object} [context.options] - Delete options     
      * @property {bool} [options.$retrieveDeleted] - Retrieve the recently deleted record from db. 
      */
-    static async beforeDelete_(context) {
+    static async _internalBeforeDelete_(context) {
         if (context.options.$retrieveDeleted) {            
             await this.ensureTransaction_(context); 
 
@@ -220,13 +228,13 @@ class MySQLEntityModel extends EntityModel {
                 context.options.$retrieveDeleted :
                 {};
             
-            context.existing = await this.findOne_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);
+            context.return = context.existing = await this.findOne_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);
         }
 
         return true;
     }
 
-    static async beforeDeleteMany_(context) {
+    static async _internalBeforeDeleteMany_(context) {
         if (context.options.$retrieveDeleted) {            
             await this.ensureTransaction_(context); 
 
@@ -234,10 +242,24 @@ class MySQLEntityModel extends EntityModel {
                 context.options.$retrieveDeleted :
                 {};
             
-            context.existing = await this.findAll_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);
+            context.return = context.existing = await this.findAll_({ ...retrieveOptions, $query: context.options.$query }, context.connOptions);
         }
 
         return true;
+    }
+
+    /**
+     * Post delete processing.
+     * @param {*} context 
+     */
+    static _internalAfterDelete_(context) {
+    }
+
+    /**
+     * Post delete processing.
+     * @param {*} context 
+     */
+    static _internalAfterDeleteMany_(context) {
     }
 
     /**
@@ -510,7 +532,7 @@ class MySQLEntityModel extends EntityModel {
 
     static async _createAssocs_(context, assocs) {
         let meta = this.meta.associations;
-        let keyValue = context.latest[this.meta.keyField];
+        let keyValue = context.return[this.meta.keyField];
 
         if (_.isNil(keyValue)) {
             throw new OolongUsageError('Missing required primary key field value. Entity: ' + this.meta.name);

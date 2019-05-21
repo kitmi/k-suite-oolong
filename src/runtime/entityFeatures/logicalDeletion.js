@@ -11,14 +11,14 @@ const Generators = require('../Generators');
 
 module.exports = {
     [Rules.RULE_BEFORE_FIND]: (feature, entityModel, context) => {
-        let findOptions = context.findOptions;
+        let findOptions = context.options;
         if (!findOptions.$includeDeleted) {
             findOptions.$query = mergeCondition(findOptions.$query, { [feature.field]: { $ne: feature.value } });
         }
 
         return true;
     },
-    [Rules.RULE_BEFORE_DELETE]: (feature, entityModel, context) => {
+    [Rules.RULE_BEFORE_DELETE]: async (feature, entityModel, context) => {
         let options = context.options;
         if (!options.$physicalDeletion) {
             let { field, value, timestampField } = feature;
@@ -30,10 +30,10 @@ module.exports = {
                 updateTo[timestampField] = Generators.default(entityModel.meta.fields[timestampField], context.i18n);
             }
 
-            context.latest = entityModel._update_(updateTo, { 
+            context.return = await entityModel._update_(updateTo, { 
                 $query: options.$query, 
                 $retrieveUpdated: options.$retrieveDeleted,
-                $byPassReadOnly: new Set([field, timestampField])
+                $bypassReadOnly: new Set([field, timestampField])
             });
 
             return false;

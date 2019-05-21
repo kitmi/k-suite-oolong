@@ -25,7 +25,9 @@ async function createLogEntry_(entityModel, feature, context, operation) {
     };
 
     if (operation !== 'delete') {
-        logEntry.data = context.raw;
+        logEntry.data = context.latest;
+    } else {
+        logEntry.data = context.existing;
     }
 
     if (feature.withUser) {

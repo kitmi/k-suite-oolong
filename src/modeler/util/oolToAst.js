@@ -319,7 +319,7 @@ function compileModifier(topoId, value, functor, compileContext) {
     }        
     
     if (functor.oolType === OolTypes.Modifier.ACTIVATOR) {            
-        compileContext.astMap[topoId] = JsLang.astCall(functorId, callArgs);
+        compileContext.astMap[topoId] = JsLang.astAwait(functorId, [ JsLang.astVarRef('this'), JsLang.astVarRef('context') ].concat(callArgs));
     } else {
         let arg0 = value;
         if (!isTopLevelBlock(topoId) && _.isPlainObject(value) && value.oolType === 'ObjectReference' && value.name.startsWith('latest.')) {
