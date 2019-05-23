@@ -403,7 +403,7 @@ class MySQLModeler {
                         }           
                         
                         let connectedByParts2 = backRef.by.split('.');
-                        let connectedByField2 = (connectedByParts2.length > 1 && connectedByParts2[1]) || destEntity.name;
+                        let connectedByField2 = (connectedByParts2.length > 1 && connectedByParts2[1]) || destEntityNameAsFieldName;
 
                         if (connectedByField === connectedByField2) {
                             throw new Error('Cannot use the same "by" field in a relation entity.');
@@ -412,7 +412,7 @@ class MySQLModeler {
                         let connEntity = schema.ensureGetEntity(entity.oolModule, connEntityName, pendingEntities);
                         if (!connEntity) {                        
                             //create a
-                            connEntity = this._addRelationEntity(schema, connEntityName, connectedByField, connectedByField2);
+                            connEntity = this._addRelationEntity(schema, connEntityName, entity.name, destEntityName, connectedByField, connectedByField2);
                             pendingEntities.push(connEntity.name);
                             this.logger.log('debug', `New entity "${connEntity.name}" added by association.`);
                         }
@@ -515,8 +515,13 @@ class MySQLModeler {
 
                     let connEntity = schema.ensureGetEntity(entity.oolModule, connEntityName, pendingEntities);
                     if (!connEntity) {                        
-                        throw new Error(`Relation entity "${connEntityName}" not found in schema.`);
+                        //create a
+                        connEntity = this._addRelationEntity(schema, connEntityName, entity.name, destEntityName, connectedByField, destEntityNameAsFieldName);
+                        pendingEntities.push(connEntity.name);
+                        this.logger.log('debug', `New entity "${connEntity.name}" added by association.`);
                     }
+
+                    this._updateRelationEntity(connEntity, entity, destEntity, entity.name, destEntityName, connectedByField, destEntityNameAsFieldName);
                     
                     //todo: get back ref from connection entity
                     let connBackRef1 = connEntity.getReferenceTo(entity.name, { type: 'refersTo', srcField: (f) => _.isNil(f) || f == connectedByField });
@@ -540,9 +545,7 @@ class MySQLModeler {
                             srcField: assoc.srcField,
                             by: connectedByField
                         }));
-                    }                     
-                        
-                    this._updateRelationEntity(connEntity, entity, destEntity, entity.name, destEntityName, connectedByField, connectedByField2);
+                    }          
 
                     let localFieldName = assoc.srcField || pluralize(destEntityNameAsFieldName);
 
@@ -832,13 +835,25 @@ class MySQLModeler {
         this.logger.log('info', 'Generated db script: ' + filePath);
     }
 
-    _addRelationEntity(schema, relationEntityName, entity1RefField, entity2RefField) {
+    _addRelationEntity(schema, relationEntityName, entity1Name/* for cross db */, entity2Name/* for cross db */, entity1RefField, entity2RefField) {
         let entityInfo = {
             features: [ 'autoId', 'createTimestamp' ],
             indexes: [
                 {
                     "fields": [ entity1RefField, entity2RefField ],
                     "unique": true
+                }
+            ],
+            associations: [
+                {
+                    "type": "refersTo",
+                    "destEntity": entity1Name,
+                    "srcField": entity1RefField
+                },
+                {
+                    "type": "refersTo",
+                    "destEntity": entity2Name,
+                    "srcField": entity2RefField
                 }
             ]
         };

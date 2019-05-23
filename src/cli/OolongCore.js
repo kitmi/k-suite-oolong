@@ -5,6 +5,7 @@ const path = require('path');
 const Commands = require('./commands');
 const OolongApi = require('../lang/api');
 const { makeDataSourceName, SupportedDrivers } = require('../utils/lang');
+const { ServiceContainer } = require('@k-suite/app');
 
 /**
  * Oolong command line helper core class.
@@ -34,8 +35,7 @@ class OolongCore {
                 injects.afterCommandLine = () => `Command "${this.command}": ` + Commands.commands[this.command] +'\n\n';
             } else {
                 injects.afterCommandLine = () => 'Available commands:\n' + _.reduce(Commands.commands, (result, desc, cmd) => result + `  ${cmd}: ${desc}\n`, '') + '\n'
-            }
-            
+            }            
 
             console.log(commandLineOptions.getUsage(this.app, this.usageOptions, injects));
         }
@@ -68,6 +68,7 @@ class OolongCore {
                 await this.inquire_();
             } else {
                 this._fillCommandDefaults(commandOptions);
+                await this.startContainer();
             }
 
             if (!this._validateArgv()) {
@@ -140,16 +141,65 @@ class OolongCore {
 
                     await doInquire(q);
 
-                    if (opts.afterInquire && typeof opts.afterInquire) {
+                    if (opts.afterInquire) {
                         await opts.afterInquire();
                     }
 
                     console.log();
                 }
-            } else if (name in this.argv && 'nonInquireFilter' in opts) {
+            } else if (name in this.argv && opts.nonInquireFilter) {
                 this.argv[name] = await opts.nonInquireFilter(this.argv[name]);
             } 
+
+            if (name in this.argv && opts.onReady) {
+                await opts.onReady(this.argv[name]);
+            }
         });
+    }
+
+    async startContainer() {
+        let configFile = this.option('config');
+        
+        let configFullPath = this.app.toAbsolutePath(configFile);
+
+        if (!(await fs.exists(configFullPath))) {
+            throw new Error(`Config "${configFile}" not found!`);
+        }
+
+        let extName = path.extname(configFullPath);
+        if (extName !== '.json') {
+            throw new Error('Only supports JSON config.');
+        }
+
+        let configName = path.basename(configFullPath, extName);
+        let configPath = path.dirname(configFullPath);
+        let envAware = false;
+
+        if (configName.endsWith('.default')) {
+            envAware = true;
+            configName = configName.substr(0, configName.length - 8);
+        }
+
+        this.container = new ServiceContainer('OolongContainer', {
+            workingPath: this.app.workingPath,
+            configPath,
+            configName,
+            disableEnvAwareConfig: !envAware,
+            allowedFeatures: [
+                'bootstrap',
+                'configByHostname',                    
+                'devConfigByGitUser',                
+                'loggers',
+                'mailer',                
+                'settings',
+                'timezone',
+                'version'
+            ]
+        });
+
+        this.container.logger = this.app.logger;
+
+        return this.container.start_();
     }
 
     /**
@@ -198,12 +248,7 @@ class OolongCore {
     }
 
     get oolongConfig() {
-        if (this._oolongConfig) return this._oolongConfig;
-
-        let configFile = this.option('config');
-        assert: configFile, 'Oolong config file is required.';
-
-        return (this._oolongConfig = fs.readJsonSync(this.app.toAbsolutePath(configFile)));
+        return this.container.config;
     }
 
     get schemaDeployment() {

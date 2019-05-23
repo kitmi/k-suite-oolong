@@ -19,25 +19,20 @@ exports.commands = {
 exports.options = (core) => {
     let cmdOptions = {};
 
+    cmdOptions['c'] = {
+        desc: "Oolong config file",
+        alias: [ "conf", "config" ],                
+        inquire: true,
+        promptMessage: 'Please input the config file path:',
+        promptDefault: "conf/oolong.json",
+        onReady: async () => core.startContainer()
+    };  
+
     switch (core.command) {
         case 'build':
-            cmdOptions['c'] = {
-                desc: "Oolong config file",
-                alias: [ "conf", "config" ],                
-                inquire: true,
-                promptMessage: 'Please input the config file path:',
-                promptDefault: "conf/oolong.json"
-            };  
             break;
 
         case 'migrate':
-            cmdOptions['c'] = {
-                desc: "Oolong config file",
-                alias: [ "conf", "config" ],                
-                inquire: true,
-                promptMessage: 'Please input the config file path:',
-                promptDefault: "conf/oolong.json"
-            };  
             cmdOptions['r'] = {
                 desc: 'Reset all data if the database exists',
                 promptMessage: 'Reset existing database?',
@@ -49,14 +44,7 @@ exports.options = (core) => {
             };
             break;        
 
-        case 'dataset':            
-            cmdOptions['c'] = {
-                desc: "Oolong config file",
-                alias: [ "conf", "config" ],                
-                inquire: true,
-                promptMessage: 'Please input the config file path:',
-                promptDefault: "conf/oolong.json"
-            };  
+        case 'dataset': 
             cmdOptions['schema'] = {
                 desc: 'The schema to list',                
                 promptMessage: 'Please select a schema:',
@@ -68,13 +56,6 @@ exports.options = (core) => {
             break;
 
         case 'import':
-            cmdOptions['c'] = {
-                desc: "Oolong config file",
-                alias: [ "conf", "config" ],                
-                inquire: true,
-                promptMessage: 'Please input the config file path:',
-                promptDefault: "conf/oolong.json"
-            };  
             cmdOptions['schema'] = {
                 desc: 'The schema to list',                
                 promptMessage: 'Please select a schema:',
@@ -94,17 +75,6 @@ exports.options = (core) => {
             break;
 
         case 'reverse':        
-            let connectionStrings;
-
-            cmdOptions['c'] = {
-                desc: "Oolong config file",
-                alias: [ "conf", "config" ],                
-                inquire: true,
-                promptMessage: 'Please input the config file path:',
-                promptDefault: "conf/oolong.json",
-                afterInquire: () => { connectionStrings = core.getConnectionStrings(core.option('c')); }
-            };   
-
             cmdOptions['conn'] = {
                 desc: 'The data source connector',
                 alias: [ 'connector' ],
@@ -112,7 +82,7 @@ exports.options = (core) => {
                 inquire: true,
                 required: true,
                 promptType: 'list',
-                choicesProvider: () => Object.keys(connectionStrings),
+                choicesProvider: () => Object.keys(core.connectionStrings),
                 afterInquire: () => { console.log('The conenction string of selected connector:', connectionStrings[core.option('conn')]); }                
             };
             break;

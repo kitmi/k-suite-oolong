@@ -21,7 +21,7 @@
     const SUB_KEYWORDS = { 
         // level 1
         'schema': new Set(['entities', 'views']),
-        'entity': new Set([ 'extends', 'with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes', 'triggers', 'restful' ]),
+        'entity': new Set([ 'is', 'extends', 'with', 'has', 'associations', 'key', 'index', 'data', 'interface', 'mixes', 'triggers', 'restful' ]),
         'dataset': new Set(['is']),
     
         // level 2
