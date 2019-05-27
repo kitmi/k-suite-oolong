@@ -910,7 +910,7 @@ class EntityModel {
             this._ensureContainsUniqueKey(normalizedOptions.$query);
         }        
 
-        normalizedOptions.$query = this._translateValue(normalizedOptions.$query, normalizedOptions.$variables);
+        normalizedOptions.$query = this._translateValue(normalizedOptions.$query, normalizedOptions.$variables, null, true);
 
         if (normalizedOptions.$groupBy) {
             if (_.isPlainObject(normalizedOptions.$groupBy)) {
@@ -1060,7 +1060,7 @@ class EntityModel {
         throw new Error(NEED_OVERRIDE);
     }
 
-    static _translateValue(value, variables, skipSerialize) {
+    static _translateValue(value, variables, skipSerialize, arrayToInOperator) {
         if (_.isPlainObject(value)) {
             if (value.oorType) {
                 if (value.oorType === 'SessionVariable') {
@@ -1098,11 +1098,12 @@ class EntityModel {
                 throw new Error('Not impletemented yet. ' + value.oorType);
             }
 
-            return _.mapValues(value, (v) => this._translateValue(v, variables));
+            return _.mapValues(value, (v, k) => this._translateValue(v, variables, skipSerialize, arrayToInOperator && k[0] !== '$'));
         }
 
         if (Array.isArray(value)) {
-            return value.map(v => this._translateValue(v, variables));
+            let ret = value.map(v => this._translateValue(v, variables, skipSerialize, arrayToInOperator));
+            return arrayToInOperator ? { $in: ret } : ret;
         }
 
         if (skipSerialize) return value;

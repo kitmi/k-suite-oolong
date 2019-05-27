@@ -20,3 +20,7 @@ A connector is used to connect a data source, which can be but not limited to da
 
 * isolationLevel
 
+## query operators
+
+
+

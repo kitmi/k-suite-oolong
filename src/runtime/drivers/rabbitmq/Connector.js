@@ -45,10 +45,22 @@ class RabbitmqConnector extends Connector {
     async connect_() {
         if (!this.conn) {
             this.conn = await AmqpNode.connect(this.connectionString);
+            this.conn.on('close', () => {
+                delete this.ch;
+                delete this.conn;
+            });
+
+            this.conn.on('error', () => {
+                delete this.ch;
+                delete this.conn;
+            });
         }        
 
         if (!this.ch) {
             this.ch = await this.conn.createChannel();
+            this.ch.on('close', () => {
+                delete this.ch;
+            });
         }
 
         return this.ch;
@@ -59,7 +71,6 @@ class RabbitmqConnector extends Connector {
      * @param {Db} conn - MySQL connection.
      */
     async disconnect_(conn) {
-
     }
   
     async sendToQueue_(queueName, obj, options) {
@@ -67,7 +78,7 @@ class RabbitmqConnector extends Connector {
             obj = JSON.stringify(obj);
         }
 
-        let ch = await this.connect_();
+        let ch = await this.connect_();        
         await ch.assertQueue(queueName);
         return ch.sendToQueue(queueName, Buffer.from(obj), options);
     }   

@@ -176,7 +176,7 @@ class MySQLConnector extends Connector {
 
             if (this.options.usePreparedStatement || (options && options.usePreparedStatement)) {
                 if (this.options.logSQLStatement) {
-                    this.log('verbose', sql, params);
+                    this.log('verbose', conn.format(sql, params));
                 }
 
                 if (options && options.rowsAsArray) {
@@ -188,17 +188,15 @@ class MySQLConnector extends Connector {
                 return rows1;
             }
 
-            let formatedSQL = params ? conn.format(sql, params) : sql;
-
             if (this.options.logSQLStatement) {
-                this.log('verbose', formatedSQL);
+                this.log('verbose', conn.format(sql, params));
             }
 
             if (options && options.rowsAsArray) {
-                return await conn.query({ sql: formatedSQL, rowsAsArray: true });
+                return await conn.query({ sql, rowsAsArray: true }, params);
             }                
 
-            let [ rows2 ] = await conn.query(formatedSQL, params);                    
+            let [ rows2 ] = await conn.query(sql, params);                    
 
             return rows2;
         } catch (err) {      
