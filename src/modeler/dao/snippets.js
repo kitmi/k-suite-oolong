@@ -106,6 +106,51 @@ const _applyModifiersHeader = [
         }
     }];
 
+const _checkAndAssign = (astBlock, assignTo, comment) => {
+    return [
+        JsLang.astVarDeclare('activated', astBlock, false, false, comment),
+        {
+            "type": "IfStatement",
+            "test": {
+                "type": "BinaryExpression",
+                "operator": "!==",
+                "left": {
+                    "type": "UnaryExpression",
+                    "operator": "typeof",
+                    "argument": {
+                        "type": "Identifier",
+                        "name": "activated"
+                    },
+                    "prefix": true
+                },
+                "right": {
+                    "type": "Literal",
+                    "value": "undefined",
+                    "raw": "'undefined'"
+                }
+            },
+            "consequent": {
+                "type": "BlockStatement",
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "expression": {
+                            "type": "AssignmentExpression",
+                            "operator": "=",
+                            "left": assignTo,
+                            "right": {
+                                "type": "Identifier",
+                                "name": "activated"
+                            }
+                        }
+                    }
+                ]
+            },
+            "alternate": null
+        }
+    ];
+}   
+
 const _validateCheck = (fieldName, validatingCall) => { 
     let comment = `Validating "${fieldName}"`;
 
@@ -1679,6 +1724,7 @@ const restMethods = (serviceId, entityName, className) => ({
 });
 
 module.exports = {
+    _checkAndAssign,
     _applyModifiersHeader,
     _validateCheck,    
     _fieldRequirementCheck,

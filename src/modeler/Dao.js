@@ -480,7 +480,7 @@ class DaoModeler {
                 
                 _mergeDoValidateAndFillCode(targetFieldName, sourceMap.references, astCache, true);
             } else if (sourceMap.type === OolToAst.AST_BLK_ACTIVATOR_CALL) {
-                let astCache = JsLang.astAssign(JsLang.astVarRef(sourceMap.target, true), astBlock, `Activating "${targetFieldName}"`);
+                let astCache = Snippets._checkAndAssign(astBlock, JsLang.astVarRef(sourceMap.target, true), `Activating "${targetFieldName}"`);
                 
                 _mergeDoValidateAndFillCode(targetFieldName, sourceMap.references, astCache, false);
             } else {

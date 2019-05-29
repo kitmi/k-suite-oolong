@@ -34,7 +34,7 @@ module.exports = {
         }
         
         if (!context.latest.hasOwnProperty(localAssoc)) {
-            throw new OolongUsageError(`Referenced field "${localAssoc}" of entity "${model.meta.name}" not found in latest context.`);
+            return undefined;
         }
 
         let assocValue = context.latest[localAssoc];
