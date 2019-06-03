@@ -49,6 +49,7 @@ function feature(entity, args = []) {
 
                 case 'shortid':
                     typeInfo['type'] = 'text';
+                    typeInfo['maxLength'] = 20;
                     typeInfo['generator'] = 'shortid';
                 break;
 

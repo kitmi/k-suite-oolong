@@ -598,7 +598,7 @@ class MySQLModeler {
                     }
                 );
 
-                this._addReference(entity.name, localField, destEntityName, destKeyField.name);
+                this._addReference(entity.name, localField, destEntityName, destKeyField.name, assoc.type === 'belongsTo');
             break;
         }
     }
@@ -685,7 +685,7 @@ class MySQLModeler {
         return this._toColumnReference(refName);
     }
 
-    _addReference(left, leftField, right, rightField) {
+    _addReference(left, leftField, right, rightField, needCasade) {
         if (Array.isArray(leftField)) {
             leftField.forEach(lf => this._addReference(left, lf, right, rightField));
             return;
@@ -710,7 +710,7 @@ class MySQLModeler {
             if (found) return;
         }        
 
-        refs4LeftEntity.push({leftField, right, rightField});
+        refs4LeftEntity.push({leftField, right, rightField, cascadeChange: needCasade });
     }
 
     _getReferenceOfField(left, leftField) {
@@ -1127,7 +1127,7 @@ class MySQLModeler {
 
         sql += '';
 
-        if (this._relationEntities[entityName]) {
+        if (this._relationEntities[entityName] || relation.cascadeChange) {
             sql += 'ON DELETE CASCADE ON UPDATE CASCADE';
         } else {
             sql += 'ON DELETE NO ACTION ON UPDATE NO ACTION';
