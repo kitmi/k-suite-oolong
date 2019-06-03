@@ -47,6 +47,11 @@ function feature(entity, args = []) {
                     typeInfo['generator'] = 'uuid';
                 break;
 
+                case 'shortid':
+                    typeInfo['type'] = 'text';
+                    typeInfo['generator'] = 'shortid';
+                break;
+
                 case 'uniqid':
                     typeInfo['type'] = 'text';                    
 

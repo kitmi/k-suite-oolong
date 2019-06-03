@@ -67,9 +67,9 @@ class DaoModeler {
     modeling_(schema) {
         this.logger.log('info', 'Generating entity models for schema "' + schema.name + '"...');
 
-        this._generateSchemaModel(schema);
-        this._generateEnumTypes(schema);
+        this._generateSchemaModel(schema);        
         this._generateEntityModel(schema);
+        //this._generateEnumTypes(schema);
         //this._generateViewModel();
 
         if (this.manifestPath) {
@@ -100,7 +100,9 @@ class DaoModeler {
     _generateEnumTypes(schema) {
         _.forOwn(schema.entities, (entity, entityInstanceName) => {
             _.forOwn(entity.fields, (field, fieldName) => {
-                if (field.type === )
+                if (field.type === 'enum') {
+
+                }
             });
         });
     }
