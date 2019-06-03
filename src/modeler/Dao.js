@@ -68,6 +68,7 @@ class DaoModeler {
         this.logger.log('info', 'Generating entity models for schema "' + schema.name + '"...');
 
         this._generateSchemaModel(schema);
+        this._generateEnumTypes(schema);
         this._generateEntityModel(schema);
         //this._generateViewModel();
 
@@ -94,6 +95,14 @@ class DaoModeler {
         fs.writeFileSync(modelFilePath, classCode);
 
         this.logger.log('info', 'Generated database model: ' + modelFilePath);
+    }
+
+    _generateEnumTypes(schema) {
+        _.forOwn(schema.entities, (entity, entityInstanceName) => {
+            _.forOwn(entity.fields, (field, fieldName) => {
+                if (field.type === )
+            });
+        });
     }
 
     _generateEntityModel(schema) {

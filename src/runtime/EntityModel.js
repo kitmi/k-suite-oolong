@@ -672,7 +672,7 @@ class EntityModel {
         let opOptions = context.options;
 
         if (isUpdating && this._dependsOnExistingData(raw)) {
-            this.ensureRetrieveCreated(context);          
+            await this.ensureTransaction_(context);          
 
             existing = await this.findOne_({ $query: opOptions.$query }, context.connOptions);            
             context.existing = existing;                        

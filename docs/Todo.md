@@ -29,3 +29,5 @@
 ## add aggregator          
 
 ## multiple extension, extend with association (need to replace with the subclass name)
+
+## add feature to prepare raw data by select

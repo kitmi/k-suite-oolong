@@ -615,6 +615,11 @@ class MySQLConnector extends Connector {
                 if (value.oorType === 'ColumnReference') {
                     return this._wrapCondition(fieldName, this._escapeIdWithAlias(value.name, hasJoining, aliasMap), valuesSeq, hasJoining, aliasMap, true);
                 }
+
+                if (value.oorType === 'Function') {
+                    let funcCall = value.name + '(' + (col.args ? this._buildColumns(col.args, valuesSeq, hasJoining, aliasMap) : '') + ')';
+                    return this._wrapCondition(fieldName, funcCall, valuesSeq, hasJoining, aliasMap, true);
+                }
     
                 throw new Error('todo: add oorType support: ' + value.oorType);
             }            
@@ -784,7 +789,12 @@ class MySQLConnector extends Connector {
 
                                 valuesSeq.push(`%${v}%`);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
-    
+                                /*
+                            case '$apply':
+                                let args = value.args ? [ fieldName ].concat(value.args) : [ fieldName ];
+
+                                return value.name + '(' + this._buildColumns(col.args, valuesSeq, hasJoining, aliasMap) + ') = '
+                                    */
                             default:
                                 throw new Error(`Unsupported condition operator: "${k}"!`);
                         }
