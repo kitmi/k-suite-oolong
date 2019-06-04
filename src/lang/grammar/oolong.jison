@@ -327,12 +327,19 @@
             return str.substr(quotes, str.length-quotes*2);
         }
 
+        isQuote(str) {
+            return (str.startsWith('"') && str.endsWith('"')) ||
+                (str.startsWith("'") && str.endsWith("'"));
+        }
+
         normalizeSymbol(ref) {
             return { oorType: 'SymbolToken', name: ref.substr(2) };
         }                
         
         normalizeReference(ref) {
-            return { oolType: 'ObjectReference', name: ref.substr(1) };
+            let name = ref.substr(1);
+
+            return { oolType: 'ObjectReference', name: this.isQuote(name) ? this.unquoteString(name, 1) : name };
         }
 
         normalizeConstReference(ref) {
