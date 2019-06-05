@@ -339,7 +339,14 @@
         normalizeReference(ref) {
             let name = ref.substr(1);
 
-            return { oolType: 'ObjectReference', name: this.isQuote(name) ? this.unquoteString(name, 1) : name };
+            return { 
+                oolType: 'ObjectReference', 
+                name: this.isQuote(name) ? this.unquoteString(name, 1) : name 
+            };
+        }
+
+        normalizeOptionalReference(ref) {            
+            return { ...ref, optional: true };
         }
 
         normalizeConstReference(ref) {
@@ -1843,6 +1850,7 @@ gfc_param_list0
 gfc_param0
     : nfc_param
     | REFERENCE
+    | REFERENCE "?" -> this.normalizeOptionalReference($1)
     | general_function_call
     ;    
 

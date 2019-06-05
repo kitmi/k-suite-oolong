@@ -368,6 +368,11 @@ function extractReferencedFields(oolArgs) {
     let refs = [];
 
     oolArgs.forEach(a => {
+        if (Array.isArray(a)) {
+            refs = refs.concat(extractReferencedFields(a));
+            return;
+        } 
+
         let result = checkReferenceToField(a);
         if (result) {
             refs.push(result);

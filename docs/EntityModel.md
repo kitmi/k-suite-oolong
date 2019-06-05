@@ -95,5 +95,12 @@ There are predefined context properties which can be accessed in an entity opera
     * SessionVariable
     * QueryVariable
 
+## fieldDependency
+
+* fieldName: ifAnyExist: [ a1, a2, ... ] - If any of a1, a2, ... exists, all become dependency
+* fieldName: 
+* dependsOnExisting: [ a1, a2 ] - 
+
+
 
 

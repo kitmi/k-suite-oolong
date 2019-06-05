@@ -1,6 +1,7 @@
 "use strict";
 
 const Types = require('../types');
+const G = require('../Generators');
 
 function auto(info, i18n) {
     pre: {
