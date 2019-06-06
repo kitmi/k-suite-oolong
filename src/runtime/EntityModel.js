@@ -13,6 +13,22 @@ const { isNothing } = require('../utils/lang');
 
 const NEED_OVERRIDE = 'Should be overrided by driver-specific subclass.';
 
+function minifyAssocs(assocs) {
+    let sorted = _.uniq(assocs).sort().reverse();
+
+    let minified = _.take(sorted, 1), l = sorted.length - 1;
+
+    for (let i = 1; i < l; i++) {
+        let k = sorted[i] + '.';
+
+        if (!_.find(minified, a => a.startsWith(k))) {
+            minified.push(sorted[i]);
+        }
+    }
+
+    return minified;
+}
+
 /**
  * Base entity model class.
  * @class
@@ -118,28 +134,30 @@ class EntityModel {
     /**
      * Get a pk-indexed hashtable with all undeleted data
      */
-    static async cached_(key, connOptions) {
+    static async cached_(key, associations, connOptions) {
         if (key) {
+            let combinedKey = key;
+
+            if (!_.isEmpty(associations)) {
+                combinedKey += '/' + minifyAssocs(associations).join('&')
+            }
+
             let cachedData;
 
-            if (!this._cachedDataAltKey) {
-                this._cachedDataAltKey = {};
-            } else if (this._cachedDataAltKey[key]) {
-                cachedData = this._cachedDataAltKey[key];
+            if (!this._cachedData) {
+                this._cachedData = {};
+            } else if (this._cachedData[combinedKey]) {
+                cachedData = this._cachedData[combinedKey];
             }
 
             if (!cachedData) {
-                cachedData = this._cachedDataAltKey[key] = await this.findAll_({ $toDictionary: key }, connOptions);
+                cachedData = this._cachedData[combinedKey] = await this.findAll_({ $association: associations, $toDictionary: key }, connOptions);
             }
     
             return cachedData;
-        }
+        } 
 
-        if (!this._cachedData) {
-            this._cachedData = await this.findAll_({ $toDictionary: true }, connOptions);
-        }
-
-        return this._cachedData;
+        return this.cached_(this.meta.keyField, associations, connOptions);
     }
     
     /**

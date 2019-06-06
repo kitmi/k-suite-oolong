@@ -97,8 +97,15 @@ There are predefined context properties which can be accessed in an entity opera
 
 ## fieldDependency
 
-* fieldName: ifAnyExist: [ a1, a2, ... ] - If any of a1, a2, ... exists, all become dependency
+* fieldName: ifAnyExist: [ a1, a2, ... ] - If any of a1, a2, ... exists, all become dependency (need existing values)
+    
+    For activator that references to other fields
+    When creating
+
 * fieldName: 
+
+    For processor that references to other fields and 
+
 * dependsOnExisting: [ a1, a2 ] - 
 
 

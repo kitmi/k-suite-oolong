@@ -20,7 +20,7 @@ module.exports = {
 
     multiply: (model, context, multiplier, multiplicand) => multiplier*multiplicand,
 
-    populate: async (model, context, assoc) => {
+    populate: async (model, context, assoc, options) => {
         let parts = assoc.split('.');
         assert: parts.length > 1;
 
@@ -51,17 +51,23 @@ module.exports = {
             throw new OolongUsageError(`"${localAssoc}" entity "${model.meta.name}" is a list-style association which is not supported by the built-in populate Activators.`);
         }
 
+        //local cache in context, shared by other fields if any 
         let remoteEntity = context.populated && context.populated[remoteAssoc];
         if (!remoteEntity) {
-            let findOptions = { $query: { [assocMeta.key]: assocValue } };
+            if (options && options.useCache) {
+                remoteEntity = await model.db.model(assocMeta.entity).cached_(assocMeta.key, interAssoc ? [ interAssoc ] : null, context.connOptions)[assocValue];
+            } else {
+                let findOptions = { $query: { [assocMeta.key]: assocValue } };
 
-            if (interAssoc) {
-                findOptions.$associations = [ interAssoc ];
+                if (interAssoc) {
+                    findOptions.$associations = [ interAssoc ];
+                }
+
+                await model.ensureTransaction_(context);
+
+                remoteEntity = await model.db.model(assocMeta.entity).findOne_(findOptions, context.connOptions);
             }
 
-            await model.ensureTransaction_(context);
-
-            remoteEntity = await model.db.model(assocMeta.entity).findOne_(findOptions, context.connOptions);
             context.populated || (context.populated = {});
             context.populated[localAssoc] = remoteEntity;
 
