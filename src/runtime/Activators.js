@@ -55,8 +55,7 @@ module.exports = {
         let remoteEntity = context.populated && context.populated[remoteAssoc];
         if (!remoteEntity) {
             if (options && options.useCache) {
-                remoteEntity = (await model.db.model(assocMeta.entity).cached_(assocMeta.key, interAssoc ? [ interAssoc ] : null, context.connOptions))[assocValue];
-                console.log(remoteEntity);
+                remoteEntity = (await model.db.model(assocMeta.entity).cached_(assocMeta.key, interAssoc ? [ interAssoc ] : null, context.connOptions))[assocValue];                
             } else {
                 let findOptions = { $query: { [assocMeta.key]: assocValue } };
 

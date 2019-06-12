@@ -7,7 +7,7 @@ const path = require('path');
 const FIXTURES_FOLDER = path.resolve(__dirname, 'fixtures');
 let fixtures = fs.readdirSync(FIXTURES_FOLDER);
 
-describe('unit:grammar:oolong', function () {
+describe.skip('unit:grammar:oolong', function () {
     describe('test with fixtures', function () {
         fixtures.forEach(fixture => {
             if (fixture.startsWith('.')) return;

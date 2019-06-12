@@ -6,7 +6,7 @@ const winston = require('winston');
 const WORKING_FOLDER = path.resolve(__dirname, 'view');
 const OOLONG_CLI = 'node ../../lib/cli/oolong.js';
 
-describe('e2e:view', function () {
+describe.skip('e2e:view', function () {
     let logger = winston.createLogger({
         "level": "debug",
         "transports": [

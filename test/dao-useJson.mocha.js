@@ -6,7 +6,7 @@ const winston = require('winston');
 const WORKING_FOLDER = path.resolve(__dirname, 'dao');
 const OOLONG_CLI = 'node ../../lib/cli/oolong.js';
 
-describe('e2e:oolong:dao:useJson', function () {
+describe.skip('e2e:oolong:dao:useJson', function () {
     let logger = winston.createLogger({
         "level": "debug",
         "transports": [

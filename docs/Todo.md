@@ -21,13 +21,14 @@
 ## triggers for insert and update
 
 ## query operators
-
-
-
   
-
 ## add aggregator          
 
 ## multiple extension, extend with association (need to replace with the subclass name)
 
 ## add feature to prepare raw data by select
+
+## Data Context
+
+Entity Model is used to operate against the whole collection
+Data Context is used to operate against a record of the core data entity

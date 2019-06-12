@@ -34,7 +34,7 @@ describe('unit:lang:OolCodeGen', function () {
     });
 
     it('Linking from generated', function () {
-        let linker = new Linker({ logger, dslSourcePath: SOURCE_PATH });
+        let linker = new Linker({ logger, dslSourcePath: SOURCE_PATH, schemaDeployment: {  } });
         linker.link('test.ool');
 
         linker.schemas.should.have.keys('test');

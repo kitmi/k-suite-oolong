@@ -254,8 +254,12 @@ class MySQLConnector extends Connector {
             sql += ' A ' + joinings.join(' ');
         }
 
-        params.push(data);
-        sql += ' SET ?';
+        if (queryOptions.$requireSplitColumns) {
+            sql += ' SET ' + this._splitColumnsAsInput(data, params, hasJoining, aliasMap).join(',');
+        } else {
+            params.push(data);
+            sql += ' SET ?';
+        }        
 
         if (query) {
             let whereClause = this._joinCondition(query, params, null, hasJoining, aliasMap);   
@@ -594,6 +598,45 @@ class MySQLConnector extends Connector {
         return fieldName === '*' ? fieldName : mysql.escapeId(fieldName);
     }
 
+    _splitColumnsAsInput(data, params, hasJoining, aliasMap) {
+        return _.map(data, (v, fieldName) => {
+            assert: fieldName.indexOf('.') === -1, 'Column of direct input data cannot be a dot-separated name.';
+            
+            return mysql.escapeId(fieldName) + '=' + this._packValue(v, params, hasJoining, aliasMap);
+        });
+    }
+
+    _packArray(array, params, hasJoining, aliasMap) {
+        return array.map(value => this._packValue(value, params, hasJoining, aliasMap)).join(',');
+    }
+
+    _packValue(value, params, hasJoining, aliasMap) {
+        if (_.isPlainObject(value)) {
+            if (value.oorType) {
+                switch (value.oorType) {
+                    case 'ColumnReference':
+                        return this._escapeIdWithAlias(value.name, hasJoining, aliasMap);
+
+                    case 'Function':
+                        return value.name + '(' + (value.args ? this._packArray(value.args, params, hasJoining, aliasMap) : '') + ')';
+
+                    case 'BinaryExpression':
+                        let left = this._packValue(value.left, params, hasJoining, aliasMap);
+                        let right = this._packValue(value.right, params, hasJoining, aliasMap);
+                        return left + ` ${value.op} ` + right;
+
+                    default:
+                        throw new Error(`Unknown oor type: ${value.oorType}`);
+                }
+            }
+
+            value = JSON.stringify(value);
+        }
+
+        params.push(value);
+        return '?';
+    }
+
     /**
      * Wrap a condition clause     
      * 
@@ -603,25 +646,16 @@ class MySQLConnector extends Connector {
      * 
      * @param {string} fieldName 
      * @param {*} value 
-     * @param {array} valuesSeq  
+     * @param {array} params  
      */
-    _wrapCondition(fieldName, value, valuesSeq, hasJoining, aliasMap, inject) {
+    _wrapCondition(fieldName, value, params, hasJoining, aliasMap, inject) {
         if (_.isNil(value)) {
             return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IS NULL';
         }
 
         if (_.isPlainObject(value)) {
             if (value.oorType) {
-                if (value.oorType === 'ColumnReference') {
-                    return this._wrapCondition(fieldName, this._escapeIdWithAlias(value.name, hasJoining, aliasMap), valuesSeq, hasJoining, aliasMap, true);
-                }
-
-                if (value.oorType === 'Function') {
-                    let funcCall = value.name + '(' + (col.args ? this._buildColumns(col.args, valuesSeq, hasJoining, aliasMap) : '') + ')';
-                    return this._wrapCondition(fieldName, funcCall, valuesSeq, hasJoining, aliasMap, true);
-                }
-    
-                throw new Error('todo: add oorType support: ' + value.oorType);
+                return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ' + this._packValue(value, params, hasJoining, aliasMap);
             }            
 
             let hasOperator = _.find(Object.keys(value), k => k && k[0] === '$');
@@ -634,7 +668,7 @@ class MySQLConnector extends Connector {
                             case '$eq':
                             case '$equal':
     
-                                return this._wrapCondition(fieldName, v, valuesSeq, hasJoining, aliasMap, inject);
+                                return this._wrapCondition(fieldName, v, params, hasJoining, aliasMap, inject);
     
                             case '$ne':
                             case '$neq':
@@ -649,11 +683,11 @@ class MySQLConnector extends Connector {
                                         return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <> ' + v;
                                     }
 
-                                    valuesSeq.push(v);
+                                    params.push(v);
                                     return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <> ?';
                                 }
     
-                                return 'NOT (' + this._wrapCondition(fieldName, v, valuesSeq, hasJoining, aliasMap, true) + ')';
+                                return 'NOT (' + this._wrapCondition(fieldName, v, params, hasJoining, aliasMap, true) + ')';
     
                             case '$>':
                             case '$gt':
@@ -670,7 +704,7 @@ class MySQLConnector extends Connector {
                                     return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' > ' + v;
                                 }
         
-                                valuesSeq.push(v);
+                                params.push(v);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' > ?';
         
                             case '$>=':
@@ -688,7 +722,7 @@ class MySQLConnector extends Connector {
                                     return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' >= ' + v;
                                 }
         
-                                valuesSeq.push(v);
+                                params.push(v);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' >= ?';
     
                             case '$<':
@@ -706,7 +740,7 @@ class MySQLConnector extends Connector {
                                     return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' < ' + v;
                                 }
         
-                                valuesSeq.push(v);
+                                params.push(v);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' < ?';
     
                             case '$<=':
@@ -724,7 +758,7 @@ class MySQLConnector extends Connector {
                                     return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <= ' + v;
                                 }
         
-                                valuesSeq.push(v);
+                                params.push(v);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' <= ?';
     
                             case '$in':
@@ -737,7 +771,7 @@ class MySQLConnector extends Connector {
                                     return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ` IN (${v})`;
                                 }
         
-                                valuesSeq.push(v);
+                                params.push(v);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IN (?)';
     
                             case '$nin':
@@ -751,7 +785,7 @@ class MySQLConnector extends Connector {
                                     return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ` NOT IN (${v})`;
                                 }
         
-                                valuesSeq.push(v);
+                                params.push(v);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' NOT IN (?)';
 
                             case '$startWith':
@@ -763,7 +797,7 @@ class MySQLConnector extends Connector {
 
                                 assert: !inject;
 
-                                valuesSeq.push(`${v}%`);
+                                params.push(`${v}%`);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
 
                             case '$endWith':
@@ -775,7 +809,7 @@ class MySQLConnector extends Connector {
 
                                 assert: !inject;
 
-                                valuesSeq.push(`%${v}`);
+                                params.push(`%${v}`);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
 
                             case '$like':
@@ -787,7 +821,7 @@ class MySQLConnector extends Connector {
 
                                 assert: !inject;
 
-                                valuesSeq.push(`%${v}%`);
+                                params.push(`%${v}%`);
                                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' LIKE ?';
                                 /*
                             case '$apply':
@@ -806,7 +840,7 @@ class MySQLConnector extends Connector {
 
             assert: !inject;
 
-            valuesSeq.push(JSON.stringify(value));
+            params.push(JSON.stringify(value));
             return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ?';
         }
 
@@ -814,7 +848,7 @@ class MySQLConnector extends Connector {
             return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ' + value;
         }
         
-        valuesSeq.push(value);
+        params.push(value);
         return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ?';
     }
 

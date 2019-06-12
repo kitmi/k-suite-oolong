@@ -29,6 +29,8 @@ function minifyAssocs(assocs) {
     return minified;
 }
 
+const oorTypesToBypass = new Set(['ColumnReference', 'Function', 'BinaryExpression']);
+
 /**
  * Base entity model class.
  * @class
@@ -46,6 +48,30 @@ class EntityModel {
 
     static valueOfKey(data) {
         return Array.isArray(this.meta.keyField) ? _.pick(data, this.meta.keyField) : data[this.meta.keyField];
+    }
+
+    static queryColumn(name) {
+        return {
+            oorType: 'ColumnReference',
+            name
+        }; 
+    }
+
+    static queryBinExpr(left, op, right) {
+        return {
+            oorType: 'BinaryExpression',
+            left,
+            op,
+            right
+        }; 
+    }
+
+    static queryFunction(name, ...args) {
+        return {
+            oorType: 'Function',
+            name,
+            args
+        };
     }
 
     /**
@@ -698,6 +724,8 @@ class EntityModel {
 
         await eachAsync_(fields, async (fieldInfo, fieldName) => {
             if (fieldName in raw) {
+                let value = raw[fieldName];
+
                 //field value given in raw data
                 if (fieldInfo.readOnly) {
                     if (!isUpdating || !opOptions.$bypassReadOnly.has(fieldName)) {
@@ -733,7 +761,7 @@ class EntityModel {
                 } */
                 
                 //sanitize first
-                if (isNothing(raw[fieldName])) {
+                if (isNothing(value)) {
                     if (!fieldInfo.optional) {
                         throw new DataValidationError(`The "${fieldName}" value of "${name}" entity cannot be null.`, {
                             entity: name,
@@ -743,8 +771,14 @@ class EntityModel {
 
                     latest[fieldName] = null;
                 } else {
+                    if (_.isPlainObject(value) && value.oorType) {
+                        latest[fieldName] = value;
+
+                        return;
+                    }
+
                     try {
-                        latest[fieldName] = Types.sanitize(raw[fieldName], fieldInfo, i18n);
+                        latest[fieldName] = Types.sanitize(value, fieldInfo, i18n);
                     } catch (error) {
                         throw new DataValidationError(`Invalid "${fieldName}" value of "${name}" entity.`, {
                             entity: name,
@@ -825,6 +859,12 @@ class EntityModel {
         context.latest = _.mapValues(latest, (value, key) => {
             let fieldInfo = fields[key];
             assert: fieldInfo;
+
+            if (_.isPlainObject(value) && value.oorType) {
+                //there is special input column which maybe a function or an expression
+                opOptions.$requireSplitColumns = true;
+                return value;
+            }
 
             return this._serializeByTypeInfo(value, fieldInfo);
         });        
@@ -1081,6 +1121,8 @@ class EntityModel {
     static _translateValue(value, variables, skipSerialize, arrayToInOperator) {
         if (_.isPlainObject(value)) {
             if (value.oorType) {
+                if (oorTypesToBypass.has(value.oorType)) return value;
+
                 if (value.oorType === 'SessionVariable') {
                     if (!variables) {
                         throw new OolongUsageError('Variables context missing.');
@@ -1111,7 +1153,7 @@ class EntityModel {
                     return variables.query[value.name];
                 } else if (value.oorType === 'SymbolToken') {
                     return this._translateSymbolToken(value.name);
-                }
+                } 
 
                 throw new Error('Not impletemented yet. ' + value.oorType);
             }
