@@ -32,3 +32,5 @@
 
 Entity Model is used to operate against the whole collection
 Data Context is used to operate against a record of the core data entity
+
+isDeleted is wrongly added while inserting
