@@ -80,7 +80,11 @@ class RabbitmqConnector extends Connector {
 
         let ch = await this.connect_();        
         await ch.assertQueue(queueName);
-        return ch.sendToQueue(queueName, Buffer.from(obj), options);
+        let ret = ch.sendToQueue(queueName, Buffer.from(obj), options);
+
+        this.log('info', `Sent to MQ[${queueName}]`, obj);
+
+        return ret;
     }   
 
     async consume_(queueName, consumerMethod, options) {        
