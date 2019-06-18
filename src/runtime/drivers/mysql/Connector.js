@@ -653,6 +653,10 @@ class MySQLConnector extends Connector {
             return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' IS NULL';
         }
 
+        if (Array.isArray(value)) {
+            return this._wrapCondition(fieldName, { $in: value }, params, hasJoining, aliasMap, inject);
+        }       
+
         if (_.isPlainObject(value)) {
             if (value.oorType) {
                 return this._escapeIdWithAlias(fieldName, hasJoining, aliasMap) + ' = ' + this._packValue(value, params, hasJoining, aliasMap);

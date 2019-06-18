@@ -254,7 +254,7 @@ class EntityModel {
      * @property {object} [connOptions.connection]
      * @returns {array}
      */
-    static async findAll_(findOptions, connOptions) {        
+    static async findAll_(findOptions, connOptions) {  
         findOptions = this._prepareQueries(findOptions);
 
         let context = {             
@@ -1161,7 +1161,7 @@ class EntityModel {
             return _.mapValues(value, (v, k) => this._translateValue(v, variables, skipSerialize, arrayToInOperator && k[0] !== '$'));
         }
 
-        if (Array.isArray(value)) {
+        if (Array.isArray(value)) {  
             let ret = value.map(v => this._translateValue(v, variables, skipSerialize, arrayToInOperator));
             return arrayToInOperator ? { $in: ret } : ret;
         }
