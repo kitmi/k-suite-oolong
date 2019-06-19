@@ -139,6 +139,10 @@ class MySQLEntityModel extends EntityModel {
      * @property {bool} [options.$retrieveCreated] - Retrieve the newly created record from db. 
      */
     static async _internalAfterCreate_(context) {
+        if (context.options.$retrieveDbResult) {
+            context.rawOptions.$dbResult = context.result;
+        }
+
         if (context.options.$retrieveCreated) {            
             if (this.hasAutoIncrement) {
                 let { insertId } = context.result;
@@ -173,6 +177,11 @@ class MySQLEntityModel extends EntityModel {
      * @property {bool} [context.options.$retrieveUpdated] - Retrieve the newly updated record from db. 
      */
     static async _internalAfterUpdate_(context) {
+        if (context.options.$retrieveDbResult) {
+            context.rawOptions.$dbResult = context.result;
+            console.log(context.result);
+        }
+
         if (context.options.$retrieveUpdated) {    
             let condition = { $query: context.options.$query };
             if (context.options.$bypassEnsureUnique) {
@@ -199,6 +208,10 @@ class MySQLEntityModel extends EntityModel {
      * @property {bool} [options.$retrieveUpdated] - Retrieve the newly updated record from db. 
      */
     static async _internalAfterUpdateMany_(context) {
+        if (context.options.$retrieveDbResult) {
+            context.rawOptions.$dbResult = context.result;
+        }
+
         if (context.options.$retrieveUpdated) {    
             let retrieveOptions = {};
 
@@ -253,6 +266,9 @@ class MySQLEntityModel extends EntityModel {
      * @param {*} context 
      */
     static _internalAfterDelete_(context) {
+        if (context.options.$retrieveDbResult) {
+            context.rawOptions.$dbResult = context.result;
+        }
     }
 
     /**
@@ -260,6 +276,9 @@ class MySQLEntityModel extends EntityModel {
      * @param {*} context 
      */
     static _internalAfterDeleteMany_(context) {
+        if (context.options.$retrieveDbResult) {
+            context.rawOptions.$dbResult = context.result;
+        }
     }
 
     /**

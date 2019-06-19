@@ -322,12 +322,17 @@ class EntityModel {
      * @returns {EntityModel}
      */
     static async create_(data, createOptions, connOptions) {
-        createOptions || (createOptions = {});
+        let rawOptions = createOptions;
+
+        if (!createOptions) { 
+            createOptions = {}; 
+        }
 
         let [ raw, associations ] = this._extractAssociations(data);
 
         let context = { 
             raw, 
+            rawOptions,
             options: createOptions,
             connOptions
         };       
@@ -430,6 +435,8 @@ class EntityModel {
     }
     
     static async _update_(data, updateOptions, connOptions, forSingleRecord) {
+        let rawOptions = updateOptions;
+
         if (!updateOptions) {
             let conditionFields = this.getUniqueKeyFieldsFrom(data);
             if (_.isEmpty(conditionFields)) {
@@ -439,11 +446,10 @@ class EntityModel {
             data = _.omit(data, conditionFields);
         }
 
-        updateOptions = this._prepareQueries(updateOptions, forSingleRecord /* for single record */);
-
         let context = { 
             raw: data, 
-            options: updateOptions,
+            rawOptions,
+            options: this._prepareQueries(updateOptions, forSingleRecord /* for single record */),            
             connOptions
         };
 
@@ -521,6 +527,8 @@ class EntityModel {
      * @param {*} connOptions 
      */    
     static async replaceOne_(data, updateOptions, connOptions) {
+        let rawOptions = updateOptions;
+
         if (!updateOptions) {
             let conditionFields = this.getUniqueKeyFieldsFrom(data);
             if (_.isEmpty(conditionFields)) {
@@ -534,6 +542,7 @@ class EntityModel {
 
         let context = { 
             raw: data, 
+            rawOptions,
             options: updateOptions,
             connOptions
         };
@@ -579,7 +588,7 @@ class EntityModel {
      * @property {object} [connOptions.connection] 
      */
     static async _delete_(deleteOptions, connOptions, forSingleRecord) {
-        pre: deleteOptions;
+        let rawOptions = deleteOptions;
 
         deleteOptions = this._prepareQueries(deleteOptions, forSingleRecord /* for single record */);
 
@@ -588,6 +597,7 @@ class EntityModel {
         }
 
         let context = { 
+            rawOptions,
             options: deleteOptions,
             connOptions
         };
