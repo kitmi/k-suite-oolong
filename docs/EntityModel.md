@@ -32,6 +32,7 @@ There are predefined context properties which can be accessed in an entity opera
 * $custom
 * $variables
 * $features
+* $orderBy 
 
 ## operation sequence
 

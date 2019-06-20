@@ -82,7 +82,7 @@ class RabbitmqConnector extends Connector {
         await ch.assertQueue(queueName);
         let ret = ch.sendToQueue(queueName, Buffer.from(obj), options);
 
-        this.log('info', `Sent to MQ[${queueName}]`, obj);
+        this.log('info', `Sent to MQ[${queueName}]`, { msg: obj });
 
         return ret;
     }   
