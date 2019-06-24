@@ -33,7 +33,7 @@ async function createLogEntry_(entityModel, feature, context, operation) {
     if (feature.withUser) {
         let user = entityModel.getValueFromContext(context, feature.withUser);
         if (_.isNil(user)) {
-            throw new OolongUsageError(`Cannot get value of [${feature.withUser}] from context.`);
+            throw new OolongUsageError(`Cannot get value of [${feature.withUser}] from context. Entity: ${entityModel.meta.name}, operation: ${operation}`);
         }
 
         logEntry.changedBy = user;

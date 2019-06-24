@@ -663,6 +663,14 @@ class MySQLModeler {
                 default:
                 throw new Error('Unknown UnaryExpression operator: ' + oolCon.operator);
             }
+        } else if (oolCon.oolType === 'LogicalExpression') {
+            switch (oolCon.operator) {
+                case 'and':
+                    return { $and: [ this._oolConditionToQueryCondition(context, oolCon.left), this._oolConditionToQueryCondition(context, oolCon.right) ] };
+                    
+                case 'or':
+                        return { $or: [ this._oolConditionToQueryCondition(context, oolCon.left), this._oolConditionToQueryCondition(context, oolCon.right) ] };
+            }
         }
 
         throw new Error('Unknown syntax: ' + JSON.stringify(oolCon));

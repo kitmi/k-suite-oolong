@@ -200,6 +200,7 @@ class MySQLConnector extends Connector {
 
             return rows2;
         } catch (err) {      
+            this.log('error', `SQL: ${sql}`, { params });
             throw err;
         } finally {
             conn && await this._releaseConnection_(conn, options);
@@ -239,7 +240,11 @@ class MySQLConnector extends Connector {
      * @param {*} queryOptions  
      * @param {*} connOptions 
      */
-    async update_(model, data, query, queryOptions, connOptions) {        
+    async update_(model, data, query, queryOptions, connOptions) {    
+        if (_.isEmpty(data)) {
+            throw new BusinessError('Empty data to update.');
+        }
+        
         let params = [], aliasMap = { [model]: 'A' }, joinings, hasJoining = false, joiningParams = []; 
 
         if (queryOptions && queryOptions.$relationships) {                                        
@@ -261,7 +266,7 @@ class MySQLConnector extends Connector {
             sql += ' SET ?';
         }        
 
-        if (query) {
+        if (query) {            
             let whereClause = this._joinCondition(query, params, null, hasJoining, aliasMap);   
             if (whereClause) {
                 sql += ' WHERE ' + whereClause;                

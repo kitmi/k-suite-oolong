@@ -121,11 +121,34 @@ class MySQLEntityModel extends EntityModel {
             
         let entity = await this.findOne_({ $query: context.options.$query }, context.connOptions);
 
+        let ret, options;
+
         if (entity) {
-            return this.updateOne_(context.raw, { ...context.options, $query: { [this.meta.keyField]: this.valueOfKey(entity) } }, context.connOptions);
-        } else {
-            return this.create_(context.raw, { $retrieveCreated: context.options.$retrieveUpdated }, context.connOptions);
+            if (context.options.$retrieveExisting) {
+                context.rawOptions.$existing = entity;
+            }     
+            
+            options = { ...context.options, $query: { [this.meta.keyField]: this.valueOfKey(entity) }, $existing: entity };
+
+            ret = await this.updateOne_(context.raw, options, context.connOptions);
+        } else {      
+            options = { 
+                $retrieveCreated: context.options.$retrieveUpdated,
+                $retrieveDbResult: context.options.$retrieveDbResult
+            };            
+            
+            ret = await this.create_(context.raw, options, context.connOptions);
         }       
+
+        if (options.$existing) {
+            context.rawOptions.$existing = options.$existing;
+        }
+
+        if (options.$result) {
+            context.rawOptions.$result = options.$result;
+        }
+
+        return ret;
     }
 
     static _internalBeforeCreate_(context) {
@@ -140,7 +163,7 @@ class MySQLEntityModel extends EntityModel {
      */
     static async _internalAfterCreate_(context) {
         if (context.options.$retrieveDbResult) {
-            context.rawOptions.$dbResult = context.result;
+            context.rawOptions.$result = context.result;
         }
 
         if (context.options.$retrieveCreated) {            
@@ -178,8 +201,7 @@ class MySQLEntityModel extends EntityModel {
      */
     static async _internalAfterUpdate_(context) {
         if (context.options.$retrieveDbResult) {
-            context.rawOptions.$dbResult = context.result;
-            console.log(context.result);
+            context.rawOptions.$result = context.result;                   
         }
 
         if (context.options.$retrieveUpdated) {    
@@ -209,7 +231,8 @@ class MySQLEntityModel extends EntityModel {
      */
     static async _internalAfterUpdateMany_(context) {
         if (context.options.$retrieveDbResult) {
-            context.rawOptions.$dbResult = context.result;
+            context.rawOptions.$result = context.result;
+            console.log('afterUpdateMany', context.result);
         }
 
         if (context.options.$retrieveUpdated) {    
@@ -267,7 +290,7 @@ class MySQLEntityModel extends EntityModel {
      */
     static _internalAfterDelete_(context) {
         if (context.options.$retrieveDbResult) {
-            context.rawOptions.$dbResult = context.result;
+            context.rawOptions.$result = context.result;
         }
     }
 
@@ -277,7 +300,7 @@ class MySQLEntityModel extends EntityModel {
      */
     static _internalAfterDeleteMany_(context) {
         if (context.options.$retrieveDbResult) {
-            context.rawOptions.$dbResult = context.result;
+            context.rawOptions.$result = context.result;
         }
     }
 

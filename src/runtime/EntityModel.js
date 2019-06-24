@@ -185,6 +185,15 @@ class EntityModel {
 
         return this.cached_(this.meta.keyField, associations, connOptions);
     }
+
+    static toDictionary(entityCollection, key) {
+        key || (key = this.meta.keyField);
+
+        return entityCollection.reduce((dict, v) => {
+            dict[v[key]] = v;
+            return dict;
+        }, {});
+    }
     
     /**
      * Find one record, returns a model object containing the record or undefined if nothing found.
@@ -466,7 +475,7 @@ class EntityModel {
         }
         
         let success = await this._safeExecute_(async (context) => {
-            await this._prepareEntityData_(context, true /* is updating */);          
+            await this._prepareEntityData_(context, true /* is updating */, forSingleRecord);          
 
             if (!(await Features.applyRules_(Rules.RULE_BEFORE_UPDATE, this, context))) {
                 return false;
@@ -694,9 +703,8 @@ class EntityModel {
                 throw new DataValidationError('One of the unique key field as query condition is null.');
             }
 
-            throw new OolongUsageError('Unexpected usage.', { 
-                    entity: this.meta.name, 
-                    reason: 'Single record operation requires condition to be containing unique key.',
+            throw new OolongUsageError('Single record operation requires at least one unique key value pair in the query condition.', { 
+                    entity: this.meta.name,                     
                     condition
                 }
             );
@@ -710,13 +718,13 @@ class EntityModel {
      * @property {object} [context.connOptions]
      * @param {bool} isUpdating - Flag for updating existing entity.
      */
-    static async _prepareEntityData_(context, isUpdating = false) {
+    static async _prepareEntityData_(context, isUpdating = false, forSingleRecord = true) {
         let meta = this.meta;
         let i18n = this.i18n;
         let { name, fields } = meta;        
 
         let { raw } = context;
-        let latest = {}, existing;
+        let latest = {}, existing = context.options.$existing;
         context.latest = latest;       
 
         if (!context.i18n) {
@@ -725,12 +733,21 @@ class EntityModel {
 
         let opOptions = context.options;
 
-        if (isUpdating && this._dependsOnExistingData(raw)) {
+        if (isUpdating && !existing && (this._dependsOnExistingData(raw) || opOptions.$retrieveExisting)) {
             await this.ensureTransaction_(context);          
 
-            existing = await this.findOne_({ $query: opOptions.$query }, context.connOptions);            
-            context.existing = existing;                        
+            if (forSingleRecord) {
+                existing = await this.findOne_({ $query: opOptions.$query }, context.connOptions);            
+            } else {
+                existing = await this.findAll_({ $query: opOptions.$query }, context.connOptions);      
+                console.log(existing);      
+            }
+            context.existing = existing;                     
         }        
+
+        if (opOptions.$retrieveExisting && !context.rawOptions.$existing) {
+            context.rawOptions.$existing = existing;
+        }
 
         await eachAsync_(fields, async (fieldInfo, fieldName) => {
             if (fieldName in raw) {
@@ -907,6 +924,12 @@ class EntityModel {
         } catch (error) {
             //we have to rollback if error occurred in a transaction
             if (context.connOptions && context.connOptions.connection) { 
+                this.db.connector.log('error', `Rollbacked, reason: ${error.message}`, {  
+                    entity: this.meta.name,
+                    context: context.options,
+                    rawData: context.raw,
+                    latestData: context.latest
+                });
                 await this.db.connector.rollback_(context.connOptions.connection);                    
                 delete context.connOptions.connection;   
             }     
@@ -1091,10 +1114,7 @@ class EntityModel {
                 }
             }
 
-            return records.reduce((table, v) => {
-                table[v[keyField]] = v;
-                return table;
-            }, {});
+            return this.toDictionary(records, keyField);
         } 
 
         return records;

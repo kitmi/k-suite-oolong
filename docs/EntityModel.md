@@ -28,11 +28,14 @@ There are predefined context properties which can be accessed in an entity opera
 ## operation options
 
 * connector - Transaction connector.
-* $query
-* $custom
-* $variables
-* $features
-* $orderBy 
+* $projection
+* $association
+* $relationships
+* $query - Query condition
+* $variables - Variables to interpolate into query condition
+* $features - Custom feature options override
+* $orderBy - Order by condition
+* $groupBy - Group by condition
 
 ## operation sequence
 
