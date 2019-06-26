@@ -219,7 +219,11 @@ class MySQLEntityModel extends EntityModel {
             }
             
             context.return = await this.findOne_({ ...retrieveOptions, ...condition }, context.connOptions);
-            context.queryKey = this.getUniqueKeyValuePairsFrom(context.return);
+            if (context.return) {
+                context.queryKey = this.getUniqueKeyValuePairsFrom(context.return);
+            } else {
+                context.queryKey = condition.$query;
+            }
         }
     }
 
