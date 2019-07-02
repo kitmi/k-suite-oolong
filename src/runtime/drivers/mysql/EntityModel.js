@@ -205,10 +205,10 @@ class MySQLEntityModel extends EntityModel {
         }
 
         if (context.options.$retrieveUpdated) {    
-            let condition = { $query: context.options.$query };
+            let condition = { $query: this.getUniqueKeyValuePairsFrom(context.options.$query) };
             if (context.options.$bypassEnsureUnique) {
                 condition.$bypassEnsureUnique = context.options.$bypassEnsureUnique;
-            }
+            } 
 
             let retrieveOptions = {};
             
@@ -218,7 +218,7 @@ class MySQLEntityModel extends EntityModel {
                 retrieveOptions.$relationships = context.options.$relationships;
             }
             
-            context.return = await this.findOne_({ ...retrieveOptions, ...condition }, context.connOptions);
+            context.return = await this.findOne_({ ...condition, ...retrieveOptions }, context.connOptions);
             if (context.return) {
                 context.queryKey = this.getUniqueKeyValuePairsFrom(context.return);
             } else {

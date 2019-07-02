@@ -112,6 +112,8 @@ There are predefined context properties which can be accessed in an entity opera
 
 * dependsOnExisting: [ a1, a2 ] - 
 
+## known issues
 
+* retrieveUpdated - The previous query maybe affected by updating
 
 

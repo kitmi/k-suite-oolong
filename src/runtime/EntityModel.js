@@ -700,7 +700,7 @@ class EntityModel {
 
         if (!containsUniqueKeyAndValue) {
             if (containsUniqueKeyOnly) {
-                throw new DataValidationError('One of the unique key field as query condition is null.');
+                throw new DataValidationError('One of the unique key field as query condition is null. Condition: ' + JSON.stringify(condition));
             }
 
             throw new OolongUsageError('Single record operation requires at least one unique key value pair in the query condition.', { 
