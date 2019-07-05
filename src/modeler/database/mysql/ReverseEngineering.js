@@ -147,9 +147,9 @@ class MySQLReverseEngineering {
             let fkColName = this._fieldNaming(ref.COLUMN_NAME);
 
             if (unique) {
-                associations.push({ type: 'belongsTo', from: fkColName, entity: this._entityNaming(ref.REFERENCED_TABLE_NAME) });
+                associations.push({ type: 'belongsTo', srcField: fkColName, destEntity: this._entityNaming(ref.REFERENCED_TABLE_NAME) });
             } else {
-                associations.push({ type: 'hasMany', from: fkColName,  entity: this._entityNaming(ref.REFERENCED_TABLE_NAME) });
+                associations.push({ type: 'hasMany', srcField: fkColName,  destEntity: this._entityNaming(ref.REFERENCED_TABLE_NAME) });
             }
 
             delete fields[fkColName];// = { type: '$association', code: fields[fkColName].code };
@@ -391,15 +391,15 @@ class MySQLReverseEngineering {
         _.forOwn(mapOfEntities, ({ entityInfo }, name) => {
             if (_.isEmpty(entityInfo.associations)) return;            
 
-            entityInfo.associations.forEach(({ type, from, entity }) => {
-                let refedEntity = mapOfEntities[entity];
-                let backRef = _.find(refedEntity.associations, assoc => assoc.entity === name);
+            entityInfo.associations.forEach(({ type, srcField, destEntity }) => {
+                let refedEntity = mapOfEntities[destEntity];
+                let backRef = _.find(refedEntity.associations, assoc => assoc.destEntity === name);
 
                 if (type === 'hasMany') {   
 
                     if (!backRef) {
                         //one-side relation
-                        Util.putIntoBucket(entityAssoc, name, { type: 'refersTo', from, entity });
+                        Util.putIntoBucket(entityAssoc, name, { type: 'refersTo', srcField, destEntity });
                         return;
                     }
 
@@ -408,11 +408,11 @@ class MySQLReverseEngineering {
                     throw new Error(`Back reference: ${backRef.entity} ${backRef.type} ${name}`);                    
                 } else if (type === 'belongsTo') {
 
-                    Util.putIntoBucket(entityAssoc, name, { type, from, entity });
+                    Util.putIntoBucket(entityAssoc, name, { type, srcField, destEntity });
 
                     if (!backRef) {
                         //one-side relation                        
-                        Util.putIntoBucket(entityAssoc, entity, { type: 'hasMany', entity: name });
+                        Util.putIntoBucket(entityAssoc, entity, { type: 'hasMany', destEntity: name });
                         return;
                     }
                     
@@ -429,17 +429,17 @@ class MySQLReverseEngineering {
             let keyAssocs;
 
             if (Array.isArray(entityInfo.key) && entityInfo.key.length === 2) {
-                keyAssocs = _.filter(associations, assoc => entityInfo.key.indexOf(assoc.from) !== -1);
+                keyAssocs = _.filter(associations, assoc => entityInfo.key.indexOf(assoc.srcField) !== -1);
                 if (keyAssocs.length === 2) {
-                    this._makeEntityManyToMany(keyAssocs[0].entity, keyAssocs[1].entity, entityAssoc);
+                    this._makeEntityManyToMany(keyAssocs[0].destEntity, keyAssocs[1].destEntity, entityAssoc);
                 }
             }
 
             entityInfo.indexes.forEach(({ fields }) => {
                 if (fields.length === 2) {
-                    keyAssocs = _.filter(associations, assoc => fields.indexOf(assoc.from) !== -1);
+                    keyAssocs = _.filter(associations, assoc => fields.indexOf(assoc.srcField) !== -1);
                     if (keyAssocs.length === 2) {
-                        this._makeEntityManyToMany(keyAssocs[0].entity, keyAssocs[1].entity, entityAssoc);
+                        this._makeEntityManyToMany(keyAssocs[0].destEntity, keyAssocs[1].destEntity, entityAssoc);
                     }
                 }
             });
@@ -451,8 +451,8 @@ class MySQLReverseEngineering {
     }
 
     _makeEntityManyToMany(entityName1, entityName2, entityAssoc) {
-        Util.putIntoBucket(entityAssoc, entityName1, { type: 'hasMany', entity: entityName2 });
-        Util.putIntoBucket(entityAssoc, entityName2, { type: 'hasMany', entity: entityName1 });
+        Util.putIntoBucket(entityAssoc, entityName1, { type: 'hasMany', destEntity: entityName2 });
+        Util.putIntoBucket(entityAssoc, entityName2, { type: 'hasMany', destEntity: entityName1 });
     }
 }
 

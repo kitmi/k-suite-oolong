@@ -37,6 +37,10 @@ const Validators = require('../runtime/Validators');
 
     let dataList = fs.readFileSync(dataListFile).toString().match(/^.+$/gm);
 
+    if (!dataList) {
+        return;
+    }
+
     return eachAsync_(dataList, async line => {
         line = line.trim();
 
@@ -137,7 +141,6 @@ exports.migrate_ = async (context, reset = false) => {
                 await connector.end_();
             } 
         });
-
     }
 
     return eachAsync_(context.schemaDeployment, async (deployment, schemaName) => {
@@ -150,7 +153,7 @@ exports.migrate_ = async (context, reset = false) => {
 
             await migration.create_(deployment.extraOptions);
 
-            await importDataFiles(migration, '_init');            
+            await importDataFiles(migration, '_init');   
         } catch (error) {
             throw error;
         } finally {

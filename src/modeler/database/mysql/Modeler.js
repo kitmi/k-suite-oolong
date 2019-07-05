@@ -108,11 +108,12 @@ class MySQLModeler {
         this._events.emit('afterRelationshipBuilding');        
 
         //build SQL scripts
+        const zeroInitFile = '0-init.json';
         let sqlFilesDir = path.join('mysql', this.connector.database);
         let dbFilePath = path.join(sqlFilesDir, 'entities.sql');
         let fkFilePath = path.join(sqlFilesDir, 'relations.sql');
         let initIdxFilePath = path.join(sqlFilesDir, 'data', '_init', 'index.list');
-        let initFilePath = path.join(sqlFilesDir, 'data', '_init', '0-init.json');
+        let initFilePath = path.join(sqlFilesDir, 'data', '_init', zeroInitFile);
         let tableSQL = '', relationSQL = '', data = {};
 
         _.each(modelingSchema.entities, (entity, entityName) => {
@@ -196,12 +197,19 @@ class MySQLModeler {
         this._writeFile(path.join(this.outputPath, dbFilePath), tableSQL);
         this._writeFile(path.join(this.outputPath, fkFilePath), relationSQL);
 
+        let initIdxFileContent;
+
         if (!_.isEmpty(data)) {
             this._writeFile(path.join(this.outputPath, initFilePath), JSON.stringify(data, null, 4));
 
-            if (!fs.existsSync(path.join(this.outputPath, initIdxFilePath))) {
-                this._writeFile(path.join(this.outputPath, initIdxFilePath), '0-init.json\n');
-            }
+            initIdxFileContent = zeroInitFile + '\n';            
+        } else {
+            //no data entry
+            initIdxFileContent = '';
+        }
+
+        if (!fs.existsSync(path.join(this.outputPath, initIdxFilePath))) {
+            this._writeFile(path.join(this.outputPath, initIdxFilePath), initIdxFileContent);
         }
 
         let funcSQL = '';
