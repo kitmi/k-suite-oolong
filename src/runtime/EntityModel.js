@@ -240,7 +240,10 @@ class EntityModel {
                 return undefined;
             }
 
-            assert: records.length === 1;
+            if (records.length !== 1) {
+                this.db.connector.log('error', `findOne() returns more than one record.`, { entity: this.meta.name, options: context.options });
+            }
+
             let result = records[0];
 
             return result;
