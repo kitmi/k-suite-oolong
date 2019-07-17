@@ -200,7 +200,10 @@ class MySQLConnector extends Connector {
 
             return rows2;
         } catch (err) {      
-            this.log('error', `SQL: ${sql}`, { params });
+            err.extraInfo || (err.extraInfo = {});
+            err.extraInfo.sql = _.truncate(sql, { length: 200 });
+            err.extraInfo.params = params;
+
             throw err;
         } finally {
             conn && await this._releaseConnection_(conn, options);

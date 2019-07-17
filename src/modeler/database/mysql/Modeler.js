@@ -13,39 +13,6 @@ const Types = require('../../../runtime/types');
 
 const UNSUPPORTED_DEFAULT_VALUE = new Set(['BLOB', 'TEXT', 'JSON', 'GEOMETRY']);
 
-/*
-const MYSQL_KEYWORDS = [
-    'select',
-    'from',
-    'where',
-    'limit',
-    'order',
-    'group',
-    'distinct',
-    'insert',
-    'update',
-    'in',
-    'offset',
-    'by',
-    'asc',
-    'desc',
-    'delete',
-    'begin',
-    'end',
-    'left',
-    'right',
-    'join',
-    'on',
-    'and',
-    'or',
-    'not',
-    'returns',
-    'return',
-    'create',
-    'alter'
-];
-*/
-
 /**
  * Ooolong database modeler for mysql db.
  * @class
@@ -330,7 +297,9 @@ class MySQLModeler {
             destEntityNameAsFieldName = actualDestEntityName;
         } else {
             destEntity = schema.ensureGetEntity(entity.oolModule, destEntityName, pendingEntities);
-            assert: destEntity;
+            if (!destEntity) {
+                throw new Error(`Entity "${entity.name}" references to an unexisting entity "${destEntityName}".`)
+            }
 
             destEntityNameAsFieldName = destEntityName;
         }   
@@ -606,7 +575,32 @@ class MySQLModeler {
                     }
                 );
 
-                this._addReference(entity.name, localField, destEntityName, destKeyField.name, assoc.type === 'belongsTo');
+                //foreign key constraits
+                let localFieldObj = entity.fields[localField];        
+                
+                let constraints = {};
+
+                if (localFieldObj.constraintOnUpdate) {
+                    constraints.onUpdate = localFieldObj.constraintOnUpdate;
+                }
+
+                if (localFieldObj.constraintOnDelete) {
+                    constraints.onDelete = localFieldObj.constraintOnDelete;
+                }
+
+                if (assoc.type === 'belongsTo') {
+                    constraints.onUpdate || (constraints.onUpdate = 'CASCADE');
+                    constraints.onDelete || (constraints.onDelete = 'CASCADE');
+
+                } else if (localFieldObj.optional) {
+                    constraints.onUpdate || (constraints.onUpdate = 'CASCADE');
+                    constraints.onDelete || (constraints.onDelete = 'SET NULL');
+                }
+
+                constraints.onUpdate || (constraints.onUpdate = 'RESTRICT');
+                constraints.onDelete || (constraints.onDelete = 'RESTRICT');
+
+                this._addReference(entity.name, localField, destEntityName, destKeyField.name, constraints);
             break;
         }
     }
@@ -701,14 +695,14 @@ class MySQLModeler {
         return this._toColumnReference(refName);
     }
 
-    _addReference(left, leftField, right, rightField, needCasade) {
+    _addReference(left, leftField, right, rightField, constraints) {
         if (Array.isArray(leftField)) {
-            leftField.forEach(lf => this._addReference(left, lf, right, rightField));
+            leftField.forEach(lf => this._addReference(left, lf, right, rightField, constraints));
             return;
         }
 
         if (_.isPlainObject(leftField)) {
-            this._addReference(left, leftField.by, right. rightField);
+            this._addReference(left, leftField.by, right. rightField, constraints);
             return;
         }
 
@@ -726,7 +720,7 @@ class MySQLModeler {
             if (found) return;
         }        
 
-        refs4LeftEntity.push({leftField, right, rightField, cascadeChange: needCasade });
+        refs4LeftEntity.push({leftField, right, rightField, constraints }); 
     }
 
     _getReferenceOfField(left, leftField) {
@@ -955,8 +949,10 @@ class MySQLModeler {
             { entity: entity2Name }
         );
 
-        this._addReference(relationEntityName, connectedByField, entity1Name, keyEntity1.name);
-        this._addReference(relationEntityName, connectedByField2, entity2Name, keyEntity2.name);        
+        let allCascade = { onUpdate: 'CASCADE', onDelete: 'CASCADE' };
+
+        this._addReference(relationEntityName, connectedByField, entity1Name, keyEntity1.name, allCascade);
+        this._addReference(relationEntityName, connectedByField2, entity2Name, keyEntity2.name, allCascade);        
     }
     
     static oolOpToSql(op) {
@@ -1141,15 +1137,7 @@ class MySQLModeler {
             '` ADD FOREIGN KEY (`' + relation.leftField + '`) ' +
             'REFERENCES `' + refTable + '` (`' + relation.rightField + '`) ';
 
-        sql += '';
-
-        if (this._relationEntities[entityName] || relation.cascadeChange) {
-            sql += 'ON DELETE CASCADE ON UPDATE CASCADE';
-        } else {
-            sql += 'ON DELETE NO ACTION ON UPDATE NO ACTION';
-        }
-
-        sql += ';\n';
+        sql += `ON UPDATE ${relation.constraints.onUpdate} ON DELETE ${relation.constraints.onDelete};\n`;
 
         return sql;
     }
