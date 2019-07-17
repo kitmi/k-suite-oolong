@@ -34,8 +34,25 @@ There are predefined context properties which can be accessed in an entity opera
 * $query - Query condition
 * $variables - Variables to interpolate into query condition
 * $features - Custom feature options override
-* $orderBy - Order by condition
+* $orderBy - Order by condition, map of column to ascend?
 * $groupBy - Group by condition
+* $offset
+* $limit
+* $totalCount - Returns total record count when used with $limit
+* $includeDeleted - {boolean}
+* $skipOrm - {boolean}
+* $custom - User defined operation control data
+* $retrieveCreated
+* $retrieveUpdated
+* $retrieveDeleted
+* $retrieveExisting
+* $bypassReadOnly
+* $physicalDeletion - {boolean}
+* $existing
+* $requireSplitColumns
+* $bypassEnsureUnique
+* $toDictionary
+* $migration - {boolean}
 
 ## operation sequence
 

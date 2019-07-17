@@ -130,7 +130,7 @@ class MySQLMigration {
 
             await eachAsync_(data, async (records, entityName) => {                
                 let items = Array.isArray(records) ? records : [ records ];
-                return eachAsync_(items, item => db.model(entityName).create_(item));  
+                return eachAsync_(items, item => db.model(entityName).create_(item, { $migration: true }));  
             });
         } catch (error) {
             throw error;
@@ -148,7 +148,7 @@ class MySQLMigration {
         try {
             await db.connector.execute_('SET FOREIGN_KEY_CHECKS=0;');
 
-            await eachAsync_(data, item => db.model(entityName).create_(item));  
+            await eachAsync_(data, item => db.model(entityName).create_(item, { $migration: true }));  
         } catch (error) {
             throw error;
         } finally {

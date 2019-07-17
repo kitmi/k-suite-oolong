@@ -128,13 +128,17 @@ class MySQLEntityModel extends EntityModel {
                 context.rawOptions.$existing = entity;
             }     
             
-            options = { ...context.options, $query: { [this.meta.keyField]: this.valueOfKey(entity) }, $existing: entity };
+            options = { 
+                ...context.options, 
+                $query: { [this.meta.keyField]: this.valueOfKey(entity) }, 
+                $existing: entity 
+            };
 
             ret = await this.updateOne_(context.raw, options, context.connOptions);
         } else {      
             options = { 
-                $retrieveCreated: context.options.$retrieveUpdated,
-                $retrieveDbResult: context.options.$retrieveDbResult
+                ..._.omit(context.options, ['$retrieveUpdated', '$bypassEnsureUnique']),
+                $retrieveCreated: context.options.$retrieveUpdated                
             };            
             
             ret = await this.create_(context.raw, options, context.connOptions);

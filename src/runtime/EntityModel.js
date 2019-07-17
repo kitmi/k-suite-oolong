@@ -742,8 +742,7 @@ class EntityModel {
             if (forSingleRecord) {
                 existing = await this.findOne_({ $query: opOptions.$query }, context.connOptions);            
             } else {
-                existing = await this.findAll_({ $query: opOptions.$query }, context.connOptions);      
-                console.log(existing);      
+                existing = await this.findAll_({ $query: opOptions.$query }, context.connOptions);                      
             }
             context.existing = existing;                     
         }        
