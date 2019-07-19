@@ -41,9 +41,9 @@ class MongodbConnector extends Connector {
      */
     async connect_() {
         if (!this.client || !this.client.isConnected()) {
-            this.client = new MongoClient(this.connectionString, {useNewUrlParser: true});
-            await this.client.connect();
-        }        
+            let client = new MongoClient(this.connectionString, {useNewUrlParser: true});
+            this.client = await client.connect();
+        }       
 
         return this.client.db(this.database);
     }
@@ -83,6 +83,16 @@ class MongodbConnector extends Connector {
      */
     async insertOne_(model, data, options) {
         return this.onCollection_(model, (coll) => coll.insertOne(data, { bypassDocumentValidation: true, ...options }));
+    }
+
+    /**
+     * Create an array of new entity.
+     * @param {string} model 
+     * @param {array} data 
+     * @param {*} options 
+     */
+    async insertMany_(model, data, options) {
+        return this.onCollection_(model, (coll) => coll.insertMany(data, { bypassDocumentValidation: true, ordered: false, ...options }));
     }
 
     /**
