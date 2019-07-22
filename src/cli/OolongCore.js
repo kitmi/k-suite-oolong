@@ -61,7 +61,7 @@ class OolongCore {
         Object.assign(this.usageOptions.options, commandOptions);
 
         //re-parse arguments according to settings
-        this.argv = commandLineOptions.parseArgv(this.usageOptions.options);        
+        this.argv = commandLineOptions.parseArgv(this.usageOptions.options);   
 
         if (this.command !== 'main' && !this.option('?')) {
             if (!this.option('s')) {
@@ -103,7 +103,7 @@ class OolongCore {
         }); 
         
         return Util.eachAsync_(this.usageOptions.options, async (opts, name) => {
-            if (('inquire' in opts) && !this.argv[name]) {
+            if (('inquire' in opts) && !(name in this.argv)) {
                 let inquire = opts.inquire;
                 
                 if (typeof opts.inquire === 'function') {

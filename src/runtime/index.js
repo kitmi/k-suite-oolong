@@ -9,6 +9,7 @@ const Validators = require('./Validators');
 const Generators = require('./Generators');
 const Connector = require('./Connector');
 const Lang = require('../utils/lang');
+const Bulk = require('../utils/Bulk');
 
 module.exports = { 
     Types, 
@@ -19,6 +20,6 @@ module.exports = {
     Validators, 
     Generators, 
     Connector,     
-    Utils: { Lang },
+    Utils: { Lang, Bulk },
     getEntityModelOfDriver: driver => require('./drivers/' + driver + '/EntityModel')
 };
