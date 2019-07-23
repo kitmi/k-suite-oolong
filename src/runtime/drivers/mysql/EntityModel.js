@@ -240,7 +240,17 @@ class MySQLEntityModel extends EntityModel {
     static async _internalAfterUpdateMany_(context) {
         if (context.options.$retrieveDbResult) {
             context.rawOptions.$result = context.result;
-            console.log('afterUpdateMany', context.result);
+
+            /**
+             * afterUpdateMany ResultSetHeader {
+             * fieldCount: 0,
+             * affectedRows: 1,
+             * insertId: 0,
+             * info: 'Rows matched: 1  Changed: 1  Warnings: 0',
+             * serverStatus: 3,
+             * warningStatus: 0,
+             * changedRows: 1 }
+             */
         }
 
         if (context.options.$retrieveUpdated) {    
