@@ -1,3 +1,5 @@
+const { waitUntil_ } = require('rk-utils');
+
 class Bulk {
     constructor(limit, bulkAction, total) {
         this.limit = limit; 
