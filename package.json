@@ -69,6 +69,7 @@
     "require-self": "^0.2.1",
     "rk-utils": "^2.2.4",
     "shelljs": "^0.8.2",
+    "shortid": "^2.2.14",
     "should": "^13.2.3",
     "source-map-support": "^0.5.9",
     "supertest": "^3.3.0",

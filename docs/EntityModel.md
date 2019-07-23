@@ -25,6 +25,12 @@ There are predefined context properties which can be accessed in an entity opera
 * schemas - Access other schema models in the same application
 * state - Current request state
 
+## opertion helper
+
+queryFunction
+queryBinExpr
+queryColumn
+
 ## operation options
 
 * connector - Transaction connector.
