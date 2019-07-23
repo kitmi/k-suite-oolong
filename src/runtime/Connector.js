@@ -81,6 +81,19 @@ class Connector {
     }
 
     /**
+     * Get the connection without credential information, usually used for displaying.
+     * @returns {string}
+     */
+    getConnectionStringWithoutCredential() {
+        let url = new URL(this.connectionString);
+        
+        url.username = '';
+        url.password = '';
+
+        return url.href;
+    }
+
+    /**
      * Database name.
      * @member {string}
      */
