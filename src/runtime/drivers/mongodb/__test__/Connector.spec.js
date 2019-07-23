@@ -83,6 +83,29 @@ describe.only('unit:connector:mongodb', function () {
 
             allUpdated.length.should.be.exactly(3);
 
+            await connector.insertManyIfNotExist_('test_crud', [{
+                _id: Generators.shortid(),
+                key: 20,
+                tag: 'upsertMany'
+            }, {
+                _id: Generators.shortid(),
+                key: 30,
+                tag: 'upsertMany'
+            }, {
+                _id: Generators.shortid(),
+                key: 50,
+                tag: 'upsertMany'
+            }], [ 'key' ]);
+
+            let partialUpdated = await connector.findAll_('test_crud', {                
+                tag: 'upsertMany'
+            });
+
+            partialUpdated.length.should.be.exactly(4);
+
+            partialUpdated[0]._id.should.be.equal(id1);
+            partialUpdated[1]._id.should.be.equal(id2);
+            partialUpdated[2]._id.should.be.equal(id3);
         });
     });
 });

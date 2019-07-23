@@ -1,12 +1,12 @@
 class Bulk {
-    constructor(limit, bulkAction, onProgress, total) {
+    constructor(limit, bulkAction, total) {
         this.limit = limit; 
         this.itemsTotal = total;
         this.bulkAction = bulkAction;
-        this.onProgress = onProgress;
 
         this.itemsPending = 0;
         this.itemsDone = 0;
+        this.itemsError = 0;
         this._buffer = [];              
     }
 
@@ -23,6 +23,13 @@ class Bulk {
 
                 if (this.onProgress) {
                     this.onProgress(this.itemsPending, this.itemsDone, this.itemsTotal);
+                }
+            }).catch(error => {
+                this.itemsDone += l;
+                this.itemsError += l;
+
+                if (this.onError) {
+                    this.onError(error, this.itemsError);
                 }
             });
         }
