@@ -151,9 +151,9 @@ class MongodbConnector extends Connector {
      * @param {object} data - Array of record with _id
      * @param {*} options 
      */
-    async upsertMany_(model, data, options) { 
+    async upsertMany_(model, data, uniqueKeys, options) { 
         let ops = data.map(record => ({
-            updateOne: { filter: { _id: record._id }, update: { $set: record }, upsert: true }
+            updateOne: { filter: { ..._.pick(record, uniqueKeys) }, update: { $set: _.omit(record, ['_id']), $setOnInsert: { _id: record._id } }, upsert: true }
         }));
 
         return this.onCollection_(model, (coll) => coll.bulkWrite(ops, { bypassDocumentValidation: true, ordered: false, ...options }));
