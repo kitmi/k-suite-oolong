@@ -142,7 +142,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async upsertOne_(model, data, condition, options) { 
-        return this.onCollection_(model, (coll) => coll.updateOne(condition, { $set: _.omit(data, ['_id']) }, { ...options, upsert: true }));
+        return this.onCollection_(model, (coll) => coll.updateOne(condition, { $set: _.omit(data, ['_id']), $setOnInsert: _.pick(record, ['_id']) }, { ...options, upsert: true }));
     }
 
     /**
@@ -153,7 +153,7 @@ class MongodbConnector extends Connector {
      */
     async upsertMany_(model, data, uniqueKeys, options) { 
         let ops = data.map(record => ({
-            updateOne: { filter: { ..._.pick(record, uniqueKeys) }, update: { $set: _.omit(record, ['_id']), $setOnInsert: { _id: record._id } }, upsert: true }
+            updateOne: { filter: { ..._.pick(record, uniqueKeys) }, update: { $set: _.omit(record, ['_id']), $setOnInsert: _.pick(record, ['_id']) }, upsert: true }
         }));
 
         return this.onCollection_(model, (coll) => coll.bulkWrite(ops, { bypassDocumentValidation: true, ordered: false, ...options }));
