@@ -34,13 +34,70 @@ describe.only('unit:connector:mongodb', function () {
     });
 
     describe('crud', function () {
+        it('upsert one', async function () {
+            let retDel = await connector.deleteMany_('test_crud', {                
+                tag: 'upsertOne'
+            });
+
+            retDel.result.ok.should.be.exactly(1);
+
+            let empty = await connector.findAll_('test_crud', {                
+                tag: 'upsertOne'
+            });
+
+            empty.length.should.be.exactly(0);
+
+            let id1 = Generators.shortid();
+
+            let ret = await connector.upsertOne_('test_crud', {
+                _id: id1,
+                key: 10,
+                tag: 'upsertOne'
+            }, { key: 10 });
+
+            ret.result.ok.should.be.exactly(1);
+
+            let oneRecord = await connector.findAll_('test_crud', {                
+                tag: 'upsertOne'
+            });
+
+            oneRecord.length.should.be.exactly(1);
+            oneRecord[0]._id.should.be.equal(id1);
+
+            await connector.upsertOne_('test_crud', {
+                _id: Generators.shortid(),
+                key: 20,
+                tag: 'upsertOne'
+            }, { key: 10 });
+
+            oneRecord = await connector.findAll_('test_crud', {                
+                tag: 'upsertOne'
+            });
+
+            oneRecord.length.should.be.exactly(1);
+            oneRecord[0]._id.should.be.equal(id1);
+            
+            let id2 = Generators.shortid();
+
+            await connector.upsertOne_('test_crud', {
+                _id: id2,
+                key: 10,
+                tag: 'upsertOne'
+            }, { key: 20 });
+
+            let multiRecords = await connector.findAll_('test_crud', {                
+                tag: 'upsertOne'
+            });     
+            
+            multiRecords.length.should.be.exactly(2);
+        });
+
         it('upsert many', async function () {
             let retDel = await connector.deleteMany_('test_crud', {                
                 tag: 'upsertMany'
             });
 
             retDel.result.ok.should.be.exactly(1);
-
 
             let empty = await connector.findAll_('test_crud', {                
                 tag: 'upsertMany'

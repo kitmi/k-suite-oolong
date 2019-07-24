@@ -142,7 +142,17 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async upsertOne_(model, data, condition, options) { 
-        return this.onCollection_(model, (coll) => coll.updateOne(condition, { $set: _.omit(data, ['_id']), $setOnInsert: _.pick(data, ['_id']) }, { ...options, upsert: true }));
+        let { _id, ...updateData } = data;
+
+        let updateOp = {
+            $set: updateData
+        };
+
+        if (_id) {
+            updateOp.$setOnInsert = { _id };
+        }
+
+        return this.onCollection_(model, (coll) => coll.updateOne(condition, updateOp, { bypassDocumentValidation: true, ...options, upsert: true }));
     }
 
     /**
@@ -152,9 +162,21 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async upsertMany_(model, data, uniqueKeys, options) { 
-        let ops = data.map(record => ({
-            updateOne: { filter: { ..._.pick(record, uniqueKeys) }, update: { $set: _.omit(record, ['_id']), $setOnInsert: _.pick(record, ['_id']) }, upsert: true }
-        }));
+        let ops = data.map(record => {
+            let { _id, ...updateData } = record;
+
+            let updateOp = {
+                $set: updateData
+            };
+
+            if (_id) {
+                updateOp.$setOnInsert = { _id };
+            }
+
+            return {
+                updateOne: { filter: { ..._.pick(record, uniqueKeys) }, update: updateOp, upsert: true }
+            };
+        });
 
         return this.onCollection_(model, (coll) => coll.bulkWrite(ops, { bypassDocumentValidation: true, ordered: false, ...options }));
     }
@@ -227,25 +249,29 @@ class MongodbConnector extends Connector {
             let query = {};
 
             if (condition) {
-                if (condition.$projection) {
-                    queryOptions.projection = condition.$projection;                
+                let { $projection, $orderBy, $offset, $limit, $query, ...others } = condition;
+
+                if ($projection) {
+                    queryOptions.projection = $projection;                
                 }
 
-                if (condition.$orderBy) {
-                    queryOptions.sort = condition.$orderBy;                
+                if ($orderBy) {
+                    queryOptions.sort = $orderBy;                
                 }
 
-                if (condition.$offset) {
-                    queryOptions.skip = condition.$offset;                
+                if ($offset) {
+                    queryOptions.skip = $offset;                
                 }
 
-                if (condition.$limit) {
-                    queryOptions.limit = condition.$limit;                
+                if ($limit) {
+                    queryOptions.limit = $limit;                
                 }
 
-                if (condition.$query) {
-                    query = condition.$query;
-                }
+                Object.assign(query, others);
+
+                if ($query) {
+                    Object.assign(query, $query);
+                } 
             }
 
             let result = await coll.find(query, queryOptions).toArray();
