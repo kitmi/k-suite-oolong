@@ -142,7 +142,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async upsertOne_(model, data, condition, options) { 
-        return this.onCollection_(model, (coll) => coll.updateOne(condition, { $set: data }, { ...options, upsert: true }));
+        return this.onCollection_(model, (coll) => coll.updateOne(condition, { $set: _.omit(data, ['_id']) }, { ...options, upsert: true }));
     }
 
     /**
