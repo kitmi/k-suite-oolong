@@ -1,4 +1,4 @@
-const { _ } = require('rk-utils');
+const { _, waitUntil_ } = require('rk-utils');
 const { tryRequire } = require('@k-suite/app/lib/utils/Helpers');
 const mongodb = tryRequire('mongodb');
 const MongoClient = mongodb.MongoClient;
@@ -141,15 +141,62 @@ class MongodbConnector extends Connector {
      * @param {*} condition 
      * @param {*} options 
      */
-    async upsertOne_(model, data, condition, options) { 
-        let { _id, ...updateData } = data;
+    async upsertOne_(model, data, condition, options, retry) { 
+        //walk around mongodb failed to setOnInsert with _id
 
-        let updateOp = {
-            $set: updateData
-        };
+        return this.onCollection_(model, async (coll) => {
+            
+            let current = await coll.findOneAndUpdate(condition, { $set: { __lock: true } });
+            
+            if (current.value) {
+                return coll.updateOne({ _id: current.value._id }, { $set: _.omit(data, [ '_id' ]) }, { bypassDocumentValidation: true, ...options });    
+            } else {
+                try { 
+                    return await coll.insertOne(data, { bypassDocumentValidation: true, ...options });
+                } catch (error) {                    
+                    if (!retry && error.message.startsWith('E11000 duplicate key error')) {
+                        return this.upsertOne_(model, data, condition, options, true);
+                    }
 
-        return this.onCollection_(model, (coll) => coll.updateOne(condition, updateOp, { bypassDocumentValidation: true, ...options, upsert: true }));
+                    throw error;
+                }
+            }
+            
+
+            /*           
+
+            //if (current.lastErrorObject && current.lastErrorObject.updatedExisting)
+
+            let { _id, ...updateData } = data;
+    
+            let updateOp = {
+                $set: updateData
+            };
+
+            if (_id) {
+                updateOp.$setOnInsert = { _id };
+            }
+
+            console.log(updateOp);
+
+            let ops = [{
+                updateOne: { filter: { _id: current._id }, update: updateOp, upsert: true }
+            }];
+                
+            return coll.bulkWrite(ops, { bypassDocumentValidation: true, ordered: false, ...options });
+            */
+        });        
     }
+
+    /**
+    async _spinLock_(model, condition) {
+        return waitUntil_(async () => {
+            let current = await coll.findOneAndUpdate(condition, { $set: { __lock: true } });
+            if (current.)
+
+
+        }, 1, 5000);        
+    } */
 
     /**
      * Update many entities.
