@@ -44,7 +44,7 @@ const Validators = require('../runtime/Validators');
     return eachAsync_(dataList, async line => {
         line = line.trim();
 
-        if (line.length > 0) {
+        if (line.length > 0 && line[0] !== '#') {
             let dataFile = path.join(dataSetPath, line);
             if (!fs.existsSync(dataFile)) {
                 throw new Error(`Data file "${dataFile}" not found.`);

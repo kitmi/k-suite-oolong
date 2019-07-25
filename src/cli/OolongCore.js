@@ -192,7 +192,12 @@ class OolongCore {
                 'mailer',                
                 'settings',
                 'timezone',
-                'version'
+                'version',
+                'restClient',
+                'simpleCrawler',
+                'soapClient',
+                'oolong',
+                'dataSource'
             ]
         });
 

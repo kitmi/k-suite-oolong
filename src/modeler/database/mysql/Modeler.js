@@ -498,8 +498,6 @@ class MySQLModeler {
                         this.logger.log('debug', `New entity "${connEntity.name}" added by association.`);
                     }
 
-                    this._updateRelationEntity(connEntity, entity, destEntity, entity.name, destEntityName, connectedByField, destEntityNameAsFieldName);
-                    
                     //todo: get back ref from connection entity
                     let connBackRef1 = connEntity.getReferenceTo(entity.name, { type: 'refersTo', srcField: (f) => _.isNil(f) || f == connectedByField });
 
@@ -523,6 +521,8 @@ class MySQLModeler {
                             by: connectedByField
                         }));
                     }          
+
+                    this._updateRelationEntity(connEntity, entity, destEntity, entity.name, destEntityName, connectedByField, connectedByField2);                                       
 
                     let localFieldName = assoc.srcField || pluralize(destEntityNameAsFieldName);
 
