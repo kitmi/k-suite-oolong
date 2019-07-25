@@ -13,6 +13,7 @@ class MySQLMigration {
      * @param {Connector} connector
      */
     constructor(context, schemaName, connector) {
+        this.appModule = context.appModule;
         this.logger = context.logger;
         this.modelPath = context.modelPath;
         this.scriptSourcePath = context.scriptSourcePath;
@@ -115,6 +116,9 @@ class MySQLMigration {
             });
 
             await this._loadMultiEntityRecords_(data);
+        } else if (ext === '.js') {           
+            let executor = require(dataFile);
+            await executor(this.appModule, this.connector);
         } else {
             throw new Error('Unsupported data file format.');
         }

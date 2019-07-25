@@ -148,10 +148,6 @@ class MongodbConnector extends Connector {
             $set: updateData
         };
 
-        if (_id) {
-            updateOp.$setOnInsert = { _id };
-        }
-
         return this.onCollection_(model, (coll) => coll.updateOne(condition, updateOp, { bypassDocumentValidation: true, ...options, upsert: true }));
     }
 
@@ -267,7 +263,7 @@ class MongodbConnector extends Connector {
                     queryOptions.limit = $limit;                
                 }
 
-                Object.assign(query, others);
+                Object.assign(query, _.pickBy(others, (v,k) => k[0] !== '$'));
 
                 if ($query) {
                     Object.assign(query, $query);

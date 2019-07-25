@@ -191,6 +191,7 @@ exports.migrate = async (core) => {
     let useJsonSource = Util.getValueByPath(oolongConfig, 'oolong.useJsonSource', false);
 
     return core.api.migrate_({
+        appModule: core.container,
         logger: core.app.logger,
         modelPath,
         dslSourcePath,        

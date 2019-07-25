@@ -13,6 +13,7 @@ class MongoDbMigration {
      * @param {Connector} connector
      */
     constructor(context, schemaName, connector) {
+        this.appModule = context.appModule;
         this.logger = context.logger;
         this.modelPath = context.modelPath;
         this.scriptSourcePath = context.scriptSourcePath;
@@ -40,7 +41,7 @@ class MongoDbMigration {
             await this._loadData_(collection, docs);
         } else if (ext === '.js') {           
             let executor = require(dataFile);
-            await executor( this.connector);
+            await executor(this.appModule, this.connector);
         } else {
             throw new Error('Unsupported data file format.');
         }
