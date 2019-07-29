@@ -56,7 +56,6 @@ class MySQLConnector extends Connector {
 
         return eachAsync_(this._pools, async (pool, cs) => {
             await pool.end();
-            this.log('debug', 'Closed pool: ' + cs);
         });
     }
 
@@ -88,14 +87,10 @@ class MySQLConnector extends Connector {
         if (!pool) {                        
             pool = mysql.createPool(csKey);
             this._pools[csKey] = pool;
-
-            this.log('debug', 'Created pool: ' + csKey);
         }        
 
         let conn = await pool.getConnection();
         this._acitveConnections.set(conn, csKey);
-
-        //this.log('debug', 'Create connection: ' + csKey);
         
         return conn;
     }
@@ -107,8 +102,7 @@ class MySQLConnector extends Connector {
     async disconnect_(conn) {        
         let cs = this.stringFromConnection(conn);
         this._acitveConnections.delete(conn);
-
-        //this.log('debug', 'Close connection: ' + (cs || '*unknown*'));        
+        
         return conn.release();     
     }
 

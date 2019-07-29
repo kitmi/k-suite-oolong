@@ -75,6 +75,7 @@ class MySQLMigration {
 
     async load_(dataFile) {
         let ext = path.extname(dataFile);
+        this.logger.log('verbose', `Loading data file "${dataFile}" ...`);
 
         if (ext === '.json') {
             let data = fs.readJsonSync(dataFile, {encoding: 'utf8'});

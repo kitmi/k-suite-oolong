@@ -33,6 +33,8 @@ class MongoDbMigration {
 
     async load_(dataFile) {
         let ext = path.extname(dataFile);
+        this.logger.log('verbose', `Loading data file "${dataFile}" ...`);
+        
         let collection = path.basename(dataFile, ext);
 
         if (ext === '.json') {
