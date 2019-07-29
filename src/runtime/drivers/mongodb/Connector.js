@@ -1,7 +1,7 @@
 const { _, waitUntil_ } = require('rk-utils');
 const { tryRequire } = require('@k-suite/app/lib/utils/Helpers');
 const mongodb = tryRequire('mongodb');
-const MongoClient = mongodb.MongoClient;
+const { MongoClient, GridFSBucket } = mongodb;
 const Connector = require('../../Connector');
 
 /**
@@ -73,6 +73,19 @@ class MongodbConnector extends Connector {
         return this.execute_(db => {
             return db.listCollections(null, { nameOnly: true }).toArray();
         });  
+    }
+
+    /**
+     * @param {object} [options] - Optional settings.
+     * @property {string} [options.bucketName='fs'] - The 'files' and 'chunks' collections will be prefixed with the bucket name followed by a dot.
+     * @property {number} [options.chunkSizeBytes] - Number of bytes stored in each chunk. Defaults to 255KB
+     * @property {object} [options.writeConcern]
+     * @property {object} [options.readPreference]
+     */
+    async createGridFSBucket_(options) {
+        let db = await this.connect_();
+
+        return new GridFSBucket(db, options);
     }
 
     /**

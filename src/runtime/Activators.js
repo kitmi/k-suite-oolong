@@ -1,7 +1,7 @@
 "use strict";
 
 const { _ } = require('rk-utils');
-const { OolongUsageError } = require('./Errors');
+const { OolongUsageError, BusinessError } = require('./Errors');
 
 module.exports = {
     datetimeAdd: function (model, context, startTime, duration) {
@@ -66,6 +66,10 @@ module.exports = {
                 await model.ensureTransaction_(context);
 
                 remoteEntity = await model.db.model(assocMeta.entity).findOne_(findOptions, context.connOptions);
+            }
+
+            if (!remoteEntity) {
+                throw new BusinessError(`Unable to find the "${assocMeta.entity}" with [${assocMeta.key}=${assocValue}].`);
             }
 
             context.populated || (context.populated = {});
