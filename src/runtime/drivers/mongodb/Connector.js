@@ -4,6 +4,10 @@ const mongodb = tryRequire('mongodb');
 const { MongoClient, GridFSBucket } = mongodb;
 const Connector = require('../../Connector');
 
+const UpdateOpsField = [ '$currentDate', '$inc', '$min', '$max', '$mul', '$rename', '$set', '$setOnInsert', '$unset' ];
+const UpdateOpsArray = [ '$addToSet', '$pop', '$pull', '$push', '$pullAll' ];
+const UpdateOps = UpdateOpsField.concat(UpdateOpsArray);
+
 /**
  * Mongodb data storage connector.
  * @class
@@ -144,7 +148,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async updateOne_(model, data, condition, options) { 
-        return this.onCollection_(model, (coll) => coll.updateOne(condition, { $set: data }, options));
+        return this.onCollection_(model, (coll) => coll.updateOne(condition, this._translateUpdate(data), options));
     }
 
     /**
@@ -260,7 +264,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async updateMany_(model, data, condition, options) { 
-        return this.onCollection_(model, (coll) => coll.updateMany(condition, { $set: data }, options));
+        return this.onCollection_(model, (coll) => coll.updateMany(condition, this._translateUpdate(data), options));
     }
 
     /**
@@ -343,6 +347,19 @@ class MongodbConnector extends Connector {
 
     async onCollection_(model, executor) {
         return this.execute_(db => executor(db.collection(model)));
+    }
+
+    _translateUpdate(update) {
+        let ops = _.pick(update, UpdateOps);
+        let others = _.omit(update, UpdateOps);
+
+        if (ops.$set) {
+            ops.$set = { ...ops.$set, ...others };
+        } else {
+            ops.$set = others;
+        }
+
+        return ops;
     }
 }
 
