@@ -355,7 +355,7 @@ class MongodbConnector extends Connector {
 
         if (ops.$set) {
             ops.$set = { ...ops.$set, ...others };
-        } else {
+        } else if (!_.isEmpty(others)) {
             ops.$set = others;
         }
 
