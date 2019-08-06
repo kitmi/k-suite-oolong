@@ -129,7 +129,7 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async findOneAndUpdate_(model, data, condition, options) {     
-        return this.onCollection_(model, (coll) => coll.findOneAndUpdate(condition, { $set: data }, options));
+        return this.onCollection_(model, (coll) => coll.findOneAndUpdate(condition, this._translateUpdate(data), options));
     }
 
     async findOneAndDelete_(model, condition, options) {
