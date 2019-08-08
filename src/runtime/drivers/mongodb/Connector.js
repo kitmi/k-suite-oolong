@@ -30,7 +30,7 @@ class MongodbConnector extends Connector {
      */
     async end_() {
         if (this.client && this.client.isConnected()) {
-            this.client.close();
+            await this.client.close();
         }
 
         delete this.client;
@@ -162,58 +162,40 @@ class MongodbConnector extends Connector {
         //walk around mongodb failed to setOnInsert with _id
 
         return this.onCollection_(model, async (coll) => {
-            
-            let current = await coll.findOneAndUpdate(condition, { $set: { __lock: true } });
-            
-            if (current.value) {
-                return coll.updateOne({ _id: current.value._id }, { $set: _.omit(data, [ '_id' ]) }, { bypassDocumentValidation: true, ...options });    
-            } else {
+
+            let current, locked = false;
+
+            try {
+                do {
+                    current = await coll.findOneAndUpdate(condition, { $set: { __lock__: true } });
+                } while (current.value && current.value.__lock__);
+
+                if (current.value) {
+                    locked = true;
+                    
+                    return await coll.updateOne({ _id: current.value._id }, { $set: _.omit(data, [ '_id' ]), $unset: { __lock__: "" } }, { bypassDocumentValidation: true, ...options });    
+                } 
+
                 try { 
                     return await coll.insertOne(data, { bypassDocumentValidation: true, ...options });
-                } catch (error) {                    
-                    if (!retry && error.message.startsWith('E11000 duplicate key error')) {
+                } catch (error2) {                    
+                    if (!retry && error2.message.startsWith('E11000 duplicate key error')) {
                         return this.upsertOne_(model, data, condition, options, true);
                     }
 
-                    throw error;
+                    throw error2;
                 }
-            }
-            
 
-            /*           
-
-            //if (current.lastErrorObject && current.lastErrorObject.updatedExisting)
-
-            let { _id, ...updateData } = data;
-    
-            let updateOp = {
-                $set: updateData
-            };
-
-            if (_id) {
-                updateOp.$setOnInsert = { _id };
-            }
-
-            console.log(updateOp);
-
-            let ops = [{
-                updateOne: { filter: { _id: current._id }, update: updateOp, upsert: true }
-            }];
+            } catch (error) {
                 
-            return coll.bulkWrite(ops, { bypassDocumentValidation: true, ordered: false, ...options });
-            */
+                if (locked) {
+                    await coll.updateOne({ _id: current.value._id }, { $unset: { __lock__: "" } });    
+                }
+
+                throw error;
+            }
         });        
     }
-
-    /**
-    async _spinLock_(model, condition) {
-        return waitUntil_(async () => {
-            let current = await coll.findOneAndUpdate(condition, { $set: { __lock: true } });
-            if (current.)
-
-
-        }, 1, 5000);        
-    } */
 
     /**
      * Update many entities.

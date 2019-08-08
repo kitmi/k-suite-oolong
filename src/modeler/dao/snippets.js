@@ -449,29 +449,72 @@ const _fieldRequirementCheck = (fieldName, references, content, requireTargetFie
             "body": checks.concat(content)
         },
         "alternate": null
-    } : {
+    } : 
+    { // for activator
         "type": "IfStatement",
         "test": {
-            "type": "CallExpression",
-            "callee": {
-                "type": "Identifier",
-                "name": "isNothing"
-            },
-            "arguments": [
-                {
-                    "type": "MemberExpression",
-                    "computed": true,
-                    "object": {
-                        "type": "Identifier",
-                        "name": "latest"
-                    },
-                    "property": {
-                        "type": "Literal",
-                        "value": fieldName,
-                        "raw": quote(fieldName, "'")
+            "type": "LogicalExpression",
+            "operator": "&&",
+            "left": {
+                "type": "CallExpression",
+                "callee": {
+                    "type": "Identifier",
+                    "name": "isNothing"
+                },
+                "arguments": [
+                    {
+                        "type": "MemberExpression",
+                        "computed": true,
+                        "object": {
+                            "type": "Identifier",
+                            "name": "latest"
+                        },
+                        "property": {
+                            "type": "Literal",
+                            "value": fieldName,
+                            "raw": quote(fieldName, "'")
+                        }
                     }
+                ]
+            },
+            "right": {
+                "type": "LogicalExpression",
+                "operator": "||",
+                "left": {
+                    "type": "UnaryExpression",
+                    "operator": "!",
+                    "argument": {
+                        "type": "Identifier",
+                        "name": "isUpdating"
+                    },
+                    "prefix": true
+                },
+                "right": {
+                    "type": "CallExpression",
+                    "callee": {
+                        "type": "MemberExpression",
+                        "computed": false,
+                        "object": {
+                            "type": "ThisExpression"
+                        },
+                        "property": {
+                            "type": "Identifier",
+                            "name": "_dependencyChanged"
+                        }
+                    },
+                    "arguments": [
+                        {
+                            "type": "Literal",
+                            "value": "fileName",
+                            "raw": "'fileName'"
+                        },
+                        {
+                            "type": "Identifier",
+                            "name": "latest"
+                        }
+                    ]
                 }
-            ]
+            }
         },
         "consequent": {
             "type": "BlockStatement",

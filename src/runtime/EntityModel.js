@@ -736,7 +736,7 @@ class EntityModel {
 
         let opOptions = context.options;
 
-        if (isUpdating && !existing && (this._dependsOnExistingData(raw) || opOptions.$retrieveExisting)) {
+        if (isUpdating && _.isEmpty(existing) && (this._dependsOnExistingData(raw) || opOptions.$retrieveExisting)) {
             await this.ensureTransaction_(context);          
 
             if (forSingleRecord) {
@@ -938,6 +938,11 @@ class EntityModel {
 
             throw error;
         } 
+    }
+
+    static _dependencyChanged(fieldName, latest) {
+        let deps = this.meta.fieldDependencies[fieldName];
+        return _.find(deps, d => d in latest);
     }
 
     static _dependsOnExistingData(input) {

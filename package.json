@@ -75,7 +75,8 @@
     "source-map-support": "^0.5.9",
     "supertest": "^3.3.0",
     "swig-templates": "^2.0.3",
-    "uniqid": "^5.0.3"
+    "uniqid": "^5.0.3",
+    "why-is-node-running": "^2.1.0"
   },
   "dependencies": {
     "escodegen": "^1.11.0",

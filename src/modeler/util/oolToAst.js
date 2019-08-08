@@ -36,9 +36,9 @@ const OOL_MODIFIER_CODE_FLAG = {
 };
 
 const OOL_MODIFIER_OP = {
-    [OolTypes.Modifier.VALIDATOR]: '~',
+    [OolTypes.Modifier.VALIDATOR]: '|~',
     [OolTypes.Modifier.PROCESSOR]: '|>',
-    [OolTypes.Modifier.ACTIVATOR]: '=' 
+    [OolTypes.Modifier.ACTIVATOR]: '|=' 
 };
 
 const OOL_MODIFIER_PATH = {

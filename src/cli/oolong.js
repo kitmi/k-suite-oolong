@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
+if (process.env.DIAG_HANDLE) {
+    const diagLog = require('why-is-node-running');
+    setTimeout(function () {
+        diagLog() // logs out active handles that are keeping node running
+    }, 300000);
+}
+
 const CliApp = require('@k-suite/app');
 const winston = require('winston');
 const { combine, timestamp, colorize, json, simple } = winston.format;

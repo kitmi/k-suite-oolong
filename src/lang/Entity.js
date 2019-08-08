@@ -88,6 +88,10 @@ class Entity extends Clonable {
 
         this.linker.log('debug', 'Linking entity [' + this.name + '] ...');
 
+        if (this.info.code) {
+            this.code = this.info.code || this.name;
+        }
+
         if (this.info.base) {
             //inherit fields, processed features, key and indexes
             let baseClasses = _.castArray(this.info.base);
@@ -467,6 +471,7 @@ class Entity extends Clonable {
 
         let entity = new Entity(this.linker, this.name, this.oolModule, this.info);        
 
+        deepCloneField(this, entity, 'code');
         deepCloneField(this, entity, 'displayName');
         deepCloneField(this, entity, 'comment');
         deepCloneField(this, entity, 'features');
@@ -487,7 +492,8 @@ class Entity extends Clonable {
      */
     toJSON() {
         return {            
-            name: this.name,            
+            name: this.name,     
+            code: this.code,            
             displayName: this.displayName,
             comment: this.comment,            
             ...(this.baseClasses ? { baseClasses: this.baseClasses } : {}),

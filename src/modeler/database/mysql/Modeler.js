@@ -83,7 +83,12 @@ class MySQLModeler {
         let initFilePath = path.join(sqlFilesDir, 'data', '_init', zeroInitFile);
         let tableSQL = '', relationSQL = '', data = {};
 
+        let mapOfEntityNameToCodeName = {};
+
         _.each(modelingSchema.entities, (entity, entityName) => {
+            assert: entityName === entity.name;
+            mapOfEntityNameToCodeName[entityName] = entity.code;
+
             entity.addIndexes();
 
             let result = MySQLModeler.complianceCheck(entity);
@@ -107,7 +112,7 @@ class MySQLModeler {
                 });
             }            
 
-            tableSQL += this._createTableStatement(entityName, entity) + '\n';
+            tableSQL += this._createTableStatement(entityName, entity, mapOfEntityNameToCodeName) + '\n';
 
             if (entity.info.data) {
                 //intiSQL += `-- Initial data for entity: ${entityName}\n`;
@@ -117,8 +122,7 @@ class MySQLModeler {
                     entity.info.data.forEach(record => {
                         if (!_.isPlainObject(record)) {
                             let fields = Object.keys(entity.fields);
-                            if (fields.length !== 2) {
-                                console.log(entity.info.data);
+                            if (fields.length !== 2) {                                
                                 throw new Error(`Invalid data syntax: entity "${entity.name}" has more than 2 fields.`);
                             }
 
@@ -157,7 +161,7 @@ class MySQLModeler {
 
         _.forOwn(this._references, (refs, srcEntityName) => {
             _.each(refs, ref => {
-                relationSQL += this._addForeignKeyStatement(srcEntityName, ref, schemaToConnector) + '\n';
+                relationSQL += this._addForeignKeyStatement(srcEntityName, ref, schemaToConnector, mapOfEntityNameToCodeName) + '\n';
             });
         });
 
@@ -818,8 +822,6 @@ class MySQLModeler {
                 break;
 
             case 'changeLog':
-                console.log(schema.deploymentSettings);
-
                 let changeLogSettings = Util.getValueByPath(schema.deploymentSettings, 'features.changeLog');
 
                 if (!changeLogSettings) {
@@ -1075,8 +1077,8 @@ class MySQLModeler {
         return [ colList, alias, joins, startIndex ];
     }*/
 
-    _createTableStatement(entityName, entity) {
-        let sql = 'CREATE TABLE IF NOT EXISTS `' + entityName + '` (\n';
+    _createTableStatement(entityName, entity, mapOfEntityNameToCodeName) {
+        let sql = 'CREATE TABLE IF NOT EXISTS `' + mapOfEntityNameToCodeName[entityName] + '` (\n';
 
         //column definitions
         _.each(entity.fields, (field, name) => {
@@ -1121,19 +1123,19 @@ class MySQLModeler {
         return sql;
     }
     
-    _addForeignKeyStatement(entityName, relation, schemaToConnector) {
+    _addForeignKeyStatement(entityName, relation, schemaToConnector, mapOfEntityNameToCodeName) {
         let refTable = relation.right;
 
         if (refTable.indexOf('.') > 0) {
-            let [ schemaName, entityName ] = refTable.split('.');         
+            let [ schemaName, refEntityName ] = refTable.split('.');         
 
             let targetConnector = schemaToConnector[schemaName];
             assert: targetConnector;
 
-            refTable = targetConnector.database + '`.`' + entityName;
+            refTable = targetConnector.database + '`.`' + mapOfEntityNameToCodeName[refEntityName];
         }       
 
-        let sql = 'ALTER TABLE `' + entityName +
+        let sql = 'ALTER TABLE `' + mapOfEntityNameToCodeName[entityName] +
             '` ADD FOREIGN KEY (`' + relation.leftField + '`) ' +
             'REFERENCES `' + refTable + '` (`' + relation.rightField + '`) ';
 
