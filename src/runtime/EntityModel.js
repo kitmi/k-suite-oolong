@@ -1,7 +1,7 @@
 "use strict";
 
 const HttpCode = require('http-status-codes');
-const { _, eachAsync_, getValueByPath } = require('rk-utils');
+const { _, eachAsync_, getValueByPath, hasKeyByPath } = require('rk-utils');
 const Errors = require('./Errors');
 const Generators = require('./Generators');
 const Types = require('./types');
@@ -940,9 +940,20 @@ class EntityModel {
         } 
     }
 
-    static _dependencyChanged(fieldName, latest) {
+    static _dependencyChanged(fieldName, context) {
         let deps = this.meta.fieldDependencies[fieldName];
-        return _.find(deps, d => d in latest);
+
+        return _.find(deps, d => _.isPlainObject(d) ? hasKeyByPath(context, d.reference) : hasKeyByPath(context, d));
+    }
+
+    static _referenceExist(input, ref) {
+        let pos = ref.indexOf('.');
+
+        if (pos > 0) {
+            return ref.substr(pos+1) in input;
+        }
+
+        return ref in input;
     }
 
     static _dependsOnExistingData(input) {
@@ -950,20 +961,35 @@ class EntityModel {
         let deps = this.meta.fieldDependencies;
         let hasDepends = false;
 
-        if (deps) {            
-            hasDepends = _.find(deps, (dep, fieldName) => {
-                if (fieldName in input) {
-                    return _.find(dep, d => {
-                        let [ stage, field ] = d.split('.');
-                        return (stage === 'latest' || stage === 'existng') && _.isNil(input[field]);
-                    });
-                }
+        if (deps) {           
+            let nullDepends = new Set();
+            
+            hasDepends = _.find(deps, (dep, fieldName) => 
+                _.find(dep, d => {
+                    if (_.isPlainObject(d)) {
+                        if (d.whenNull) {
+                            if (_.isNil(input[fieldName])) {
+                                nullDepends.add(dep);
+                            }
 
-                return false;
-            });
+                            return false;
+                        }
+
+                        d = d.reference;
+                    }
+
+                    return fieldName in input && !this._referenceExist(input, d);
+                })
+            );
 
             if (hasDepends) {
                 return true;
+            }
+
+            for (let dep of nullDepends) {
+                if (_.find(dep, d => !this._referenceExist(input, d.reference))) {
+                    return true;
+                }
             }
         }
 

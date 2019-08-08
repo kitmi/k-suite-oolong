@@ -344,6 +344,7 @@ const _fieldRequirementCheck = (fieldName, references, content, requireTargetFie
         }
     ] : [];
 
+    /*
     references.forEach(ref => {
         let refThrowMessage = `Missing "${ref}" value, which is a dependency of "${fieldName}".`;
 
@@ -414,6 +415,7 @@ const _fieldRequirementCheck = (fieldName, references, content, requireTargetFie
             "alternate": null
         });
     });
+    */
     
     return requireTargetField ? {
         "type": "IfStatement",
@@ -505,12 +507,12 @@ const _fieldRequirementCheck = (fieldName, references, content, requireTargetFie
                     "arguments": [
                         {
                             "type": "Literal",
-                            "value": "fileName",
-                            "raw": "'fileName'"
+                            "value": fieldName,
+                            "raw": quote(fieldName, "'")
                         },
                         {
                             "type": "Identifier",
-                            "name": "latest"
+                            "name": "context"
                         }
                     ]
                 }

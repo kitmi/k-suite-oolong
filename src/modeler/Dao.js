@@ -412,7 +412,7 @@ class DaoModeler {
             OolToAst.dependsOn(compileContext, topoId, allFinished);
 
             if (field.writeOnce || field.freezeAfterNonDefault) {
-                putIntoBucket(fieldReferences, fieldName, fieldName);
+                putIntoBucket(fieldReferences, fieldName, { reference: fieldName, writeProtect: true });
             }
         });
 
@@ -457,13 +457,17 @@ class DaoModeler {
 
             let targetFieldName = getFieldName(sourceMap.target);            
 
-            if (sourceMap.references) {
+            if (sourceMap.references && sourceMap.references.length > 0) {
                 let fieldReference = fieldReferences[targetFieldName];
                 if (!fieldReference) {
                     fieldReferences[targetFieldName] = fieldReference = [];
                 }
 
-                sourceMap.references.forEach(ref => { if (fieldReference.indexOf(ref) === -1) fieldReference.push(ref); });
+                if (sourceMap.type === OolToAst.AST_BLK_ACTIVATOR_CALL) {
+                    sourceMap.references.forEach(ref => { fieldReference.push({ reference: ref, whenNull: true }); });
+                } else {
+                    sourceMap.references.forEach(ref => { if (fieldReference.indexOf(ref) === -1) fieldReference.push(ref); });
+                }
             }
 
             if (lastBlock) {
