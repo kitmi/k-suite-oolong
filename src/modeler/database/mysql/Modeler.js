@@ -83,11 +83,11 @@ class MySQLModeler {
         let initFilePath = path.join(sqlFilesDir, 'data', '_init', zeroInitFile);
         let tableSQL = '', relationSQL = '', data = {};
 
-        let mapOfEntityNameToCodeName = {};
+        //let mapOfEntityNameToCodeName = {};
 
         _.each(modelingSchema.entities, (entity, entityName) => {
             assert: entityName === entity.name;
-            mapOfEntityNameToCodeName[entityName] = entity.code;
+            //mapOfEntityNameToCodeName[entityName] = entity.code;
 
             entity.addIndexes();
 
@@ -112,7 +112,7 @@ class MySQLModeler {
                 });
             }            
 
-            tableSQL += this._createTableStatement(entityName, entity, mapOfEntityNameToCodeName) + '\n';
+            tableSQL += this._createTableStatement(entityName, entity/*, mapOfEntityNameToCodeName*/) + '\n';
 
             if (entity.info.data) {
                 //intiSQL += `-- Initial data for entity: ${entityName}\n`;
@@ -161,7 +161,7 @@ class MySQLModeler {
 
         _.forOwn(this._references, (refs, srcEntityName) => {
             _.each(refs, ref => {
-                relationSQL += this._addForeignKeyStatement(srcEntityName, ref, schemaToConnector, mapOfEntityNameToCodeName) + '\n';
+                relationSQL += this._addForeignKeyStatement(srcEntityName, ref, schemaToConnector/*, mapOfEntityNameToCodeName*/) + '\n';
             });
         });
 
@@ -1077,8 +1077,8 @@ class MySQLModeler {
         return [ colList, alias, joins, startIndex ];
     }*/
 
-    _createTableStatement(entityName, entity, mapOfEntityNameToCodeName) {
-        let sql = 'CREATE TABLE IF NOT EXISTS `' + mapOfEntityNameToCodeName[entityName] + '` (\n';
+    _createTableStatement(entityName, entity/*, mapOfEntityNameToCodeName*/) {
+        let sql = 'CREATE TABLE IF NOT EXISTS `' + entityName + '` (\n';
 
         //column definitions
         _.each(entity.fields, (field, name) => {
@@ -1123,7 +1123,7 @@ class MySQLModeler {
         return sql;
     }
     
-    _addForeignKeyStatement(entityName, relation, schemaToConnector, mapOfEntityNameToCodeName) {
+    _addForeignKeyStatement(entityName, relation, schemaToConnector/*, mapOfEntityNameToCodeName*/) {
         let refTable = relation.right;
 
         if (refTable.indexOf('.') > 0) {
@@ -1132,10 +1132,10 @@ class MySQLModeler {
             let targetConnector = schemaToConnector[schemaName];
             assert: targetConnector;
 
-            refTable = targetConnector.database + '`.`' + mapOfEntityNameToCodeName[refEntityName];
+            refTable = targetConnector.database + '`.`' + refEntityName;
         }       
 
-        let sql = 'ALTER TABLE `' + mapOfEntityNameToCodeName[entityName] +
+        let sql = 'ALTER TABLE `' + entityName +
             '` ADD FOREIGN KEY (`' + relation.leftField + '`) ' +
             'REFERENCES `' + refTable + '` (`' + relation.rightField + '`) ';
 
