@@ -126,7 +126,7 @@ class MySQLConnector extends Connector {
 
         await conn.beginTransaction();
         
-        this.log('debug', 'Begins a new transaction.');
+        this.log('verbose', 'Begins a new transaction.');
         return conn;
     }
 
@@ -137,7 +137,7 @@ class MySQLConnector extends Connector {
     async commit_(conn) {
         await conn.commit();
         
-        this.log('debug', 'Commits a transaction.');
+        this.log('verbose', 'Commits a transaction.');
         return this.disconnect_(conn);
     }
 
