@@ -1,121 +1,167 @@
 # @k-suite/oolong
 
-A full-stack (aimed to be full-stack) web/mobile application framework based on koa2. (ES7 required)
+## Get Started
 
-## 1. Concepts
+### Get a Model Class
 
-### Server
-A mowa server is a standalone node server acting as a hosting container for Mowa applications. It mounts applications to configured routes either under the same hostname or different hostnames. A server will dispatch a http request to hosted applications according to the server routing settings. It may have server-wide middlewares touching every requests before dispatching them to the right application.
+#### 1. From another model class 
 
-### Application
-A mowa application is a web module hosted by a mowa server. It mounts controllers or middlewares to configured routes. Currenlty, an application is not running in a totally separate sandbox in the hosting environment.
+```
+let User = this.db.model('User');
+```
 
-### Controller
-A mowa controller is a plain object exported by a JavaScript module containing several actions to handle web requests and response to the reqeusting client.
+#### 2. From appModule 
 
-### Action
-A mowa action is a koa2-styled action which is a async function and handles one client request at a time. Besides all the koa context, the code in a mowa action can also access the appModule object which represents the instance of the application.
+```
+let app = ctx.appModule;
+let User = app.model('schemaName.User');
+let User = app.db('schemaName').model('User');
+```
 
-	async (ctx, next) => {
-    	...
-    }
+------
 
-### Feature
-A feature is a configuratin-driven functional module of the server or an application. Built-in features include bootstrap, loggers, middlewares, koa, routing, i18n, and etc. Every feature is a top-level config item in the server configuraiton file or application configuration file.
+### CRUD
 
-### Starting Phrase
+#### Query
 
-The starting of a server or an application include 5 consecutive phrases:
+```
+// Model class: User
+// Say, profile belongs to user, a user may has many profile and tagged as "profiles" in the schema 
+let user = await User.findOne_(userId); // return only the user's info
+let user = await User.findOne_({ $association: [ 'profiles' ], id: userId }); // return the user and all profiles placed at user[":profiles"], all keys not starts with "$" will be merged into $query 
+let users = await User.findAll_({ $association: [ 'profiles' ], $query: { ... } });
 
-1). Initial Phrase
+```
+#### Create
 
-2). Service Registration Phrase
+```
+let user = {
+    username: 'guest',
+    ':profiles': [ 
+        {   
+            source: 'facebook',
+            firstName: 'Tom',
+            lastName: 'Ham',            
+        }   
+    ]
+};
 
-3). Engine Configuration Phrase
+await User.create_(user);
+// 1. insert profile
+// 2. insert user
 
-4). Middleware Registration Phrase
+```
 
-5). Routing Configuration Phrase (The starting process of an application starts within the server's routing configuration phrase)
+#### Update
 
-A feature mentioned above is designed to be activated in a certain phrase which is specified in the feature definition file.
+```
+//if password depends an existing field in the db, e.g. passwordSalt to produce a salted hash
+let user = {
+    id: 23131233,
+    password: 'iefjeifj'
+};
 
-### Middleware
-A mowa middleware actually should be called a middleware factory. It is a function creating a koa-styled middleware. The middleware factory can be configured in the section of "middlewares" feature of the configuration file or as an option in the setting of a certain router.
+await User.update_({ ...dataToUpdate }, { $query: { ...conditionWithUniqueKey }, ...otherOptions });
+// 1. begin transaction
+// 2. select latest user by id
+// 3. apply modification
+// 4. update
+// 5. commit
 
-### Router
-TBD.
+await User.updateMany_({ ...dataToUpdate }, { $query: { ...condition }, ...otherOptions });
+```
 
-### Oolong
-Oolong is an embeded domain specific language (DSL) in mowa. The oolong dsl engine will build database scripts, database access models and data-related UI according to oolong entity definition files. It also shipped with a CLI tool to do automatic deployment of the database structure.
+#### Delete
 
-## 2. Project Structure
+```
+User.deleteOne_({ ...conditionWithUniqueKey });
+or
+User.deleteOne_({ $query: { ...conditionWithUniqueKey }, ...otherOptions });
 
-* **/conf** - server or application configuration files
-* **/client** - client-side source code
-* **/server** - server-side source code
-	* **/server/bootstrap** - default path of bootstrap scripts (if boot feature is enabled in server or application config)
-	* **/server/models** - backend model files
-	* **/server/controllers** - backend controller files
-	* **/server/views** - backend view files
-* **/app_modules** - child applications
-* **/server/db** - database initial scripts including test data
-* **/server/models** - database access models (usually automatically generated by oolong DSL)
-* **/oolong** - oolong entity definition files
-* **/public** - default path of static files (if serveStatic middleware is enabled)
-* **/middlewares** - middlewares extension
-* **/features** - features extension
+User.deleteMany_({ ...dataToUpdate }, { $query: { ...condition }, ...otherOptions });
+// if logical deletion, call updateAll
+// if not, delete all
 
+```
 
-## 3. Get Started
+------
 
-### Configurations
+### Condition Rules
 
-#### 1) Server Configuration
+#### operator
 
-* Environment specific configuration
-	* /conf/server.default.json
-	* /conf/server.development.json - Development specific configuration, overrides server.default.json
-	* /conf/server.production.json - Production specific configuration, overrides server.default.json
+* $eq or $equal
+* $ne or $neq or $notEqual
+* $> or $gt or $greaterThan
+* $>= or $gte or $greaterThanOrEqual
+* $< or $lt or $lessThan
+* $<= or $lte or $lessThanOrEqual
+* $in
+* $nin or $notIn
 
-#### 2) App Module Configuration
+------
 
-* Environment specific configuration
-	* /app_modules/`<module name>`/conf/app.default.json
-	* /app_modules/`<module name>`/conf/app.development.json - Development specific configuration, overrides app.default.json
-	* /app_modules/`<module name>`/conf/app.production.json - Production specific configuration, overrides app.default.json
+## Entity Model
 
-#### 3) Feature Configuration
-* Each top-level key-value pair in the configuration file is the config of a feature, e.g. loggers, koa, mysql
-	* Key is the feature name
-	* Value is the feature's own config
+### static members
 
-## 4. Built-in Features
+* db
+    * connector - Getter
+    * createNewConnector - Create a new connector, usually used for transaction
+* meta - Metadata about the enttiy
+    * knowledge 
+        * dependsOnExisting
+* i18n - I18n object
 
-### Bootstrap
+### operation context
 
-Specify a path containing scripts to be executed during initial phrase. 
+There are predefined context properties which can be accessed in an entity operation as listed below.
 
-Options:
+* operation - 'create/retrieve/update/delete'
+* raw - Raw input data. 
+* latest - Validated and sanitized data.
+* existing - Existing data from database.
+* i18n - I18n object.
+* connector - Existing connector for chained operation.
+* result - Operation result.
+* return - Data to return, if retrieveCreated or retrieveUpdated or retrieveDeleted is true, return will be the just create/updated/deleted data.
+* entities - Access other entity models in the same schema
+* schemas - Access other schema models in the same application
+* state - Current request state
 
-	[path] - Bootstrap scripts path, default: ./server/bootstrap
+### opertion helper
 
-## 5. Convention
+queryFunction
+queryBinExpr
+queryColumn
 
-### Design by contract
+### operation options
 
-Refer to: https://www.npmjs.com/package/babel-plugin-contract
-
-### Action
-* this context
-    * appModule - the webModule instance
-    * state - the default view state for view renderer
-        * _self - Current landing url    	
-		* __ - i18n interface
-		* _makePath(relativePath, query)
-		* _makeUrl(relativePath, query)
-		* _csrf - if csrf middleware attached
-
-
-## License
-
-  MIT
+* connector - Transaction connector.
+* $projection
+* $association
+* $relationships
+* $query - Query condition
+* $variables - Variables to interpolate into query condition
+* $features - Custom feature options override
+* $orderBy - Order by condition, map of column to ascend?
+* $groupBy - Group by condition
+* $offset
+* $limit
+* $totalCount - Returns total record count when used with $limit
+* $includeDeleted - {boolean}
+* $skipOrm - {boolean}
+* $custom - User defined operation control data
+* $retrieveCreated
+* $retrieveUpdated
+* $retrieveDeleted
+* $retrieveExisting
+* $retrieveDbResult
+* $bypassReadOnly
+* $physicalDeletion - {boolean}
+* $existing
+* $requireSplitColumns
+* $bypassEnsureUnique
+* $toDictionary
+* $migration - {boolean}
+* [OUT] $result - Filled by db operation raw result, when $retrieveDbResult is set

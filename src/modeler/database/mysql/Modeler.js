@@ -593,16 +593,16 @@ class MySQLModeler {
                 }
 
                 if (assoc.type === 'belongsTo') {
-                    constraints.onUpdate || (constraints.onUpdate = 'CASCADE');
-                    constraints.onDelete || (constraints.onDelete = 'CASCADE');
+                    constraints.onUpdate || (constraints.onUpdate = 'RESTRICT');
+                    constraints.onDelete || (constraints.onDelete = 'RESTRICT');
 
                 } else if (localFieldObj.optional) {
-                    constraints.onUpdate || (constraints.onUpdate = 'CASCADE');
+                    constraints.onUpdate || (constraints.onUpdate = 'SET NULL');
                     constraints.onDelete || (constraints.onDelete = 'SET NULL');
                 }
 
-                constraints.onUpdate || (constraints.onUpdate = 'RESTRICT');
-                constraints.onDelete || (constraints.onDelete = 'RESTRICT');
+                constraints.onUpdate || (constraints.onUpdate = 'NO ACTION');
+                constraints.onDelete || (constraints.onDelete = 'NO ACTION');
 
                 this._addReference(entity.name, localField, destEntityName, destKeyField.name, constraints);
             break;
@@ -951,7 +951,7 @@ class MySQLModeler {
             { entity: entity2Name }
         );
 
-        let allCascade = { onUpdate: 'CASCADE', onDelete: 'CASCADE' };
+        let allCascade = { onUpdate: 'RESTRICT', onDelete: 'RESTRICT' };
 
         this._addReference(relationEntityName, connectedByField, entity1Name, keyEntity1.name, allCascade);
         this._addReference(relationEntityName, connectedByField2, entity2Name, keyEntity2.name, allCascade);        

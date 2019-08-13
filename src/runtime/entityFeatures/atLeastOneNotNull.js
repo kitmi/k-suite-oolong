@@ -7,7 +7,7 @@ const Rules = require('../../enum/Rules');
 
 /**
  * A rule specifies at least one field not null, e.g. email or mobile.
- * @module EntityFeatureRule_AtLeastOneNotNull
+ * @module EntityFeatureRuntime_AtLeastOneNotNull
  */
 
 module.exports = {

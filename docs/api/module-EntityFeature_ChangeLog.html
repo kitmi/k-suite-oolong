@@ -4,7 +4,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width">
-	<title>@k-suite/oolong Class: MySQLMigration</title>
+	<title>@k-suite/oolong Module: EntityFeature_ChangeLog</title>
 
 	<!--[if lt IE 9]>
 	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -86,17 +86,10 @@
 		<div id="main">
 			
 
-	<h1 class="page-title">Class: MySQLMigration</h1>
+	<h1 class="page-title">Module: EntityFeature_ChangeLog</h1>
 <section>
 
 <header>
-    
-        <h2>
-        MySQLMigration
-        </h2>
-        
-            <div class="class-description"><p>MySQL migration.</p></div>
-        
     
 </header>
 
@@ -105,14 +98,87 @@
     <div class="container-overview">
     
         
+            <div class="description"><p>Keep track of changes made to the entity.</p></div>
+        
+
+        
+<dl class="details">
+    
+
+	
+
+	
+
+	
+
+    
+
+    
+
+    
+
+    
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
+	<dd class="tag-source">
+		lang/entityFeatures/changeLog.js
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        <dl>
+            
 <hr>
 <dt>
-    <h4 class="name" id="MySQLMigration"><span class="type-signature"></span>new MySQLMigration(context, connector)</h4>
+    <h4 class="name" id="~feature"><span class="type-signature">&lt;inner> </span>feature(entity)</h4>
     
     
 </dt>
 <dd>
 
+    
+    <div class="description">
+        <p>Initialize the feature</p>
+    </div>
     
 
     
@@ -146,13 +212,13 @@
 
         <tr>
             
-                <td class="name"><code>context</code></td>
+                <td class="name"><code>entity</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">object</span>
+<span class="param-type"><a href="OolongEntity.html">OolongEntity</a></span>
 
 
 
@@ -163,31 +229,7 @@
 
             
 
-            <td class="description last"></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>connector</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="Connector.html">Connector</a></span>
-
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"></td>
+            <td class="description last"><p>Entity to apply this feature</p></td>
         </tr>
 
     
@@ -229,7 +271,7 @@
 	
 	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
 	<dd class="tag-source">
-		migration/mysql.js
+		lang/entityFeatures/changeLog.js
 	</dd>
 	
 
@@ -256,21 +298,7 @@
     
 </dd>
 
-    
-    </div>
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
+        </dl>
     
 
     

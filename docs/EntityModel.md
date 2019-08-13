@@ -98,7 +98,7 @@ queryColumn
 
     * Modifiers    
         * Validator - |~, read as "Ensure"
-        * Processor - |>,  
+        * Processor - |>, read as "Transform to"
         * Activator - |=, read as "Set to"   
 
     * Data Operations
