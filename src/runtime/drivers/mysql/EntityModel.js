@@ -448,12 +448,20 @@ class MySQLEntityModel extends EntityModel {
     static _mapRecordsToObjects([rows, columns, aliasMap], hierarchy) {
         let mainIndex = {};        
 
-        function mergeRecord(existingRow, rowObject, associations) {            
+        function mergeRecord(existingRow, rowObject, associations, nodePath) {            
             _.each(associations, ({ sql, key, list, subAssocs }, anchor) => { 
-                if (sql) return;                                 
+                if (sql) return;                  
+                
+                let currentPath = nodePath.concat();
+                currentPath.push(anchor);
 
                 let objKey = ':' + anchor;                
-                let subObj = rowObject[objKey]
+                let subObj = rowObject[objKey];
+
+                if (!subObj) {
+                    throw new OolongUsageError(`Cannot find association "${currentPath.join('.')}" with [key=${key}] of entity "${this.meta.name}" from the result data.`, { existingRow, rowObject });
+                }
+
                 let subIndexes = existingRow.subIndexes[objKey];
                 
                 // joined an empty record
@@ -463,10 +471,12 @@ class MySQLEntityModel extends EntityModel {
                 let existingSubRow = subIndexes && subIndexes[rowKey];
                 if (existingSubRow) {
                     if (subAssocs) {
-                        mergeRecord(existingSubRow, subObj, subAssocs);
+                        mergeRecord(existingSubRow, subObj, subAssocs, currentPath);
                     }
                 } else {       
-                    assert: list;
+                    if (!list) {
+                        throw new OolongUsageError(`The structure of association "${currentPath.join('.')}" with [key=${key}] of entity "${this.meta.name}" should be a list.`, { existingRow, rowObject });
+                    }
                                      
                     if (existingRow.rowObject[objKey]) {
                         existingRow.rowObject[objKey].push(subObj);
@@ -481,6 +491,10 @@ class MySQLEntityModel extends EntityModel {
                     if (subAssocs) {
                         subIndex.subIndexes = buildSubIndexes(subObj, subAssocs)
                     }    
+
+                    if (!subIndexes) {
+                        throw new OolongUsageError(`The subIndexes of association "${currentPath.join('.')}" with [key=${key}] of entity "${this.meta.name}" does not exist.`, { existingRow, rowObject });
+                    }
 
                     subIndexes[rowKey] = subIndex;                
                 }                
@@ -563,7 +577,7 @@ class MySQLEntityModel extends EntityModel {
             let rowKey = rowObject[this.meta.keyField];
             let existingRow = mainIndex[rowKey];
             if (existingRow) {
-                mergeRecord(existingRow, rowObject, hierarchy);
+                mergeRecord(existingRow, rowObject, hierarchy, []);
             } else {
                 arrayOfObjs.push(rowObject);
                 mainIndex[rowKey] = { 
