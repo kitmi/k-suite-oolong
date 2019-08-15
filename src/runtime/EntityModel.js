@@ -349,11 +349,7 @@ class EntityModel {
             connOptions
         };       
         
-        let needCreateAssocs = false;
-
-        if (!_.isEmpty(associations)) {
-            needCreateAssocs = true;
-        }
+        let needCreateAssocs = !_.isEmpty(associations);
 
         if (!(await this.beforeCreate_(context))) {
             return context.return;
@@ -458,12 +454,16 @@ class EntityModel {
             data = _.omit(data, conditionFields);
         }
 
+        let [ raw, associations ] = this._extractAssociations(data);
+
         let context = { 
-            raw: data, 
+            raw, 
             rawOptions,
             options: this._prepareQueries(updateOptions, forSingleRecord /* for single record */),            
             connOptions
-        };
+        };       
+        
+        let needCreateAssocs = !_.isEmpty(associations);
 
         let toUpdate;
 
@@ -478,6 +478,10 @@ class EntityModel {
         }
         
         let success = await this._safeExecute_(async (context) => {
+            if (needCreateAssocs) {
+                await this.ensureTransaction_(context);                       
+            }
+
             await this._prepareEntityData_(context, true /* is updating */, forSingleRecord);          
 
             if (!(await Features.applyRules_(Rules.RULE_BEFORE_UPDATE, this, context))) {
@@ -517,6 +521,10 @@ class EntityModel {
             }
 
             await Features.applyRules_(Rules.RULE_AFTER_UPDATE, this, context);
+
+            if (needCreateAssocs) {
+                await this._updateAssocs_(context, associations);
+            }            
 
             return true;
         }, context);
@@ -1166,6 +1174,10 @@ class EntityModel {
     }
 
     static async _createAssocs_(context, assocs) {
+        throw new Error(NEED_OVERRIDE);
+    }
+
+    static async _updateAssocs_(context, assocs) {
         throw new Error(NEED_OVERRIDE);
     }
 

@@ -625,6 +625,42 @@ class MySQLEntityModel extends EntityModel {
             return assocModel.create_({ ...data, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, context.options, context.connOptions);  
         });
     }
+
+    static async _updateAssocs_(context, assocs) {
+        let meta = this.meta.associations;
+        let keyValue = context.return[this.meta.keyField];
+
+        if (_.isNil(keyValue)) {
+            throw new OolongUsageError('Missing required primary key field value. Entity: ' + this.meta.name);
+        }
+
+        return eachAsync_(assocs, async (data, anchor) => {
+            let assocMeta = meta[anchor];
+            if (!assocMeta) {
+                throw new OolongUsageError(`Unknown association "${anchor}" of entity "${this.meta.name}".`);
+            }                        
+
+            let assocModel = this.db.model(assocMeta.entity);
+
+            if (assocMeta.list) {
+                data = _.castArray(data);
+
+                return eachAsync_(data, item => assocModel.replaceOne_({ ...item, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, null, context.connOptions));
+            } else if (!_.isPlainObject(data)) {
+                if (Array.isArray(data)) {
+                    throw new BusinessError(`Invalid type of associated entity (${assocMeta.entity}) data triggered from "${this.meta.name}" entity. Singular value expected (${anchor}), but an array is given instead.`);
+                }
+
+                if (!assocMeta.assoc) {
+                    throw new OolongUsageError(`The associated field of relation "${anchor}" does not exist in the entity meta data.`);
+                }
+
+                data = { [assocMeta.assoc]: data };
+            }
+
+            return assocModel.replaceOne_({ ...data, ...(assocMeta.field ? { [assocMeta.field]: keyValue } : {}) }, null, context.connOptions);  
+        });
+    }
 }
 
 module.exports = MySQLEntityModel;
