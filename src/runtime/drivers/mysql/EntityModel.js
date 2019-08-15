@@ -459,7 +459,7 @@ class MySQLEntityModel extends EntityModel {
                 let subObj = rowObject[objKey];
 
                 if (!subObj) {
-                    throw new OolongUsageError(`Cannot find association "${currentPath.join('.')}" with [key=${key}] of entity "${this.meta.name}" from the result data.`, { existingRow, rowObject });
+                    continue;
                 }
 
                 let subIndexes = existingRow.subIndexes[objKey];
@@ -472,6 +472,8 @@ class MySQLEntityModel extends EntityModel {
                 if (existingSubRow) {
                     if (subAssocs) {
                         mergeRecord(existingSubRow, subObj, subAssocs, currentPath);
+                    } else {
+                        throw new OolongUsageError(`The subIndexes of association "${currentPath.join('.')}" with [key=${key}] of entity "${this.meta.name}" exists but subAssocs is null.`, { existingRow, rowObject, hierarchy });
                     }
                 } else {       
                     if (!list) {
@@ -518,6 +520,10 @@ class MySQLEntityModel extends EntityModel {
                 };
 
                 if (list) {   
+                    if (!subObject) {
+                        continue;
+                    }
+
                     //many to *                 
                     if (_.isNil(subObject[key])) {
                         //subObject not exist, just filled with null by joining
