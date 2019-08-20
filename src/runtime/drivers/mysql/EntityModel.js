@@ -459,7 +459,7 @@ class MySQLEntityModel extends EntityModel {
                 let subObj = rowObject[objKey];
 
                 if (!subObj) {
-                    continue;
+                    return;
                 }
 
                 let subIndexes = existingRow.subIndexes[objKey];
@@ -521,7 +521,7 @@ class MySQLEntityModel extends EntityModel {
 
                 if (list) {   
                     if (!subObject) {
-                        continue;
+                        return;
                     }
 
                     //many to *                 

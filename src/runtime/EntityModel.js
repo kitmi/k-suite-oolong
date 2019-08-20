@@ -98,8 +98,9 @@ class EntityModel {
      * @param {*} entityObj 
      * @param {*} keyPath 
      */
-    static getNestedObject(entityObj, keyPath) {
-        return getValueByPath(entityObj, keyPath);
+    static getNestedObject(entityObj, keyPath, defaultValue) {
+        let nodes = (Array.isArray(keyPath) ? keyPath : keyPath.split('.')).map(key => key[0] === ':' ? key : (':' + key));
+        return getValueByPath(entityObj, nodes, defaultValue);
     }
 
     /**
@@ -786,7 +787,7 @@ class EntityModel {
                     }
                 }
 
-                /**  todo: fix dependency
+                /**  todo: fix dependency, check writeProtect 
                 if (isUpdating && fieldInfo.writeOnce) {     
                     assert: existing, '"writeOnce" qualifier requires existing data.';
                     if (!_.isNil(existing[fieldName])) {

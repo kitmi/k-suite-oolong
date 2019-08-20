@@ -11,7 +11,7 @@ module.exports = {
 
     sanitize: (value, info, i18n) => {
         if (_.isPlainObject(value)) return value;
-
+        if (Array.isArray(value)) return value;
         if (_.isObjectLike(value)) return _.toPlainObject(value);
 
         if (typeof value === 'string') {
