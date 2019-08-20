@@ -447,6 +447,7 @@ class MySQLEntityModel extends EntityModel {
 
     static _mapRecordsToObjects([rows, columns, aliasMap], hierarchy) {
         let mainIndex = {};        
+        let self = this;
 
         function mergeRecord(existingRow, rowObject, associations, nodePath) {            
             _.each(associations, ({ sql, key, list, subAssocs }, anchor) => { 
@@ -472,12 +473,10 @@ class MySQLEntityModel extends EntityModel {
                 if (existingSubRow) {
                     if (subAssocs) {
                         mergeRecord(existingSubRow, subObj, subAssocs, currentPath);
-                    } else {
-                        throw new OolongUsageError(`The subIndexes of association "${currentPath.join('.')}" with [key=${key}] of entity "${this.meta.name}" exists but subAssocs is null.`, { existingRow, rowObject, hierarchy });
-                    }
+                    } 
                 } else {       
                     if (!list) {
-                        throw new OolongUsageError(`The structure of association "${currentPath.join('.')}" with [key=${key}] of entity "${this.meta.name}" should be a list.`, { existingRow, rowObject });
+                        throw new OolongUsageError(`The structure of association "${currentPath.join('.')}" with [key=${key}] of entity "${self.meta.name}" should be a list.`, { existingRow, rowObject });
                     }
                                      
                     if (existingRow.rowObject[objKey]) {
@@ -495,7 +494,7 @@ class MySQLEntityModel extends EntityModel {
                     }    
 
                     if (!subIndexes) {
-                        throw new OolongUsageError(`The subIndexes of association "${currentPath.join('.')}" with [key=${key}] of entity "${this.meta.name}" does not exist.`, { existingRow, rowObject });
+                        throw new OolongUsageError(`The subIndexes of association "${currentPath.join('.')}" with [key=${key}] of entity "${self.meta.name}" does not exist.`, { existingRow, rowObject });
                     }
 
                     subIndexes[rowKey] = subIndex;                
