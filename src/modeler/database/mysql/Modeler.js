@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 const path = require('path');
 
 const Util = require('rk-utils');
-const { _, fs, quote } = Util;
+const { _, fs, quote, putIntoBucket } = Util;
 
 const OolUtils = require('../../../lang/OolUtils');
 const { pluralize, isDotSeparateName, extractDotSeparateName } = OolUtils;
@@ -74,13 +74,11 @@ class MySQLModeler {
 
         this._events.emit('afterRelationshipBuilding');        
 
-        //build SQL scripts
-        const zeroInitFile = '0-init.json';
+        //build SQL scripts        
         let sqlFilesDir = path.join('mysql', this.connector.database);
         let dbFilePath = path.join(sqlFilesDir, 'entities.sql');
-        let fkFilePath = path.join(sqlFilesDir, 'relations.sql');
-        let initIdxFilePath = path.join(sqlFilesDir, 'data', '_init', 'index.list');
-        let initFilePath = path.join(sqlFilesDir, 'data', '_init', zeroInitFile);
+        let fkFilePath = path.join(sqlFilesDir, 'relations.sql');        
+        
         let tableSQL = '', relationSQL = '', data = {};
 
         //let mapOfEntityNameToCodeName = {};
@@ -115,45 +113,64 @@ class MySQLModeler {
             tableSQL += this._createTableStatement(entityName, entity/*, mapOfEntityNameToCodeName*/) + '\n';
 
             if (entity.info.data) {
-                //intiSQL += `-- Initial data for entity: ${entityName}\n`;
-                let entityData = [];
+                entity.info.data.forEach(({ dataSet, runtimeEnv, records }) => {
+                    //intiSQL += `-- Initial data for entity: ${entityName}\n`;
+                    
+                    let entityData = [];
 
-                if (Array.isArray(entity.info.data)) {
-                    entity.info.data.forEach(record => {
-                        if (!_.isPlainObject(record)) {
-                            let fields = Object.keys(entity.fields);
-                            if (fields.length !== 2) {                                
-                                throw new Error(`Invalid data syntax: entity "${entity.name}" has more than 2 fields.`);
+                    if (Array.isArray(records)) {
+                        records.forEach(record => {
+                            if (!_.isPlainObject(record)) {
+                                let fields = Object.keys(entity.fields);
+                                if (fields.length !== 2) {                                
+                                    throw new Error(`Invalid data syntax: entity "${entity.name}" has more than 2 fields.`);
+                                }
+
+                                let keyField = entity.fields[fields[0]];
+
+                                if (!keyField.auto && !keyField.defaultByDb) {
+                                    throw new Error(`The key field "${entity.name}" has no default value or auto-generated value.`);
+                                }
+
+                                record = { [fields[1]]: this.linker.translateOolValue(entity.oolModule, record) };
+                            } else {
+                                record = this.linker.translateOolValue(entity.oolModule, record);
                             }
 
-                            record = { [fields[1]]: this.linker.translateOolValue(entity.oolModule, record) };
-                        } else {
-                            record = this.linker.translateOolValue(entity.oolModule, record);
-                        }
+                            entityData.push(record);
+                        });
+                    } else {
+                        _.forOwn(records, (record, key) => {
+                            if (!_.isPlainObject(record)) {
+                                let fields = Object.keys(entity.fields);
+                                if (fields.length !== 2) {
+                                    throw new Error(`Invalid data syntax: entity "${entity.name}" has more than 2 fields.`);
+                                }
 
-                        entityData.push(record);
-                    });
-                } else {
-                    _.forOwn(entity.info.data, (record, key) => {
-                        if (!_.isPlainObject(record)) {
-                            let fields = Object.keys(entity.fields);
-                            if (fields.length !== 2) {
-                                throw new Error(`Invalid data syntax: entity "${entity.name}" has more than 2 fields.`);
+                                record = {[entity.key]: key, [fields[1]]: this.linker.translateOolValue(entity.oolModule, record)};
+                            } else {
+                                record = Object.assign({[entity.key]: key}, this.linker.translateOolValue(entity.oolModule, record));
                             }
 
-                            record = {[entity.key]: key, [fields[1]]: this.linker.translateOolValue(entity.oolModule, record)};
-                        } else {
-                            record = Object.assign({[entity.key]: key}, this.linker.translateOolValue(entity.oolModule, record));
-                        }
+                            entityData.push(record);
+                            //intiSQL += 'INSERT INTO `' + entityName + '` SET ' + _.map(record, (v,k) => '`' + k + '` = ' + JSON.stringify(v)).join(', ') + ';\n';
+                        });
+                    }
 
-                        entityData.push(record);
-                        //intiSQL += 'INSERT INTO `' + entityName + '` SET ' + _.map(record, (v,k) => '`' + k + '` = ' + JSON.stringify(v)).join(', ') + ';\n';
-                    });
-                }
+                    if (!_.isEmpty(entityData)) {
 
-                if (!_.isEmpty(entityData)) {
-                    data[entityName] = entityData;
-                }
+                        dataSet || (dataSet = '_init');
+                        runtimeEnv || (runtimeEnv = 'default');
+
+                        let nodes = [ dataSet, runtimeEnv ];                        
+
+                        nodes.push(entityName);
+
+                        let key = nodes.join('.');
+
+                        putIntoBucket(data, key, entityData, true);
+                    }
+                });
 
                 //intiSQL += '\n';
             }
@@ -168,20 +185,51 @@ class MySQLModeler {
         this._writeFile(path.join(this.outputPath, dbFilePath), tableSQL);
         this._writeFile(path.join(this.outputPath, fkFilePath), relationSQL);
 
-        let initIdxFileContent;
+        let initIdxFiles = {};
 
-        if (!_.isEmpty(data)) {
-            this._writeFile(path.join(this.outputPath, initFilePath), JSON.stringify(data, null, 4));
+        if (!_.isEmpty(data)) {            
+            _.forOwn(data, (envData, dataSet) => {
+                _.forOwn(envData, (entitiesData, runtimeEnv) => {
+                    _.forOwn(entitiesData, (records, entityName) => {
+                        let initFileName = `0-${entityName}.json`;
 
-            initIdxFileContent = zeroInitFile + '\n';            
-        } else {
-            //no data entry
-            initIdxFileContent = '';
-        }
+                        let pathNodes = [
+                            sqlFilesDir, 'data', dataSet || '_init'
+                        ];
 
-        if (!fs.existsSync(path.join(this.outputPath, initIdxFilePath))) {
-            this._writeFile(path.join(this.outputPath, initIdxFilePath), initIdxFileContent);
-        }
+                        if (runtimeEnv !== 'default') {
+                            pathNodes.push(runtimeEnv);
+                        }
+
+                        let initFilePath = path.join(...pathNodes, initFileName);    
+                        let idxFilePath = path.join(...pathNodes, 'index.list');                 
+                        
+                        putIntoBucket(initIdxFiles, [idxFilePath], initFileName);
+
+                        this._writeFile(path.join(this.outputPath, initFilePath), JSON.stringify({ [entityName]: records }, null, 4));
+                    }) 
+                });
+            })
+        } 
+
+        console.dir(initIdxFiles, {depth: 10});
+
+        _.forOwn(initIdxFiles, (list, filePath) => {
+            let idxFilePath = path.join(this.outputPath, filePath);
+
+            let manual = [];
+
+            if (fs.existsSync(idxFilePath)) {
+                let lines = fs.readFileSync(idxFilePath, 'utf8').split('\n');
+                lines.forEach(line => {
+                    if (!line.startsWith('0-')) {
+                        manual.push(line);
+                    }
+                });
+            }
+        
+            this._writeFile(idxFilePath, list.concat(manual).join('\n'));
+        });
 
         let funcSQL = '';
         

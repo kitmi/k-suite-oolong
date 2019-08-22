@@ -30,6 +30,7 @@
         'entity.interface': new Set(['accept', 'find', 'findOne', 'return']),
         'entity.triggers': new Set(['onCreate', 'onCreateOrUpdate', 'onUpdate', 'onDelete']),  
         'entity.restful': new Set(['create', 'findOne', 'findAll', 'updateOne', 'updateMany', 'deleteOne', 'deleteMany']),              
+        'entity.data': new Set(['in']),
 
         'dataset.body': new Set(['with']),
 
@@ -497,7 +498,7 @@
                 let v1 = obj1[k];
                 let t1 = typeof v1;
 
-                if (t1 === 'object' || t2 === 'object') {
+                if ((t1 === 'object' && !Array.isArray(v1)) || (t2 === 'object' && !Array.isArray(v2))) {
                     if (t1 !== 'undefined' && t1 !== 'object') {
                         throw new Error(`Failed to merge object propery "${k}".`);
                     }
@@ -1355,9 +1356,15 @@ index_item_body
     ;
 
 data_statement
-    : "data" inline_object NEWLINE -> { data: $2 }
-    | "data" inline_array NEWLINE -> { data: $2 }
+    : "data" data_records NEWLINE -> { data: [{ records: $2 }] }
+    | "data" identifier_or_string data_records NEWLINE -> { data: [{ dataSet: $2, records: $3 }] }    
+    | "data" (identifier_or_string)? "in" identifier_or_string data_records NEWLINE -> { data: [{ dataSet: $2, runtimeEnv: $4, records: $5 }] }    
     ;
+
+data_records
+    : inline_object
+    | inline_array
+    ;    
 
 triggers_statement
     : "triggers" NEWLINE INDENT triggers_statement_block DEDENT NEWLINE? -> { triggers: $4 }

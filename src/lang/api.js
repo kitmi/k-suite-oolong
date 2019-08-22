@@ -27,14 +27,7 @@ const Validators = require('../runtime/Validators');
     return Connector.createConnector(driver, connectionString, { logger: context.logger, ...options });       
  }
 
- async function importDataFiles(migrator, folderName) {
-    let dataSetPath = path.join(migrator.dbScriptPath, 'data', folderName);
-    let dataListFile = path.join(dataSetPath, 'index.list');
-
-    if (!fs.existsSync(dataListFile)) {
-        throw new Error(`Entry file of dataset "${folderName}" not found.`);
-    }
-
+ async function importDataFilesByList(migrator, dataSetPath, dataListFile) {
     let dataList = fs.readFileSync(dataListFile).toString().match(/^.+$/gm);
 
     if (!dataList) {
@@ -52,7 +45,37 @@ const Validators = require('../runtime/Validators');
 
             await migrator.load_(dataFile);
         }
-    });
+    }); 
+ }
+
+ async function importDataFiles(migrator, folderName) {
+    let dataSetPath = path.join(migrator.dbScriptPath, 'data', folderName);
+    let dataListFile = path.join(dataSetPath, 'index.list');
+
+    let runtimeDataSetPath, runtimeDataSetFile, imported = false;    
+
+    if (migrator.appModule.runtimeEnv) {
+        runtimeDataSetPath = path.join(dataSetPath, migrator.appModule.runtimeEnv);        
+        runtimeDataSetFile = path.join(runtimeDataSetPath, 'index.list');
+    }    
+
+    if (fs.existsSync(dataListFile)) {
+        await importDataFilesByList(migrator, dataSetPath, dataListFile);      
+        imported = true;  
+    } else {
+        migrator.appModule.log('warn', `Dataset index file "${dataListFile}" not exist.`)
+    }
+    
+    if (runtimeDataSetFile && fs.existsSync(runtimeDataSetFile)) {
+        await importDataFilesByList(migrator, runtimeDataSetPath, runtimeDataSetFile);    
+        imported = true;      
+    } else if (migrator.appModule.runtimeEnv) {
+        migrator.appModule.log('warn', `Dataset index file of "${migrator.appModule.runtimeEnv}" env "${runtimeDataSetFile}" not exist.`)
+    }
+    
+    if (!imported) {
+        throw new Error(`Entry file of dataset "${folderName}" not found.`);
+    }    
  }
 
 /**
@@ -151,9 +174,9 @@ exports.migrate_ = async (context, reset = false) => {
             let Migration = require(`../migration/${connector.driver}`);
             let migration = new Migration(context, schemaName, connector);
 
-            await migration.create_(deployment.extraOptions);
+            await migration.create_(deployment.extraOptions);      
 
-            await importDataFiles(migration, '_init');   
+            await importDataFiles(migration, '_init');  
         } catch (error) {
             throw error;
         } finally {

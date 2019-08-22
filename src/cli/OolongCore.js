@@ -186,6 +186,7 @@ class OolongCore {
             configName,
             disableEnvAwareConfig: !envAware,
             allowedFeatures: [
+                'runtimeEnv',
                 'configByHostname',                    
                 'devConfigByGitUser',                
                 'loggers',

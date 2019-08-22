@@ -43,7 +43,7 @@
   "peerDependencies": {
     "@k-suite/algorithms": "^0.1.0",
     "@k-suite/app": "^1.0.2",
-    "rk-utils": "^2.2.4"
+    "rk-utils": "^2.2.6"
   },
   "devDependencies": {
     "@babel/cli": "^7.1.2",
@@ -68,7 +68,7 @@
     "mysql2": "^1.6.4",
     "nyc": "^13.0.1",
     "require-self": "^0.2.1",
-    "rk-utils": "^2.2.4",
+    "rk-utils": "^2.2.6",
     "shelljs": "^0.8.2",
     "shortid": "^2.2.14",
     "should": "^13.2.3",
