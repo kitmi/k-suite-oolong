@@ -448,7 +448,7 @@ class MySQLModeler {
                             
                         this._updateRelationEntity(connEntity, entity, destEntity, entity.name, destEntityName, connectedByField, connectedByField2);
 
-                        let localFieldName = assoc.srcField || pluralize(destEntityNameAsFieldName);     
+                        let localFieldName = assoc.srcField || pluralize(destEntityNameAsFieldName);                           
 
                         entity.addAssociation(
                             localFieldName,
@@ -499,6 +499,36 @@ class MySQLModeler {
                             //leave it to the referenced entity  
                             let anchor = assoc.srcField || (assoc.type === 'hasMany' ? pluralize(destEntityNameAsFieldName) : destEntityNameAsFieldName);                            
                             let remoteField = assoc.remoteField || backRef.srcField || entity.name;
+
+
+                            //check if the target entity has logical deletion feature
+                            if (destEntity.hasFeature('logicalDeletion')) {
+
+                                let deletionCheck = {
+                                    oolType: 'BinaryExpression',
+                                    operator: '!=',
+                                    left: { oolType: 'ObjectReference', name: `${destEntityName}.${destEntity.features['logicalDeletion'].field}` },
+                                    right: true
+                                };
+
+                                if (_.isPlainObject(remoteField)) {
+                                    remoteField.with = {
+                                        oolType: 'LogicalExpression',
+                                        operator: 'and',
+                                        left: remoteField.with,
+                                        right: deletionCheck
+                                    };                                    
+                                } else if (assoc.with) {
+                                    assoc.with = {
+                                        oolType: 'LogicalExpression',
+                                        operator: 'and',
+                                        left: assoc.with,
+                                        right: deletionCheck
+                                    };
+                                } else {
+                                    assoc.with = deletionCheck;
+                                }                
+                            }                            
                             
                             entity.addAssociation(
                                 anchor,                                 

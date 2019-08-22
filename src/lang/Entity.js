@@ -420,6 +420,10 @@ class Entity extends Clonable {
         return this;
     }
 
+    hasFeature(name) {
+        return this.features && (name in this.features);
+    }
+
     /**
      * Set key name
      * @param {string|array.<string>} name - Field name to be used as the key
