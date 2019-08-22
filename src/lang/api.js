@@ -70,7 +70,7 @@ const Validators = require('../runtime/Validators');
         await importDataFilesByList(migrator, runtimeDataSetPath, runtimeDataSetFile);    
         imported = true;      
     } else if (migrator.appModule.runtimeEnv) {
-        migrator.appModule.log('warn', `Dataset index file of "${migrator.appModule.runtimeEnv}" env "${runtimeDataSetFile}" not exist.`)
+        migrator.appModule.log(imported ? 'info' : 'warn', `Dataset index file of "${migrator.appModule.runtimeEnv}" env "${runtimeDataSetFile}" not exist.`)
     }
     
     if (!imported) {
