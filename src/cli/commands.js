@@ -4,11 +4,14 @@ const Util = require('rk-utils');
 const { _, fs } = Util;
 const { extractDriverAndConnectorName } = require('../utils/lang');
 
+const Convention = require('../enum/Convention');
+
 exports.commands = {    
     'build': 'Generate database scripts and entity models.',
-    'migrate': 'Create database structure.',    
+    'migrate': 'Create database structure.',        
     'dataset': 'List available data set.',
     'import': 'Import data set.',
+    'export': 'Export data from database.',
     'reverse': 'Reverse engineering from a databse.',
     'listValidators': 'List all builtin validators.'
 };
@@ -74,6 +77,19 @@ exports.options = (core) => {
             };
             break;
 
+        case 'export':
+            cmdOptions['conn'] = {
+                desc: 'The data source connector',
+                alias: [ 'connector' ],
+                promptMessage: 'Please select the data source connector:',
+                inquire: true,
+                required: true,
+                promptType: 'list',
+                choicesProvider: () => Object.keys(core.connectionStrings),
+                afterInquire: () => { console.log('The conenction string of selected connector:', connectionStrings[core.option('conn')]); }                
+            };           
+            break;
+
         case 'reverse':        
             cmdOptions['conn'] = {
                 desc: 'The data source connector',
@@ -111,17 +127,17 @@ exports.build = async (core) => {
 
     let oolongConfig = core.oolongConfig;
 
-    let dslSourceDir = Util.getValueByPath(oolongConfig, 'oolong.dslSourceDir');
+    let dslSourceDir = Util.getValueByPath(oolongConfig, 'oolong.dslSourceDir', 'oolong');
     if (!dslSourceDir) {
         throw new Error('"oolong.dslSourceDir" not found in oolong config.');
     }
 
-    let modelOutputDir = Util.getValueByPath(oolongConfig, 'oolong.modelOutputDir');
+    let modelOutputDir = Util.getValueByPath(oolongConfig, 'oolong.modelOutputDir', 'src/models');
     if (!modelOutputDir) {
         throw new Error('"oolong.modelOutputDir" not found in oolong config.');
     }
 
-    let scriptOutputDir = Util.getValueByPath(oolongConfig, 'oolong.scriptOutputDir');
+    let scriptOutputDir = Util.getValueByPath(oolongConfig, 'oolong.scriptOutputDir', 'src/scripts');
     if (!scriptOutputDir) {
         throw new Error('"oolong.scriptOutputDir" not found in oolong config.');
     }
@@ -245,10 +261,42 @@ exports.reverse = async (core) => {
 
     let dslReverseOutputDir = Util.getValueByPath(oolongConfig, 'oolong.dslReverseOutputDir');
     if (!dslReverseOutputDir) {
-        throw new Error('"oolong.dslOutputDir" not found in oolong config.');
+        throw new Error('"oolong.dslReverseOutputDir" not found in oolong config.');
     }
 
     let outputDir = core.getReverseOutputDir(core.app.toAbsolutePath(dslReverseOutputDir));
+
+    //todo: relocation, and deep copy connection options
+    let conn = core.option('conn');
+    let [ driver ] = extractDriverAndConnectorName(conn);
+    let connOptions = Util.getValueByPath(oolongConfig, 'dataSource.' + conn);
+    assert: connOptions;    
+
+    if (typeof connOptions.reverseRules === 'string') {
+        connOptions.reverseRules = require(core.app.toAbsolutePath(connOptions.reverseRules));
+    } 
+
+    assert: !connOptions.reverseRules || _.isPlainObject(connOptions.reverseRules);
+
+    return core.api.reverse_({ 
+        logger: core.app.logger,
+        dslReverseOutputPath: outputDir,
+        driver,
+        connOptions
+    });
+};
+
+exports.export = async (core) => {
+    core.app.log('verbose', 'oolong reverse');
+
+    let oolongConfig = core.oolongConfig;
+
+    let dataExportDir = Util.getValueByPath(oolongConfig, 'oolong.dataExportDir');
+    if (!dataExportDir) {
+        throw new Error('"oolong.dataExportDir" not found in oolong config.');
+    }
+
+    let outputDir = core.app.toAbsolutePath(dataExportDir);
 
     //todo: relocation, and deep copy connection options
     let conn = core.option('conn');

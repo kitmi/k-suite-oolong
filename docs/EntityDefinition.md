@@ -4,13 +4,21 @@
 
 ## features
 
-* atLeastOneNotNull
-* autoId
-* createTimestamp
-* i18n
-* logicalDeletion
-* stateTracking
-* updateTimestamp
+* Syntax: 
+
+    ```
+    with 
+      <feature>["(" [ <list of options> ]  ")"]
+      ...
+
+* Available features
+    * atLeastOneNotNull
+    * autoId
+    * createTimestamp
+    * i18n
+    * logicalDeletion
+    * stateTracking
+    * updateTimestamp
 
 ## fields
 
@@ -82,3 +90,15 @@ Index does not include foreign keys which are covered by associations.
 ### do something
 
 ### return result
+
+## data
+
+    data [<data set name>] ["in" <runtime environment>] <collection>
+
+### examples of data definition 
+
+    data [
+        { code: 'PUB', name: 'Public', desc: 'All user can see' },
+        { code: 'CNT', name: 'Contact', desc: 'Only your contacts can see' },
+        { code: 'PRI', name: 'Private', desc: 'Only yourself can see' }
+    ]  

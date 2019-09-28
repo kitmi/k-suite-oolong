@@ -35,11 +35,6 @@ let cliApp = new CliApp('oolong', {
                 { "name": "command", "default": 'main' }
             ],  
             "options": {                
-                "e": {
-                    "desc": "Target environment",
-                    "alias": [ "env", "environment" ],
-                    "default": "development"
-                },
                 "s": {
                     "desc": "Silent mode",
                     "alias": [ "silent" ],

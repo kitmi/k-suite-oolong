@@ -112,6 +112,18 @@ class MongodbConnector extends Connector {
         return this.onCollection_(model, (coll) => coll.insertMany(data, { bypassDocumentValidation: true, ordered: false, ...options }));
     }
 
+    async insertOneIfNotExist_(model, data, options) {
+        try {
+            return await this.insertOne_(model, data, options)
+        } catch (error) {
+            if (error.code === 11000) {
+                return false;
+            }
+
+            throw error;
+        }
+    }
+
     /**
      * Replace (insert or update for exsisting) an entity and return original record.
      * @param {string} model 
@@ -148,6 +160,8 @@ class MongodbConnector extends Connector {
      * @param {*} options 
      */
     async updateOne_(model, data, condition, options) { 
+        //todo: spin to wait for non __lock__ 
+
         return this.onCollection_(model, (coll) => coll.updateOne(condition, this._translateUpdate(data), options));
     }
 

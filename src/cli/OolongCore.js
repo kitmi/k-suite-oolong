@@ -148,6 +148,7 @@ class OolongCore {
                     console.log();
                 }
             } else if (name in this.argv && opts.nonInquireFilter) {
+                //nonInquire
                 this.argv[name] = await opts.nonInquireFilter(this.argv[name]);
             } 
 

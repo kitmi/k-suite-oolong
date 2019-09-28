@@ -160,6 +160,9 @@ class EntityModel {
 
     /**
      * Get a pk-indexed hashtable with all undeleted data
+     * {string} [key] - The key field to used by the hashtable.
+     * {array} [associations] - With an array of associations.
+     * {object} [connOptions] - Connection options, e.g. transaction handle
      */
     static async cached_(key, associations, connOptions) {
         if (key) {
