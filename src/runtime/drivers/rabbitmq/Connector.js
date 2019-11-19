@@ -79,8 +79,13 @@ class RabbitmqConnector extends Connector {
         }
 
         let ch = await this.connect_();        
-        await ch.assertQueue(queueName);
-        let ret = ch.sendToQueue(queueName, Buffer.from(obj), options);
+        await ch.assertQueue(queueName, {
+            durable: true
+        });
+        let ret = ch.sendToQueue(queueName, Buffer.from(obj), {
+            persistent: true,
+            ...options
+        });
 
         this.log('info', `Sent to MQ[${queueName}]`, { msg: obj });
 
@@ -89,7 +94,11 @@ class RabbitmqConnector extends Connector {
 
     async consume_(queueName, consumerMethod, options) {        
         let ch = await this.connect_();
-        await ch.assertQueue(queueName);
+        await ch.assertQueue(queueName, {
+            durable: true
+        });
+
+        await ch.prefetch(1);
 
         return ch.consume(queueName, (msg) => consumerMethod(ch, msg), options);
     }
